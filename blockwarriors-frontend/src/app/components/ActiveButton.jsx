@@ -1,5 +1,3 @@
-"use client";
-
 function ActiveButton({ onClick, text, className }) {
   return (
     <div className="w-[200px]">
@@ -16,7 +14,7 @@ function ActiveButton({ onClick, text, className }) {
                     rounded-2xl
                     text-center
                     text-xl
-                    ${className || ""}
+                    ${className || ''}
                 `}
       >
         {text}

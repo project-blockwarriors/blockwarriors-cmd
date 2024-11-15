@@ -1,5 +1,5 @@
-import { createServerClient } from "@supabase/ssr";
-import { NextResponse } from "next/server";
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@supabase/ssr';
 
 export async function middleware(request) {
   let response = NextResponse.next({
@@ -8,8 +8,8 @@ export async function middleware(request) {
 
   const path = new URL(request.url).pathname;
 
-  const protectedRoutes = ["/dashboard"];
-  const authRoutes = ["/auth"];
+  const protectedRoutes = ['/profile'];
+  const authRoutes = ['/auth'];
 
   const isProtectedRoute = protectedRoutes.includes(path);
   const isAuthRoute = authRoutes.includes(path);
@@ -18,11 +18,11 @@ export async function middleware(request) {
     const user = await getUser(request, response);
 
     if (isProtectedRoute && !user) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL('/', request.url));
     }
 
     if (isAuthRoute && user) {
-      return NextResponse.redirect(new URL("/", request.url));
+      return NextResponse.redirect(new URL('/', request.url));
     }
   }
 
@@ -38,7 +38,7 @@ export const config = {
      * - favicon.ico (favicon file)
      * Feel free to modify this pattern to include more paths.
      */
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 };
 
@@ -47,7 +47,7 @@ export async function getUser(request, response) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase environment variables");
+    throw new Error('Missing Supabase environment variables');
   }
 
   const supabaseClient = createServerClient(supabaseUrl, supabaseKey, {

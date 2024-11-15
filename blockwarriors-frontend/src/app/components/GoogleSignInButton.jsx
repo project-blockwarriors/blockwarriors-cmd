@@ -1,11 +1,11 @@
-"use client";
+'use client';
 
-import React from "react";
-import { useTransition } from "react";
-import { Loader2 } from "lucide-react";
-import { googleSigninAction } from "@/actions/users";
-import toast from "react-hot-toast";
-import ActiveButton from "./ActiveButton";
+import React from 'react';
+import { useTransition } from 'react';
+import { Loader2 } from 'lucide-react';
+import toast from 'react-hot-toast';
+import ActiveButton from './ActiveButton';
+import { googleSigninAction } from '@/actions/users';
 
 export default function GoogleSignInButton() {
   const [isGoogleSigninPending, startGoogleSigninTransition] = useTransition();
@@ -16,7 +16,7 @@ export default function GoogleSignInButton() {
 
       if (errorMessage) {
         console.error(errorMessage);
-        toast.error("An error occurred");
+        toast.error('An error occurred');
       } else if (url) {
         window.location.href = url;
       }
@@ -29,7 +29,7 @@ export default function GoogleSignInButton() {
         isGoogleSigninPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
-          "Sign in with Google"
+          'Sign in with Google'
         )
       }
       onClick={googleSignin}
