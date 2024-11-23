@@ -1,12 +1,12 @@
-"use client";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+'use client';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import Link from 'next/link';
+import { ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
@@ -15,8 +15,8 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
-import { Header } from "../components/Header";
+} from '@/components/ui/form';
+import { Header } from '../components/Header';
 
 const formSchema = z.object({
   teamName: z.string().min(3).max(50),
@@ -31,23 +31,23 @@ export default function RegisterPage() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      teamName: "",
-      institution: "",
-      captainName: "",
-      captainEmail: "",
-      members: "",
-      experience: "",
+      teamName: '',
+      institution: '',
+      captainName: '',
+      captainEmail: '',
+      members: '',
+      experience: '',
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
     // Here you would typically send the data to your backend
-    alert("Registration submitted successfully!");
+    alert('Registration submitted successfully!');
   }
 
   return (
-    <div className="min-h-screen bg-[url('https://images.unsplash.com/photo-1607988795691-3d0147b43231?auto=format&fit=crop&q=80')] bg-cover bg-center">
+    <div className="min-h-screen bg-[url('/blockwarriors-ai-background.webp')] bg-cover bg-center">
       <div className="min-h-screen bg-black/70 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-8">
           <Header />
@@ -66,7 +66,10 @@ export default function RegisterPage() {
               </h1>
 
               <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+                <form
+                  onSubmit={form.handleSubmit(onSubmit)}
+                  className="space-y-8"
+                >
                   <FormField
                     control={form.control}
                     name="teamName"
@@ -74,7 +77,10 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Team Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your team name" {...field} />
+                          <Input
+                            placeholder="Enter your team name"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -88,7 +94,10 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Institution</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter your institution" {...field} />
+                          <Input
+                            placeholder="Enter your institution"
+                            {...field}
+                          />
                         </FormControl>
                         <FormDescription>
                           University, College, or Organization
@@ -105,7 +114,10 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Team Captain Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter team captain's name" {...field} />
+                          <Input
+                            placeholder="Enter team captain's name"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -119,7 +131,10 @@ export default function RegisterPage() {
                       <FormItem>
                         <FormLabel>Team Captain Email</FormLabel>
                         <FormControl>
-                          <Input placeholder="Enter team captain's email" {...field} />
+                          <Input
+                            placeholder="Enter team captain's email"
+                            {...field}
+                          />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -161,7 +176,8 @@ export default function RegisterPage() {
                           />
                         </FormControl>
                         <FormDescription>
-                          Include experience with AI, Minecraft, and competitive programming
+                          Include experience with AI, Minecraft, and competitive
+                          programming
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
