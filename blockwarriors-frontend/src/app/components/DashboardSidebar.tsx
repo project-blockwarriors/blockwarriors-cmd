@@ -57,6 +57,12 @@ export function DashboardSidebar({ className = "" }: SidebarProps) {
                 Leaderboard
               </Link>
             </Button>
+            <Button variant="ghost" className="w-full justify-start" asChild>
+              <Link href="/dashboard/practice" className="flex items-center gap-2">
+                <Gamepad2 className="h-4 w-4" />
+                Practice
+              </Link>
+            </Button>
           </div>
         </div>
       </div>
