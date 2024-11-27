@@ -16,9 +16,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { Header } from '../components/Header';
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { Header } from '../../components/Header';
 
 const formSchema = z.object({
   teamName: z.string().min(3).max(50),
@@ -42,25 +40,8 @@ export default function RegisterPage() {
     },
   });
 
-  const router = useRouter();
-
-  useEffect(() => {
-    const savedFormData = localStorage.getItem('formData');
-    if (savedFormData) {
-      form.reset(JSON.parse(savedFormData));
-    }
-
-    const subscription = form.watch((values) => {
-      localStorage.setItem('formData', JSON.stringify(values));
-      // Optionally, send the data to your backend here
-    });
-    return () => subscription.unsubscribe();
-  }, [form]);
-
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
-    
-    router.push('/register/2');
     // Here you would typically send the data to your backend
     alert('Registration submitted successfully!');
   }
@@ -78,7 +59,7 @@ export default function RegisterPage() {
                     name="teamName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Team Name</FormLabel>
+                        <FormLabel>Team Search</FormLabel>
                         <FormControl>
                           <Input
                             placeholder="Enter your team name"
