@@ -1,5 +1,8 @@
 'use client';
 import { zodResolver } from '@hookform/resolvers/zod';
+import Select from "react-select";
+import { useEffect, useState } from "react";
+import { useId } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import Link from 'next/link';
@@ -25,6 +28,7 @@ const formSchema = z.object({
   captainEmail: z.string().email(),
   members: z.string().min(10).max(500),
   experience: z.string().min(10).max(1000),
+  timeZone: z.string().min(1, "Please select a time zone"),
 });
 
 export default function RegisterPage() {
@@ -37,6 +41,7 @@ export default function RegisterPage() {
       captainEmail: '',
       members: '',
       experience: '',
+      timeZone: '',
     },
   });
 
@@ -45,6 +50,55 @@ export default function RegisterPage() {
     // Here you would typically send the data to your backend
     alert('Registration submitted successfully!');
   }
+
+  //const [selectedTimeZone, setSelectedTimeZone] = useState('');
+  const [countryValue, setCountryValue] = useState(null);
+
+  // below used to be the country descriptions from the example code
+  let timeZone = [
+    { value: 'UTC-12:00', label: 'UTC-12:00 (Baker Island Time)' },
+    { value: 'UTC-11:00', label: 'UTC-11:00 (Niue Time)' },
+    { value: 'UTC-10:00', label: 'UTC-10:00 (Hawaii-Aleutian Time)' },
+    { value: 'UTC-09:00', label: 'UTC-09:00 (Alaska Time)' },
+    { value: 'UTC-08:00', label: 'UTC-08:00 (Pacific Standard Time)' },
+    { value: 'UTC-07:00', label: 'UTC-07:00 (Mountain Standard Time)' },
+    { value: 'UTC-06:00', label: 'UTC-06:00 (Central Standard Time)' },
+    { value: 'UTC-05:00', label: 'UTC-05:00 (Eastern Standard Time)' },
+    { value: 'UTC+00:00', label: 'UTC+00:00 (Greenwich Mean Time)' },
+    { value: 'UTC+01:00', label: 'UTC+01:00 (Central European Time)' },
+    { value: 'UTC+02:00', label: 'UTC+02:00 (Eastern European Time)' },
+    { value: 'UTC+03:00', label: 'UTC+03:00 (Moscow Time)' },
+    { value: 'UTC+05:30', label: 'UTC+05:30 (India Standard Time)' },
+    { value: 'UTC+08:00', label: 'UTC+08:00 (China Standard Time)' },
+    { value: 'UTC+09:00', label: 'UTC+09:00 (Japan Standard Time)' },
+    { value: 'UTC+12:00', label: 'UTC+12:00 (New Zealand Time)' }
+  ];
+  useEffect(() => {
+    setTimeout(() => {
+      setCountryValue({ label: "India", value: "India" });
+    }, 2000);
+  }, []);
+
+  const timeZones = [
+    { value: 'UTC-12:00', label: 'UTC-12:00 (Baker Island Time)' },
+    { value: 'UTC-11:00', label: 'UTC-11:00 (Niue Time)' },
+    { value: 'UTC-10:00', label: 'UTC-10:00 (Hawaii-Aleutian Time)' },
+    { value: 'UTC-09:00', label: 'UTC-09:00 (Alaska Time)' },
+    { value: 'UTC-08:00', label: 'UTC-08:00 (Pacific Standard Time)' },
+    { value: 'UTC-07:00', label: 'UTC-07:00 (Mountain Standard Time)' },
+    { value: 'UTC-06:00', label: 'UTC-06:00 (Central Standard Time)' },
+    { value: 'UTC-05:00', label: 'UTC-05:00 (Eastern Standard Time)' },
+    { value: 'UTC+00:00', label: 'UTC+00:00 (Greenwich Mean Time)' },
+    { value: 'UTC+01:00', label: 'UTC+01:00 (Central European Time)' },
+    { value: 'UTC+02:00', label: 'UTC+02:00 (Eastern European Time)' },
+    { value: 'UTC+03:00', label: 'UTC+03:00 (Moscow Time)' },
+    { value: 'UTC+05:30', label: 'UTC+05:30 (India Standard Time)' },
+    { value: 'UTC+08:00', label: 'UTC+08:00 (China Standard Time)' },
+    { value: 'UTC+09:00', label: 'UTC+09:00 (Japan Standard Time)' },
+    { value: 'UTC+12:00', label: 'UTC+12:00 (New Zealand Time)' },
+  ];
+
+  const vegetableSelectId = useId();
 
   return (
     <div className="min-h-screen bg-[url('/blockwarriors-ai-background.webp')] bg-cover bg-center">
@@ -179,6 +233,68 @@ export default function RegisterPage() {
                           Include experience with AI, Minecraft, and competitive
                           programming
                         </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="timeZone"
+                    
+                    render={({field}) => (
+                      <FormItem>
+                        <FormLabel>Preferred Time Zone</FormLabel>
+                        <FormControl>
+                          <Select
+                        /* <>
+                        <label>
+                              <select name="selected" defaultValue="oange">// was select before
+                                <option value="cucumber">Cucumber</option>
+                                <option value="corn">Corn</option>
+                                <option value="tomato">Tomato</option> */
+
+                             // just a styling/font issue 
+                            
+                            options={timeZone}
+                            /* value={country.find((c) => c.value === value)}
+                            onChange={(val) => onChange(val.value)} */
+                            defaultValue={timeZone.find((c) => c.value === countryValue)}
+                            
+                            /* value={selectedTimeZone} // Controlled by state
+                            onChange={(event) => {
+                              const value = event.target.value;
+                              setSelectedTimeZone(value); // Update state
+                              field.onChange(value); // Update React Hook Form's value
+                            }} */
+                            
+                            /* {...field}
+                            className="block w-full rounded-md border border-gray-300 bg-white p-2 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" */
+                          
+
+                            /* <option value="" disabled>Select your preferred time zone</option>
+                            <option value="UTC-12:00">UTC-12:00 (Baker Island Time)</option>
+                            <option value="UTC-11:00">UTC-11:00 (Niue Time)</option>
+                            <option value="UTC-10:00">UTC-10:00 (Hawaii-Aleutian Time)</option>
+                            <option value="UTC-09:00">UTC-09:00 (Alaska Time)</option>
+                            <option value="UTC-08:00">UTC-08:00 (Pacific Standard Time)</option>
+                            <option value="UTC-07:00">UTC-07:00 (Mountain Standard Time)</option>
+                            <option value="UTC-06:00">UTC-06:00 (Central Standard Time)</option>
+                            <option value="UTC-5:00">UTC-5:00 (Eastern Standard Time)</option>
+                            <option value="UTC+00:00">UTC+00:00 (Greenwich Mean Time)</option>
+                            <option value="UTC+01:00">UTC+01:00 (Central European Time)</option>
+                            <option value="UTC+02:00">UTC+02:00 (Eastern European Time)</option>
+                            <option value="UTC+03:00">UTC+03:00 (Moscow Time)</option>
+                            <option value="UTC+05:30">UTC+05:30 (India Standard Time)</option>
+                            <option value="UTC+08:00">UTC+08:00 (China Standard Time)</option>
+                            <option value="UTC+09:00">UTC+09:00 (Japan Standard Time)</option>
+                            <option value="UTC+12:00">UTC+12:00 (New Zealand Time)</option> */
+
+                          /* </select> 
+                          </>
+                          </label> */
+                          />
+                        </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
