@@ -9,6 +9,7 @@ import {
   TrophyIcon,
   RocketLaunchIcon,
 } from '@heroicons/react/24/outline';
+import Image from 'next/image';
 
 export default function Home() {
   const fadeIn = {
@@ -46,10 +47,13 @@ export default function Home() {
             transition={{ duration: 0.8 }}
           >
             <div className="relative flex justify-center">
-              <img
+              <Image
                 src="/blockwarriors-ai-challenge-artwork.webp"
                 alt="BlockWarriors AI Challenge Artwork"
+                width={1200}
+                height={675}
                 className="w-full h-auto rounded-2xl"
+                priority
               />
               <div className="absolute inset-0 bg-black/20" />
             </div>

@@ -1,10 +1,10 @@
 import React from 'react';
 import Error from 'next/error';
 
-const Error = ({ statusCode }) => {
+const CustomError = ({ statusCode }) => {
     return (
-        <Error statusCode={statusCode}></Error>
+        <Error statusCode={statusCode} />
     );
 }
 
-export default Error;
+export default CustomError;
