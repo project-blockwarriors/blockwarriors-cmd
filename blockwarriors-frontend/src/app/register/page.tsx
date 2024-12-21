@@ -29,6 +29,7 @@ const formSchema = z.object({
   members: z.string().min(10).max(500),
   experience: z.string().min(10).max(1000),
   timeZone: z.string().min(1, "Please select a time zone"),
+  additionalInformation: z.string().min(10).max(500),
 });
 
 export default function RegisterPage() {
@@ -42,6 +43,7 @@ export default function RegisterPage() {
       members: '',
       experience: '',
       timeZone: '',
+      additionalInformation: '',
     },
   });
 
@@ -154,7 +156,7 @@ export default function RegisterPage() {
                           />
                         </FormControl>
                         <FormDescription>
-                          University, College, or Organization
+                          School, University, College, or Organization
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
@@ -295,6 +297,27 @@ export default function RegisterPage() {
                           </label> */
                           />
                         </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="additionalInformation"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Additional Information</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            placeholder="Enter any other information you would like us to know"
+                            className="h-24"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Include any questions, comments, or concerns
+                        </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
