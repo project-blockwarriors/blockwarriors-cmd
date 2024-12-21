@@ -58,21 +58,25 @@ export default function RegisterPage() {
 
   // below used to be the country descriptions from the example code
   let timeZone = [
-    { value: 'UTC-12:00', label: 'UTC-12:00 (Baker Island Time)' },
-    { value: 'UTC-11:00', label: 'UTC-11:00 (Niue Time)' },
     { value: 'UTC-10:00', label: 'UTC-10:00 (Hawaii-Aleutian Time)' },
-    { value: 'UTC-09:00', label: 'UTC-09:00 (Alaska Time)' },
     { value: 'UTC-08:00', label: 'UTC-08:00 (Pacific Standard Time)' },
     { value: 'UTC-07:00', label: 'UTC-07:00 (Mountain Standard Time)' },
     { value: 'UTC-06:00', label: 'UTC-06:00 (Central Standard Time)' },
     { value: 'UTC-05:00', label: 'UTC-05:00 (Eastern Standard Time)' },
+    { value: 'UTC-04:00', label: 'UTC-04:00 (Atlantic Standard Time, Caribbean Time)' },
+    { value: 'UTC-03:00', label: 'UTC-03:00 (Brazil Time)' },
     { value: 'UTC+00:00', label: 'UTC+00:00 (Greenwich Mean Time)' },
     { value: 'UTC+01:00', label: 'UTC+01:00 (Central European Time)' },
-    { value: 'UTC+02:00', label: 'UTC+02:00 (Eastern European Time)' },
-    { value: 'UTC+03:00', label: 'UTC+03:00 (Moscow Time)' },
+    { value: 'UTC+02:00', label: 'UTC+02:00 (Eastern European Time, South Africa Time)' },
+    { value: 'UTC+03:00', label: 'UTC+03:00 (Moscow Time, Arabian Time)' },
+    { value: 'UTC+04:00', label: 'UTC+04:00 (Gulf Standard Time, UAE Time)' },
     { value: 'UTC+05:30', label: 'UTC+05:30 (India Standard Time)' },
+    { value: 'UTC+06:00', label: 'UTC+06:00 (Bangladesh Time)' },
+    { value: 'UTC+07:00', label: 'UTC+07:00 (Indochina Time)' },
     { value: 'UTC+08:00', label: 'UTC+08:00 (China Standard Time)' },
-    { value: 'UTC+09:00', label: 'UTC+09:00 (Japan Standard Time)' },
+    { value: 'UTC+09:00', label: 'UTC+09:00 (Japan Standard Time, Korea Standard Time)' },
+    { value: 'UTC+10:00', label: 'UTC+10:00 (Australian Eastern Time)' },
+    { value: 'UTC+11:00', label: 'UTC+11:00 (Solomon Islands Time, Magadan Time)' },
     { value: 'UTC+12:00', label: 'UTC+12:00 (New Zealand Time)' }
   ];
   useEffect(() => {
@@ -81,6 +85,7 @@ export default function RegisterPage() {
     }, 2000);
   }, []);
 
+  // pretty sure the below code is old and now unnecessary
   const timeZones = [
     { value: 'UTC-12:00', label: 'UTC-12:00 (Baker Island Time)' },
     { value: 'UTC-11:00', label: 'UTC-11:00 (Niue Time)' },
