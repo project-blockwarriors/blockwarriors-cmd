@@ -1,4 +1,6 @@
-# Git Main Branch Contribution Procedure
+# BlockWarriors Command Center
+
+## Git Main Branch Contribution Procedure
 
 ## Overview
 
