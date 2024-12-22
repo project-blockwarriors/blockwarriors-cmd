@@ -12,7 +12,7 @@ export default function GoogleSignInButton() {
 
   const googleSignin = async () => {
     startGoogleSigninTransition(async () => {
-      const { errorMessage, url } = await googleSignupAction("/register/user-details");
+      const { errorMessage, url } = await googleSignupAction();
 
       if (errorMessage) {
         console.error(errorMessage);
