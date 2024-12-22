@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+import { Button } from '../../../components/ui/button';
 import { motion } from 'framer-motion';
 import {
   ServerIcon,
@@ -57,10 +57,22 @@ export default function PracticePage() {
     setIsLoading(true);
     // Simulate API call
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
-      setToken(mockToken);
-    } catch (error) {
+    //   await new Promise((resolve) => setTimeout(resolve, 1000));
+    //   const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
+    //   setToken(mockToken);
+    // }
+    const response = await fetch('/api/start-match', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ selectedMode }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to start match');
+    }
+  } catch (error) {
       console.error('Failed to start match:', error);
     } finally {
       setIsLoading(false);
