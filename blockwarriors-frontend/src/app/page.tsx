@@ -3,6 +3,8 @@
 import { Header } from './components/Header';
 import { RegistrationBanner } from './components/RegistrationBanner';
 import { motion } from 'framer-motion';
+// import { getUser } from '@/lib/auth';
+
 import {
   CodeBracketIcon,
   UserGroupIcon,
@@ -11,6 +13,9 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function Home() {
+
+  // const user = getUser();
+
   const fadeIn = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -33,8 +38,11 @@ export default function Home() {
       }}
     >
       <div className="min-h-screen bg-black/70 backdrop-blur-sm text-white">
+        
         <RegistrationBanner />
+
         <div className="container mx-auto px-4 py-12">
+          
           <Header />
 
           {/* Hero Section */}

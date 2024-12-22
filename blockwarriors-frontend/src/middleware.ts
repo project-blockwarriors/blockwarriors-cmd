@@ -43,6 +43,7 @@ export const config = {
 };
 
 export async function getUser(request, response) {
+
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -59,7 +60,7 @@ export async function getUser(request, response) {
         cookiesToSet.forEach(({ name, value, options }) =>
           request.cookies.set(name, value)
         );
-        supabaseResponse = NextResponse.next({
+        const supabaseResponse = NextResponse.next({
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>

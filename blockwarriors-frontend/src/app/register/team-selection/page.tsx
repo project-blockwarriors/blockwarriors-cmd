@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import Select, { SingleValue } from 'react-select';
 import { Form, FormControl, FormItem, FormLabel, FormMessage, FormField } from '@/components/ui/form';
 import { z } from 'zod';
-import { useRegistration } from '../../context/RegistrationContext';
+import { useRegistration } from '@/app/context/RegistrationContext';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/auth/client'; // Supabase client import

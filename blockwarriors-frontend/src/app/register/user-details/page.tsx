@@ -1,15 +1,12 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { createSupabaseClient, supabase } from '@/auth/client'; // Import Supabase client
+import { User } from '@supabase/supabase-js';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Form, FormControl, FormItem, FormLabel, FormMessage, FormField } from '@/components/ui/form';
 import { z } from 'zod';
-import { useRegistration } from '../../context/RegistrationContext';
-import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { supabase } from '@/auth/client'; // Import Supabase client
+import { userAgent } from 'next/server';
 
 const formSchema = z.object({
   userName: z.string().min(3).max(100),
@@ -18,7 +15,16 @@ const formSchema = z.object({
   geographicLocation: z.string().min(3).max(100),
 });
 
-export default function UserDetailsPage() {
+async function RegistrationPage() {
+
+  const [user, setUser] = useState<User | null>(null);
+
+  const { auth } = createSupabaseClient();
+
+  auth.onAuthStateChange((event, session) => {
+    setUser(session?.user || null);
+  });
+
   const form = useForm({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -28,27 +34,22 @@ export default function UserDetailsPage() {
       geographicLocation: '',
     },
   });
-  const { setRegistrationData } = useRegistration();
-  const router = useRouter();
+
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
+  const onSubmit = async (values) => {
     setIsLoading(true);
     setErrorMessage('');
 
     try {
-      // Step 1: Sign up the user using Supabase authentication
-      const { data: userData, error } = await supabase.auth.signUp({
-        email: values.userEmail,
-        password: 'temporary-password', // Use a temporary password or a password setup link
-      });
-
-      if (error) {
-        throw error; // Handle authentication error
+      const { data: userData, error } = await supabase.auth.getUser();
+      if (error || !userData.user) {
+        throw new Error('Failed to retrieve user information. Please log in again.');
       }
 
-      // Step 2: Insert user details into the 'users' table in Supabase
+      const userId = userData.user.id;
+
       const { error: dbError } = await supabase
         .from('users')
         .insert([
@@ -57,100 +58,35 @@ export default function UserDetailsPage() {
             email: values.userEmail,
             institution: values.institution,
             geographic_location: values.geographicLocation,
-            user_id: userData?.user?.id, // Linking to the user created by Supabase
+            user_id: userId,
           },
         ]);
 
       if (dbError) {
-        throw dbError; // Handle database insertion error
+        throw dbError;
       }
 
-      // Step 3: Set registration data in context
-      setRegistrationData((prev) => ({
-        ...prev,
-        userName: values.userName,
-        userEmail: values.userEmail,
-        institution: values.institution,
-        geographicLocation: values.geographicLocation,
-      }));
-
-      // Step 4: Redirect to the next page
-      router.push('/register/team-selection');
-    } catch (error: any) {
-      setErrorMessage(error.message); // Display error message
+      // Redirect to the next step
+    } catch (error) {
+      setErrorMessage(error.message);
     } finally {
-      setIsLoading(false); // Stop loading state
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="space-y-8">
-      <h1>User Details</h1>
-      {errorMessage && <div className="text-red-500">{errorMessage}</div>}
-
-      <Form {...form}>
-        <form className="space-y-8" onSubmit={form.handleSubmit(onSubmit)}>
-          <FormField
-            control={form.control}
-            name="userName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>User Name</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter your name" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="userEmail"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>User Email</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter your email" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="institution"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Institution</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter your institution" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="geographicLocation"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Geographic Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter your geographic location" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <Button type="submit" size="lg" className="w-full" disabled={isLoading}>
-            {isLoading ? 'Creating Account...' : 'Next'}
-          </Button>
-        </form>
-      </Form>
+    <div>
+      <h1>Registration Page</h1>
+      {errorMessage && <div>{errorMessage}</div>}
+      <form onSubmit={form.handleSubmit(onSubmit)}>
+        <input {...form.register('userName')} placeholder="Username" />
+        <input {...form.register('userEmail')} placeholder="Email" disabled />
+        <input {...form.register('institution')} placeholder="Institution" />
+        <input {...form.register('geographicLocation')} placeholder="Geographic Location" />
+        <button type="submit" disabled={isLoading}>
+          {isLoading ? 'Submitting...' : 'Submit'}
+        </button>
+      </form>
     </div>
   );
 }

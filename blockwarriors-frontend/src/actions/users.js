@@ -55,13 +55,13 @@ export async function signOutAction() {
   }
 }
 
-export async function googleSigninAction() {
+export async function googleSignupAction() {
   try {
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
+        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/`,
         queryParams: {
           access_type: "offline",
           prompt: "consent",
