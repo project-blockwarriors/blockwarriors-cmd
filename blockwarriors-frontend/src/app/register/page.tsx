@@ -79,6 +79,22 @@ export default function RegisterPage() {
     { value: 'UTC+12:00', label: 'UTC+12:00 (New Zealand Time)' }
   ];
 
+  const customStyles = {
+    control: (provided) => ({
+      ...provided,
+      color: '#000',
+    }),
+    option: (provided, state) => ({
+      ...provided,
+      backgroundColor: state.isFocused ? '#f0f0f0' : '#fff',
+      color: '#000',
+    }),
+    singleValue: (provided) => ({
+      ...provided,
+      color: '#000',
+    }),
+  };
+
   return (
     <div className="min-h-screen bg-[url('/blockwarriors-ai-background.webp')] bg-cover bg-center">
       <div className="min-h-screen bg-black/70 backdrop-blur-sm">
@@ -226,7 +242,9 @@ export default function RegisterPage() {
                         <FormControl>
                           <Select
                             options={timeZone}
-                            defaultValue={timeZone.find((c) => c.value === countryValue)}
+                            value={timeZone.find(option => option.value === field.value)}
+                            onChange={(selectedOption) => field.onChange(selectedOption?.value)}
+                            styles={customStyles}
                           />
                         </FormControl>
                         <FormMessage />
