@@ -8,21 +8,7 @@ import toast from "react-hot-toast";
 
 function LoginPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [isPending, startTransition] = useTransition();
-
-  const handleClickLoginButton = (formData: FormData) => {
-    startTransition(async () => {
-      const { errorMessage } = await loginAction(formData);
-      if (errorMessage) {
-        toast.error(errorMessage);
-      } else {
-        toast.success("Successfully logged in");
-        router.push("/");
-      }
-    });
-  };
 
   return (
       <div className="space-y-8">
