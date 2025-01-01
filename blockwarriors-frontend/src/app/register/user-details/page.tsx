@@ -1,14 +1,10 @@
-'use server';
-
 import SignupForm from "../components/SignUpForm";
-import { createSupabaseClient } from "@/auth/server";
+import { getUser } from "@/auth/server";
 
 const RegistrationPage = async () => {
 
-  const supabaseClient = createSupabaseClient();
-  const { data: { user } } = await (await supabaseClient).auth.getUser();
-
-  
+  const user = await getUser();
+  console.log(user);
 
   return (
 
