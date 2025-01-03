@@ -1,15 +1,15 @@
-import { Trophy, Users } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatsCard } from "../components/StatsCard";
-import { MatchCard } from "../components/MatchCard";
-import { TournamentProgress } from "../components/TournamentProgress";
-import { featuredMatches } from "../data/tournament";
+import { Trophy, Users } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { StatsCard } from '../components/StatsCard';
+import { MatchCard } from '../components/MatchCard';
+import { TournamentProgress } from '../components/TournamentProgress';
+import { featuredMatches } from '../data/tournament';
 
 export default function Dashboard() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold">Tournament Overview</h1>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatsCard
           title="Total Players"
