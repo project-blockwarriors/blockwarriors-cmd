@@ -1,44 +1,57 @@
-'use client';
-
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
+import { createSupabaseClient, getUser } from '@/auth/server';
+import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { CheckCircle2, Circle } from 'lucide-react';
+import ClientButton from './ClientButton';
+import { UserProfile } from '@/types/user';
 
-type SetupStatus = {
-  profileComplete?: boolean;
-  teamComplete?: boolean;
-  profile?: {
-    name: string;
-    university: string;
-  };
-  team?: {
-    name: string;
-    role: 'captain' | 'member';
-  };
-};
+export default async function SetupPage() {
+  const supabase = await createSupabaseClient();
+  const authUser = await getUser();
 
-export default function SetupPage() {
-  const router = useRouter();
-  const [setupStatus, setSetupStatus] = useState<SetupStatus>({});
+  if (!authUser) {
+    redirect('/login');
+  }
 
-  useEffect(() => {
-    // Load setup status from local storage
-    const storedStatus = localStorage.getItem('setupStatus');
-    if (storedStatus) {
-      try {
-        setSetupStatus(JSON.parse(storedStatus));
-      } catch (error) {
-        console.error('Failed to parse setup status:', error);
-        setSetupStatus({});
-      }
-    }
-  }, []);
+  // Fetch user profile and team information
+  const { data: user, error } = (await supabase
+    .from('users')
+    .select(
+      `
+      first_name,
+      last_name,
+      institution,
+      geographic_location,
+      team:teams (
+        id,
+        team_name,
+        leader_id
+      )
+    `
+    )
+    .eq('user_id', authUser.id)
+    .single()) as { data: UserProfile | null; error: any };
+
+  if (error && error.code !== 'PGRST116') {
+    console.error('Failed to fetch user data:', error);
+  }
+
+  console.log(user);
+
+  // Check if profile is complete (all required fields are filled)
+  const profileComplete = Boolean(
+    user?.first_name &&
+      user?.last_name &&
+      user?.institution &&
+      user?.geographic_location
+  );
+
+  // Check if user has a team (either as a member or leader)
+  const teamComplete = Boolean(user?.team?.id);
+  const isTeamLeader = user?.team?.leader_id === authUser.id;
 
   return (
     <div className="space-y-8">
-
       <div className="text-center space-y-4">
         <div className="inline-block">
           <h1 className="text-4xl font-bold bg-gradient-to-r bg-clip-text text-white">
@@ -46,14 +59,15 @@ export default function SetupPage() {
           </h1>
         </div>
         <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed">
-          Welcome to BlockWarriors! Follow these simple steps to customize your gaming experience
+          Welcome to BlockWarriors! Follow these simple steps to customize your
+          gaming experience
         </p>
       </div>
 
       <div className="grid gap-4">
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            {setupStatus.profileComplete ? (
+            {profileComplete ? (
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             ) : (
               <Circle className="h-6 w-6 text-gray-300" />
@@ -61,23 +75,23 @@ export default function SetupPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold">Profile Setup</h2>
               <p className="text-gray-500">
-                {setupStatus.profileComplete
-                  ? `Profile created as ${setupStatus.profile?.name}`
+                {profileComplete
+                  ? `Profile created as ${user?.first_name} ${user?.last_name}`
                   : 'Create your profile to get started'}
               </p>
             </div>
-            <Button
-              onClick={() => router.push('/dashboard/setup/profile')}
-              variant={setupStatus.profileComplete ? 'outline' : 'default'}
+            <ClientButton
+              href="/dashboard/setup/profile"
+              variant={profileComplete ? 'outline' : 'default'}
             >
-              {setupStatus.profileComplete ? 'Edit Profile' : 'Create Profile'}
-            </Button>
+              {profileComplete ? 'Edit Profile' : 'Create Profile'}
+            </ClientButton>
           </div>
         </Card>
 
         <Card className="p-6">
           <div className="flex items-center gap-4">
-            {setupStatus.teamComplete ? (
+            {teamComplete ? (
               <CheckCircle2 className="h-6 w-6 text-green-500" />
             ) : (
               <Circle className="h-6 w-6 text-gray-300" />
@@ -85,26 +99,25 @@ export default function SetupPage() {
             <div className="flex-1">
               <h2 className="text-xl font-semibold">Team Setup</h2>
               <p className="text-gray-500">
-                {setupStatus.teamComplete
-                  ? `Member of ${setupStatus.team?.name}`
+                {teamComplete
+                  ? `${isTeamLeader ? 'Leader' : 'Member'} of ${user?.team?.team_name}`
                   : 'Create or join a team'}
               </p>
             </div>
-            <Button
-              onClick={() => router.push('/dashboard/setup/team')}
-              variant={setupStatus.teamComplete ? 'outline' : 'default'}
+            <ClientButton
+              href="/dashboard/setup/team"
+              variant={teamComplete ? 'outline' : 'default'}
+              disabled={!profileComplete}
             >
-              {setupStatus.teamComplete ? 'Manage Team' : 'Setup Team'}
-            </Button>
+              {teamComplete ? 'Manage Team' : 'Setup Team'}
+            </ClientButton>
           </div>
         </Card>
       </div>
 
-      {setupStatus.profileComplete && setupStatus.teamComplete && (
+      {profileComplete && teamComplete && (
         <div className="flex justify-end">
-          <Button onClick={() => router.push('/dashboard')}>
-            Go to Dashboard
-          </Button>
+          <ClientButton href="/dashboard">Go to Dashboard</ClientButton>
         </div>
       )}
     </div>

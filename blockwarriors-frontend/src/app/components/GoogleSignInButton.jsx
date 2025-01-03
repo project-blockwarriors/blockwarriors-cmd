@@ -22,7 +22,7 @@ export default function GoogleSignInButton() {
       }
     });
   };
-  
+
   return (
     <ActiveButton
       text={
