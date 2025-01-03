@@ -2,7 +2,7 @@
 
 import { createSupabaseClient } from "@/auth/server";
 
-export async function loginAction(formData) {
+export async function signinAction(formData) {
   try {
     const email = formData.get("email");
     const password = formData.get("password");
@@ -55,35 +55,13 @@ export async function signOutAction() {
   }
 }
 
-export async function googleSignupAction() {
+export async function googleSigninAction() {
   try {
     const supabase = await createSupabaseClient();
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
         redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback?next=/dashboard`,
-        queryParams: {
-          access_type: "offline",
-          prompt: "consent",
-        },
-      },
-    });
-
-    if (error) throw error;
-
-    return { errorMessage: null, url: data.url};
-  } catch (error) {
-    return { errorMessage: error.message };
-  }
-}
-
-export async function googleLoginAction() {
-  try {
-    const supabase = await createSupabaseClient();
-    const { data, error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"}/auth/callback`,
         queryParams: {
           access_type: "offline",
           prompt: "consent",
