@@ -1,22 +1,21 @@
 import express from 'express';
 import next from 'next';
-import 'dotenv/config'
 import { Server } from 'socket.io';
 import http from 'http';
 import { createClient } from '@supabase/supabase-js'
+import * as dotenv from 'dotenv'
 
+// Load default .env first, env.local which will override any duplicate variables
+dotenv.config()
+dotenv.config({ path: '.env.local' })
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-console.log("SUPABASE URL");
-console.log(process.env)
-console.log(supabaseUrl);
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey)
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 const dev = process.env.NODE_ENV !== 'production';
 const nextApp = next({ dev });
 const nextHandle = nextApp.getRequestHandler();
-
 
 nextApp.prepare().then(() => {
   const app = express();
