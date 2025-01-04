@@ -7,9 +7,6 @@ import { createClient } from '@supabase/supabase-js'
 
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-console.log("SUPABASE URL");
-console.log(process.env)
-console.log(supabaseUrl);
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey)
 
@@ -26,7 +23,12 @@ nextApp.prepare().then(() => {
   // Handle socket.io connection
   io.on('connection', async (socket) => {
     console.log('A client connected');
-    const { token } = socket.handshake.query;
+    console.log("getting toen");
+
+    console.log(socket.handshake.headers.authorization);
+    console.log(socket.handshake.query);
+    const token = socket.handshake.headers.authorization;
+    console.log("The token is...: " + token);
 
     const { data, error } = await supabase
       .from('active_tokens')
@@ -41,10 +43,12 @@ nextApp.prepare().then(() => {
       return;
     }
 
+    console.log("User connected succesfully with token: " + token);
+
     // Handle socket.io events here
 
     socket.on('disconnect', () => {
-      console.log('A client disconnected');
+      console.log('A client with token ' + token + ' disconnected');
     });
   });
 
