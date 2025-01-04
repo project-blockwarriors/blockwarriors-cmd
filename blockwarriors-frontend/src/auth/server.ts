@@ -1,5 +1,6 @@
-import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createServerClient } from '@supabase/ssr';
+import { cookies } from 'next/headers';
+import type { User } from '@supabase/supabase-js';
 
 export async function createSupabaseClient() {
   const cookieStore = await cookies();
@@ -8,7 +9,7 @@ export async function createSupabaseClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    throw new Error("Missing Supabase environment variables");
+    throw new Error('Missing Supabase environment variables');
   }
 
   return createServerClient(supabaseUrl, supabaseKey, {
@@ -31,15 +32,15 @@ export async function createSupabaseClient() {
   });
 }
 
-export async function getUser() {
+export async function getUser(): Promise<User | null> {
   const { auth } = await createSupabaseClient();
   const user = (await auth.getUser()).data.user;
-  return user;
+  return user || null;
 }
 
 export async function protectRoute() {
   const user = await getUser();
   if (!user) {
-    throw new Error("Unauthorized");
+    throw new Error('Unauthorized');
   }
 }
