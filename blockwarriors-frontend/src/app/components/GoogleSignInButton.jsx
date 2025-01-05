@@ -5,14 +5,14 @@ import { useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ActiveButton from './ActiveButton';
-import { googleSignupAction } from '@/actions/users';
+import { googleSigninAction } from '@/actions/users';
 
 export default function GoogleSignInButton() {
   const [isGoogleSigninPending, startGoogleSigninTransition] = useTransition();
 
   const googleSignin = async () => {
     startGoogleSigninTransition(async () => {
-      const { errorMessage, url } = await googleSignupAction();
+      const { errorMessage, url } = await googleSigninAction();
 
       if (errorMessage) {
         console.error(errorMessage);
@@ -22,7 +22,7 @@ export default function GoogleSignInButton() {
       }
     });
   };
-  
+
   return (
     <ActiveButton
       text={

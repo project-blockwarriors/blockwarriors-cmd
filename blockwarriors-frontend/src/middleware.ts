@@ -1,45 +1,57 @@
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-export async function middleware(request) {
-  let response = NextResponse.next({
-    request,
-  });
+export async function middleware(request: NextRequest) {
+  const { pathname } = request.nextUrl;
 
-  const path = new URL(request.url).pathname;
-
-  const protectedRoutes = ['/profile'];
-  const authRoutes = ['/auth'];
-
-  const isProtectedRoute = protectedRoutes.includes(path);
-  const isAuthRoute = authRoutes.includes(path);
-
-  if (isProtectedRoute || isAuthRoute) {
-    const user = await getUser(request, response);
-
-    if (isProtectedRoute && !user) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
-
-    if (isAuthRoute && user) {
-      return NextResponse.redirect(new URL('/', request.url));
-    }
+  // Skip middleware for non-dashboard routes and API routes
+  if (!pathname.startsWith('/dashboard')) {
+    return NextResponse.next();
   }
 
-  return response;
+  try {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: any) {
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            });
+          },
+          remove(name: string, options: any) {
+            request.cookies.set({
+              name,
+              value: '',
+              ...options,
+            });
+          },
+        },
+      }
+    );
+
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return NextResponse.redirect(new URL('/login', request.url));
+    }
+
+    return NextResponse.next();
+  } catch (error) {
+    console.error('Auth middleware error:', error);
+    return NextResponse.redirect(new URL('/login', request.url));
+  }
 }
 
 export const config = {
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/dashboard/:path*'],
 };
 
 export async function getUser(request, response) {
