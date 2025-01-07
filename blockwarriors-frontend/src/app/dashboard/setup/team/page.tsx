@@ -1,9 +1,9 @@
 import { Card } from '@/components/ui/card';
-import { getTeams } from '@/actions/teams';
+import { getAllTeamsWithMembers } from '@/server/db/teams';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getUserProfile } from '@/actions/users';
+import { getUserProfile } from '@/server/db/users';
 import { getUser } from '@/auth/server';
 import { redirect } from 'next/navigation';
 import { UserProfile } from '@/types/user';
@@ -29,11 +29,9 @@ export default async function TeamSetupPage() {
     team: userProfile.team ?? null,
   };
 
-  const teams = await getTeams();
+  const teams = await getAllTeamsWithMembers();
   const hasTeams = teams.length > 0;
   const isTeamLeader = profile.team?.leader_id === profile.user_id;
-
-  console.log('Teams:', teams);
 
   return (
     <div className="space-y-8">

@@ -9,7 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { joinTeam, leaveTeam, disbandTeam } from '@/actions/teams';
+import { joinTeam, leaveTeam, disbandTeam } from '@/server/actions/teams';
 import { useRouter } from 'next/navigation';
 import { Team } from '@/types/team';
 import { Users, Crown, UserPlus, LogOut, Trash2 } from 'lucide-react';

@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { DashboardSidebar } from '../components/DashboardSidebar';
+import { DashboardSidebar } from '../dashboard/DashboardSidebar';
 import Link from 'next/link';
 import { ArrowLeft } from 'lucide-react';
 import { Header } from '../components/Header';
@@ -24,10 +24,8 @@ export default function DashboardLayout({
             </Button>
 
             <div className="bg-white/10 rounded-lg p-8 backdrop-blur-sm">
-              <h1 className="text-3xl font-bold text-white mb-6">
-                Login
-              </h1>
-                {children}
+              <h1 className="text-3xl font-bold text-white mb-6">Login</h1>
+              {children}
             </div>
           </div>
         </div>

@@ -1,5 +1,3 @@
-'use server';
-
 import { createSupabaseClient } from '@/auth/server';
 import { Team } from '@/types/team';
 
@@ -12,14 +10,15 @@ interface TeamWithUsers extends Team {
   members: TeamMember[];
 }
 
-export async function getTeams(): Promise<TeamWithUsers[]> {
+export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   const supabase = await createSupabaseClient();
   const { data, error } = (await supabase.rpc(
     'get_all_teams_with_members'
   )) as { data: TeamWithUsers[]; error: any };
 
   if (error) {
-    throw new Error(`Failed to fetch teams: ${error.message}`);
+    console.error('Failed to fetch teams:', error);
+    return [];
   }
 
   return data;
@@ -28,7 +27,7 @@ export async function getTeams(): Promise<TeamWithUsers[]> {
 export async function createTeam(
   teamName: string,
   leaderId: string
-): Promise<Team> {
+): Promise<{ data: Team | null; error: string | null }> {
   const supabase = await createSupabaseClient();
 
   // First check if user is already in a team
@@ -39,11 +38,14 @@ export async function createTeam(
     .single();
 
   if (userError) {
-    throw new Error(`Failed to check user team status: ${userError.message}`);
+    return {
+      data: null,
+      error: `Failed to check user team status: ${userError.message}`,
+    };
   }
 
   if (user.team_id) {
-    throw new Error('You are already a member of a team');
+    return { data: null, error: 'You are already a member of a team' };
   }
 
   // Create the team
@@ -59,7 +61,10 @@ export async function createTeam(
     .single();
 
   if (createError) {
-    throw new Error(`Failed to create team: ${createError.message}`);
+    return {
+      data: null,
+      error: `Failed to create team: ${createError.message}`,
+    };
   }
 
   // Update the user's team_id
@@ -71,40 +76,27 @@ export async function createTeam(
   if (updateError) {
     // If updating user fails, clean up by deleting the created team
     await supabase.from('teams').delete().eq('id', team.id);
-    throw new Error(`Failed to join created team: ${updateError.message}`);
+    return {
+      data: null,
+      error: `Failed to join created team: ${updateError.message}`,
+    };
   }
 
-  return team;
+  return { data: team, error: null };
 }
 
-export async function joinTeam(teamId: number, userId: string): Promise<void> {
+export async function updateUserTeam(userId: string, teamId: number | null) {
   const supabase = await createSupabaseClient();
-  const { error } = await supabase
+  return await supabase
     .from('users')
     .update({ team_id: teamId })
     .eq('user_id', userId);
-
-  if (error) {
-    throw new Error(`Failed to join team: ${error.message}`);
-  }
-}
-
-export async function leaveTeam(userId: string): Promise<void> {
-  const supabase = await createSupabaseClient();
-  const { error } = await supabase
-    .from('users')
-    .update({ team_id: null })
-    .eq('user_id', userId);
-
-  if (error) {
-    throw new Error(`Failed to leave team: ${error.message}`);
-  }
 }
 
 export async function disbandTeam(
   teamId: number,
   leaderId: string
-): Promise<void> {
+): Promise<{ error: string | null }> {
   const supabase = await createSupabaseClient();
 
   // First, verify that the user is the team leader
@@ -115,20 +107,22 @@ export async function disbandTeam(
     .single();
 
   if (teamError) {
-    throw new Error(`Failed to verify team leadership: ${teamError.message}`);
+    return { error: `Failed to verify team leadership: ${teamError.message}` };
   }
 
   if (team.leader_id !== leaderId) {
-    throw new Error('Only the team leader can disband the team');
+    return { error: 'Only the team leader can disband the team' };
   }
 
-  // Start a transaction by wrapping operations
+  // Disband the team via a transaction
   const { error: deleteError } = await supabase.rpc('disband_team', {
     team_id_param: teamId,
     leader_id_param: leaderId,
   });
 
   if (deleteError) {
-    throw new Error(`Failed to disband team: ${deleteError.message}`);
+    return { error: `Failed to disband team: ${deleteError.message}` };
   }
+
+  return { error: null };
 }

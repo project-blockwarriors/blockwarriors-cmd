@@ -15,7 +15,7 @@ import {
   FormDescription,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { createTeam } from '@/actions/teams';
+import { createTeam } from '@/server/actions/teams';
 import { Users } from 'lucide-react';
 
 const createTeamSchema = z.object({

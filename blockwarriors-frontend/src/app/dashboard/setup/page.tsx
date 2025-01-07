@@ -1,42 +1,19 @@
-import { createSupabaseClient, getUser } from '@/auth/server';
+import { getUser } from '@/auth/server';
 import { redirect } from 'next/navigation';
-import { Card } from '@/components/ui/card';
 import { CheckCircle2, Circle } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import ClientButton from './ClientButton';
 import { UserProfile } from '@/types/user';
+import { getUserProfile } from '@/server/db/users';
 
 export default async function SetupPage() {
-  const supabase = await createSupabaseClient();
   const authUser = await getUser();
 
   if (!authUser) {
     redirect('/login');
   }
 
-  // Fetch user profile and team information
-  const { data: user, error } = (await supabase
-    .from('users')
-    .select(
-      `
-      first_name,
-      last_name,
-      institution,
-      geographic_location,
-      team:teams (
-        id,
-        team_name,
-        leader_id
-      )
-    `
-    )
-    .eq('user_id', authUser.id)
-    .single()) as { data: UserProfile | null; error: any };
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('Failed to fetch user data:', error);
-  }
-
-  console.log(user);
+  const user: UserProfile = await getUserProfile(authUser.id);
 
   // Check if profile is complete (all required fields are filled)
   const profileComplete = Boolean(
@@ -80,6 +57,7 @@ export default async function SetupPage() {
                   : 'Create your profile to get started'}
               </p>
             </div>
+
             <ClientButton
               href="/dashboard/setup/profile"
               variant={profileComplete ? 'outline' : 'default'}

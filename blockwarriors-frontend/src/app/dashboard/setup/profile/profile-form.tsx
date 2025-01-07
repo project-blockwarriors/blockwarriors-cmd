@@ -14,7 +14,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { updateUserProfile } from '@/actions/users';
+import { updateUserProfile } from '@/server/actions/users';
 import { UserProfile } from '@/types/user';
 import toast from 'react-hot-toast';
 

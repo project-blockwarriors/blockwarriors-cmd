@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { getUser } from '@/auth/server';
-import { getUserProfile } from '@/actions/users';
-import { ProfileForm } from './profile-form';
+import { getUserProfile } from '@/server/db/users';
 import { UserProfile } from '@/types/user';
+import { ProfileForm } from './profile-form';
 
 export default async function ProfileSetupPage() {
   const authUser = await getUser();
