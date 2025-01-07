@@ -3,7 +3,7 @@ import { UserProfile } from '@/types/user';
 
 const publicSiteUrl =
   process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.SITE_URL ||
+  process.env.DEPLOY_PRIME_URL ||
   'http://localhost:3000';
 
 export async function getUserProfile(userId: string) {
