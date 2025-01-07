@@ -2,9 +2,7 @@ import { createSupabaseClient } from '@/auth/server';
 import { UserProfile } from '@/types/user';
 
 const publicSiteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  process.env.DEPLOY_PRIME_URL ||
-  'http://localhost:3000';
+  process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';
 
 export async function getUserProfile(userId: string) {
   const supabase = await createSupabaseClient();
