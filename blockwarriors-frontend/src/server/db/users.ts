@@ -1,6 +1,11 @@
 import { createSupabaseClient } from '@/auth/server';
 import { UserProfile } from '@/types/user';
 
+const publicSiteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL ||
+  process.env.SITE_URL ||
+  'http://localhost:3000';
+
 export async function getUserProfile(userId: string) {
   const supabase = await createSupabaseClient();
   const { data: user, error } = (await supabase
@@ -87,7 +92,7 @@ export async function signInWithGoogle() {
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback?next=/dashboard`,
+      redirectTo: `${publicSiteUrl}/auth/callback?next=/dashboard`,
     },
   });
   if (error) {
