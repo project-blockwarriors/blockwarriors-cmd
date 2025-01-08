@@ -5,7 +5,7 @@ import { useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import ActiveButton from './ActiveButton';
-import { googleSigninAction } from '@/actions/users';
+import { googleSigninAction } from '@/server/actions/users';
 
 export default function GoogleSignInButton() {
   const [isGoogleSigninPending, startGoogleSigninTransition] = useTransition();

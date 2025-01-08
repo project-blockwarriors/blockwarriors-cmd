@@ -1,28 +1,58 @@
-import { NextResponse } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
+import { getUserProfile } from './server/db/users';
 
-export async function middleware(request) {
+export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
 
   const path = new URL(request.url).pathname;
 
-  const protectedRoutes = ['/profile'];
-  const authRoutes = ['/auth'];
+  const protectedRoutes = [
+    '/dashboard',
+    '/dashboard/matches',
+    '/dashboard/teams',
+    '/dashboard/leaderboard',
+    '/dashboard/practice',
+  ];
+  const setupRoutes = ['/dashboard/setup'];
+  const authRoutes = ['/login'];
 
   const isProtectedRoute = protectedRoutes.includes(path);
+  const isSetupRoute = setupRoutes.includes(path);
   const isAuthRoute = authRoutes.includes(path);
 
-  if (isProtectedRoute || isAuthRoute) {
-    const user = await getUser(request, response);
+  let user = await getUser(request, response);
 
-    if (isProtectedRoute && !user) {
-      return NextResponse.redirect(new URL('/', request.url));
+  if (isAuthRoute) {
+    // If user is logged in, redirect to dashboard
+    if (user) {
+      return NextResponse.redirect(new URL('/dashboard', request.url));
+    }
+  }
+
+  if (isProtectedRoute) {
+    // If user is not logged in, redirect to login
+    if (!user) {
+      return NextResponse.redirect(new URL('/login', request.url));
     }
 
-    if (isAuthRoute && user) {
-      return NextResponse.redirect(new URL('/', request.url));
+    // If user is logged in, check for setup completion
+    if (!isSetupRoute) {
+      try {
+        const profile = await getUserProfile(user.id);
+
+        if (!profile?.first_name || !profile?.team) {
+          return NextResponse.redirect(
+            new URL('/dashboard/setup', request.url)
+          );
+        }
+      } catch (error) {
+        console.error('Profile check error:', error);
+        return NextResponse.redirect(new URL('/dashboard/setup', request.url));
+      }
     }
   }
 
@@ -59,7 +89,7 @@ export async function getUser(request, response) {
         cookiesToSet.forEach(({ name, value, options }) =>
           request.cookies.set(name, value)
         );
-        supabaseResponse = NextResponse.next({
+        const supabaseResponse = NextResponse.next({
           request,
         });
         cookiesToSet.forEach(({ name, value, options }) =>

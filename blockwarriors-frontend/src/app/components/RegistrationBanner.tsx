@@ -9,7 +9,7 @@ export function RegistrationBanner() {
           Registration is now open for the BlockWarriors AI Challenge!
         </p>
         <Button variant="outline" size="sm" asChild>
-          <Link href="/register">Register Your Team</Link>
+          <Link href="/login">Start</Link>
         </Button>
       </div>
     </div>

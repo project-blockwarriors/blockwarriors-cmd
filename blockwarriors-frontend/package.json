@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "next build",
-    "start": "next start",
+    "start": "NODE_ENV=production node server.js",
     "lint": "next lint"
   },
   "dependencies": {
@@ -52,6 +52,7 @@
     "lucide-react": "^0.453.0",
     "next-themes": "^0.4.4",
     "react": "^18.3.1",
+    "react-context": "^0.0.3",
     "react-day-picker": "^8.9.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.48.2",
@@ -71,6 +72,7 @@
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.26.3",
+    "@netlify/plugin-nextjs": "^5.9.2",
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.20",
     "babel-eslint": "^10.1.0",
@@ -78,8 +80,9 @@
     "eslint-config-next": "^15.0.1",
     "eslint-config-prettier": "^9.1.0",
     "eslint-plugin-prettier": "^5.2.1",
-    "next": "^15.0.3",
+    "next": "^15.0.4",
     "postcss": "^8.4.47",
+    "supabase": "^2.2.1",
     "tailwindcss": "^3.4.14"
   }
 }

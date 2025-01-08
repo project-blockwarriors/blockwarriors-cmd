@@ -15,7 +15,7 @@ export function Header() {
         <Link href="/dashboard" className="flex items-center gap-2">
           View Tournament <ArrowRight className="w-4 h-4" />
         </Link>
-      </Button>
-    </div>
+      </Button> 
+      </div>
   );
 }
