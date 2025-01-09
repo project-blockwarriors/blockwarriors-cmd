@@ -51,7 +51,7 @@ export async function signOutAction(): Promise<{
   return { errorMessage: error };
 }
 
-export async function googleSigninAction() {
-  const { data, error } = await signInWithGoogle();
+export async function googleSigninAction(origin?: string) {
+  const { data, error } = await signInWithGoogle(origin);
   return { errorMessage: error, url: data?.url };
 }

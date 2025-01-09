@@ -12,7 +12,8 @@ export default function GoogleSignInButton() {
 
   const googleSignin = async () => {
     startGoogleSigninTransition(async () => {
-      const { errorMessage, url } = await googleSigninAction();
+      const origin = window.location.origin;
+      const { errorMessage, url } = await googleSigninAction(origin);
 
       if (errorMessage) {
         console.error(errorMessage);
