@@ -6,6 +6,7 @@ import {
   createTeam as createTeamDb,
   updateUserTeam,
   disbandTeam as disbandTeamDb,
+  getAllTeamsScores,
 } from '../db/teams';
 
 interface TeamMember {
@@ -48,4 +49,8 @@ export async function disbandTeam(
   leaderId: string
 ): Promise<{ error: string | null }> {
   return await disbandTeamDb(teamId, leaderId);
+}
+
+export async function getTeamLeaderboard(): Promise<{ data?: Team[]; error?: string | null }> {
+  return await getAllTeamsScores();
 }

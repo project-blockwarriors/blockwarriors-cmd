@@ -1,20 +1,14 @@
 import { createSupabaseClient } from '@/auth/server';
-import { Team } from '@/types/team';
+import { Team, TeamWithUsers } from '@/types/team';
 
 interface TeamMember {
   first_name: string;
   last_name: string;
 }
 
-interface TeamWithUsers extends Team {
-  members: TeamMember[];
-}
-
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   const supabase = await createSupabaseClient();
-  const { data, error } = (await supabase.rpc(
-    'get_all_teams_with_members'
-  )) as { data: TeamWithUsers[]; error: any };
+  const { data, error } = await supabase.rpc('get_all_teams_with_members');
 
   if (error) {
     console.error('Failed to fetch teams:', error);
@@ -125,4 +119,36 @@ export async function disbandTeam(
   }
 
   return { error: null };
+}
+
+// Statistics data about teams
+export async function getTeamElo(teamId: number): Promise<{ data?: number; error?: string | null }> {
+  const supabase = await createSupabaseClient();
+  const { data: team, error: teamError } = await supabase
+    .from('teams')
+    .select('team_elo')
+    .eq('id', teamId)
+    .single();
+
+  if (teamError) {
+    console.error('Failed to fetch team elo:', teamError);
+    return { error: teamError.message };
+  }
+
+  return { data: team.team_elo, error: null };
+}
+
+export async function getAllTeamsScores(): Promise<{ data?: Team[]; error?: string | null }> {
+  const supabase = await createSupabaseClient();
+  const { data: teams, error: teamsError } = await supabase
+    .from('teams')
+    .select('id, team_name, leader_id, team_elo, team_wins, team_losses')
+    .order('team_elo', { ascending: false });
+
+  if (teamsError) {
+    console.error('Failed to fetch teams scores:', teamsError);
+    return { error: teamsError.message };
+  }
+
+  return { data: teams, error: null };
 }
