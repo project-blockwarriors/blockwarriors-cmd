@@ -1,14 +1,11 @@
 import { createSupabaseClient } from '@/auth/server';
-import { Team, TeamWithUsers } from '@/types/team';
-
-interface TeamMember {
-  first_name: string;
-  last_name: string;
-}
+import { TeamWithUsers, Team } from '@/types/team';
 
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   const supabase = await createSupabaseClient();
-  const { data, error } = await supabase.rpc('get_all_teams_with_members');
+  const { data, error } = (await supabase.rpc(
+    'get_all_teams_with_members'
+  )) as { data: TeamWithUsers[]; error: any };
 
   if (error) {
     console.error('Failed to fetch teams:', error);

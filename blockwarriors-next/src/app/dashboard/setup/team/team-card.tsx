@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/card';
 import { joinTeam, leaveTeam, disbandTeam } from '@/server/actions/teams';
 import { useRouter } from 'next/navigation';
-import { Team } from '@/types/team';
+import { TeamMember, TeamWithUsers } from '@/types/team';
 import { Users, Crown, UserPlus, LogOut, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -28,8 +28,8 @@ import {
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-interface TeamCardProps extends Team {
-  members: { first_name: string; last_name: string }[];
+interface TeamCardProps extends Omit<TeamWithUsers, 'members'> {
+  members: TeamMember[];
   currentUserId: string;
   currentUserTeamId: number | null;
   hideLeaveButton?: boolean;

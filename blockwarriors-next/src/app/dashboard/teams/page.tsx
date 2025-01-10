@@ -1,8 +1,8 @@
-import { getTeams } from '@/server/actions/teams';
+import { getAllTeamsWithMembers } from '@/server/db/teams';
 import { TeamCard } from '../../components/TeamCard';
 
 export default async function TeamsPage() {
-  const teams = await getTeams();
+  const teams = await getAllTeamsWithMembers();
 
   if (!teams.length) {
     return <div>No teams found</div>;
@@ -16,11 +16,13 @@ export default async function TeamsPage() {
         {teams.map((team) => (
           <TeamCard 
             key={team.id}
-            name={team.team_name}
-            wins={team.team_wins}
-            losses={team.team_losses}
-            elo={team.team_elo}
-            members={team.members.map(m => `${m.first_name} ${m.last_name}`)}
+            id={team.id}
+            team_name={team.team_name}
+            leader_id={team.leader_id}
+            members={team.members}
+            team_elo={team.team_elo}
+            team_wins={team.team_wins}
+            team_losses={team.team_losses}
           />
         ))}
       </div>

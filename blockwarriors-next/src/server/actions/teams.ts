@@ -1,6 +1,6 @@
 'use server';
 
-import { Team } from '@/types/team';
+import { TeamWithUsers, Team } from '@/types/team';
 import {
   getAllTeamsWithMembers as getAllTeamsWithMembersDb,
   createTeam as createTeamDb,
@@ -8,15 +8,6 @@ import {
   disbandTeam as disbandTeamDb,
   getAllTeamsScores,
 } from '../db/teams';
-
-interface TeamMember {
-  first_name: string;
-  last_name: string;
-}
-
-interface TeamWithUsers extends Team {
-  members: TeamMember[];
-}
 
 export async function getTeams(): Promise<TeamWithUsers[]> {
   return await getAllTeamsWithMembersDb();
