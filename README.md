@@ -1,8 +1,33 @@
-# BlockWarriors Command Center
+# BlockWarriors Command Block
 
-## Git Main Branch Contribution Procedure
+Welcome to the BlockWarriors Command Block! This is a monolithic repository for managing BlockWarriors tournaments and teams.
 
-## Overview
+## Applications
+
+### BlockWarriors Command Block - Next.js Application
+A modern web dashboard for BlockWarriors tournament and team management.
+
+**Tech Stack:**
+- Next.js, TypeScript, Tailwind CSS
+- Radix UI components
+- Supabase for backend services
+- Real-time updates via Socket.io client
+
+### BlockWarriors Command Block - Socket.io Server
+Real-time communication server handling live updates and events.
+
+**Tech Stack:**
+- Node.js with Express
+- Socket.io for WebSocket communication
+- Environment configuration with dotenv
+
+## Information about the Project
+
+- **Project Name**: BlockWarriors Command Center
+- **Description**: A web application for managing BlockWarriors tournaments and teams.
+- **Repository**: [https://github.com/project-blockwarriors/blockwarriors-cmd](https://github.com/project-blockwarriors/blockwarriors-cmd)
+
+## How to Contribute
 
 To maintain a clean and functional main branch while allowing contributors to work independently, this repository follows a strict branching and merging procedure.
 
