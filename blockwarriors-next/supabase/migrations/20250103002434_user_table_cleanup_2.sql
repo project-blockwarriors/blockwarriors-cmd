@@ -1,6 +1,5 @@
 -- Drop existing table and related objects
 DROP TABLE IF EXISTS public.users CASCADE;
-
 -- Create new users table
 CREATE TABLE public.users (
     user_id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -11,7 +10,6 @@ CREATE TABLE public.users (
     geographic_location TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Create trigger function
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
@@ -34,7 +32,6 @@ BEGIN
     RETURN new;
 END;
 $$;
-
 -- Create trigger
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
