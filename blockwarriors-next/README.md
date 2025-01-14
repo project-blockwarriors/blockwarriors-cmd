@@ -17,6 +17,7 @@ This app uses Supabase as the backend for authentication and database management
 4. Start the local Supabase environment with `npx supabase start`.
 5. Check the status of the local Supabase environment with `npx supabase status`.
 6. Access the Supabase dashboard at `http://127.0.0.1:54323` in your browser.
+7. Link your Supabase project to the remote Supabase database by running `npx supabase link`.
 
 ## Environement Variables Setup
 
@@ -28,6 +29,17 @@ Before running the app, you need to set the following environment variables:
 - `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`: The client secret for the Google OAuth provider.
 
 You can find the Supabase keys in your Supabase status command `npx supabase status`. For Google OAuth keys, you can make your own keys using the [Google Cloud Console](https://console.cloud.google.com/auth/overview). If you are a member of the BlockWarriors team, you can get access to the keys from the team's Discord channel.
+
+## Syncing the Local Supabase Database with the Remote Supabase Database
+
+To sync the local Supabase database with the remote Supabase database, you must get your local migration files and push them to the remote database. You can do by running the following commands:
+
+1. Run `npx supabase db pull --local` to generate migration files from your local database.
+2. Run `npx supabase db push` to push the migration files to the remote database.
+
+It is recommended to create a migration file for each change you make to the database. You can do this by running `npx supabase migration new <name>` and then adding your changes to the migration file. Once you have created the migration file, you can push it to the local database by running `npx supabase db push --local`. After testing, you can run `npx supabase db push` to push the migration file to the remote database.
+
+For more information on Supabase, see [Supabase Documentation](https://supabase.com/docs/reference/cli/supabase-bootstrap).
 
 ## Running the App
 
