@@ -78,7 +78,9 @@ export default async function SetupPage() {
               <h2 className="text-xl font-semibold">Team Setup</h2>
               <p className="text-gray-500">
                 {teamComplete
-                  ? `${isTeamLeader ? 'Leader' : 'Member'} of ${user?.team?.team_name}`
+                  ? `${isTeamLeader ? 'Leader' : 'Member'} of ${
+                      user?.team?.team_name
+                    }`
                   : 'Create or join a team'}
               </p>
             </div>

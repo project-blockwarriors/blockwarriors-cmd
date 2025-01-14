@@ -1,6 +1,5 @@
 -- Rename the existing users table to temporary table
 ALTER TABLE IF EXISTS "public"."users" RENAME TO users_old;
-
 -- Create new users table with desired structure
 CREATE TABLE IF NOT EXISTS "public"."users" (
     user_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -11,7 +10,6 @@ CREATE TABLE IF NOT EXISTS "public"."users" (
     geographic_location TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
-
 -- Copy data from old table to new table, splitting user_name into first_name and last_name
 INSERT INTO "public"."users" (
     user_id, 
@@ -35,6 +33,5 @@ SELECT
     geographic_location,
     created_at
 FROM "public"."users_old";
-
 -- Drop the old table
 DROP TABLE IF EXISTS "public"."users_old";
