@@ -1,21 +1,13 @@
 'use server';
 
-import { Team } from '@/types/team';
+import { TeamWithUsers, Team } from '@/types/team';
 import {
   getAllTeamsWithMembers as getAllTeamsWithMembersDb,
   createTeam as createTeamDb,
   updateUserTeam,
   disbandTeam as disbandTeamDb,
+  getAllTeamsScores,
 } from '../db/teams';
-
-interface TeamMember {
-  first_name: string;
-  last_name: string;
-}
-
-interface TeamWithUsers extends Team {
-  members: TeamMember[];
-}
 
 export async function getTeams(): Promise<TeamWithUsers[]> {
   return await getAllTeamsWithMembersDb();
@@ -48,4 +40,8 @@ export async function disbandTeam(
   leaderId: string
 ): Promise<{ error: string | null }> {
   return await disbandTeamDb(teamId, leaderId);
+}
+
+export async function getTeamLeaderboard(): Promise<{ data?: Team[]; error?: string | null }> {
+  return await getAllTeamsScores();
 }
