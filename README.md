@@ -5,25 +5,32 @@ Welcome to the BlockWarriors Command Block! This is a monolithic repository for 
 ## Applications
 
 ### BlockWarriors Command Block - Next.js Application
+
 A modern web dashboard for BlockWarriors tournament and team management.
 
 **Tech Stack:**
+
 - Next.js, TypeScript, Tailwind CSS
 - Radix UI components
 - Supabase for backend services
 - Real-time updates via Socket.io client
 
+**Setup Instructions:**
+Go to [blockwarriors-next](https://github.com/project-blockwarriors/blockwarriors-cmd/tree/main/blockwarriors-next) for detailed instructions.
+
 ### BlockWarriors Command Block - Socket.io Server
+
 Real-time communication server handling live updates and events.
 
 **Tech Stack:**
+
 - Node.js with Express
 - Socket.io for WebSocket communication
 - Environment configuration with dotenv
 
 ## Information about the Project
 
-- **Project Name**: BlockWarriors Command Center
+- **Project Name**: BlockWarriors Command Block
 - **Description**: A web application for managing BlockWarriors tournaments and teams.
 - **Repository**: [https://github.com/project-blockwarriors/blockwarriors-cmd](https://github.com/project-blockwarriors/blockwarriors-cmd)
 

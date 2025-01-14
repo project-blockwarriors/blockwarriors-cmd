@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# BlockWarriors Command Block - Next.js App
+
+This is the documentation for the BlockWarriors Command Block - Next.js app.
 
 ## Getting Started
 
-First, run the development server:
+1. Clone this repository to your local machine.
+2. Install the dependencies using `npm install`.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Supabase Local Environment Setup
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+This app uses Supabase as the backend for authentication and database management. To set up a local Supabase environment, follow these steps:
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+1. Ensure Docker Desktop is installed. If not, download and install it from [Docker's official website](https://www.docker.com/get-started/).
+2. Make sure you are in the `blockwarriors-next` folder.
+3. Install the Supabase CLI by running `npm install supabase --save-dev`.
+4. Start the local Supabase environment with `npx supabase start`.
+5. Check the status of the local Supabase environment with `npx supabase status`.
+6. Access the Supabase dashboard at `http://127.0.0.1:54323` in your browser.
+7. Link your Supabase project to the remote Supabase database by running `npx supabase link`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environement Variables Setup
 
-## Learn More
+Before running the app, you need to set the following environment variables:
 
-To learn more about Next.js, take a look at the following resources:
+- `NEXT_PUBLIC_SUPABASE_URL`: The URL of your Supabase project.
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`: The client ID for the Google OAuth provider.
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`: The client secret for the Google OAuth provider.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+You can find the Supabase keys in your Supabase status command `npx supabase status`. For Google OAuth keys, you can make your own keys using the [Google Cloud Console](https://console.cloud.google.com/auth/overview). If you are a member of the BlockWarriors team, you can get access to the keys from the team's Discord channel.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Syncing the Local Supabase Database with the Remote Supabase Database
 
-## Deploy on Vercel
+To sync the local Supabase database with the remote Supabase database, you must get your local migration files and push them to the remote database. You can do by running the following commands:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Run `npx supabase db pull --local` to generate migration files from your local database.
+2. Run `npx supabase db push` to push the migration files to the remote database.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+It is recommended to create a migration file for each change you make to the database. You can do this by running `npx supabase migration new <name>` and then adding your changes to the migration file. Once you have created the migration file, you can push it to the local database by running `npx supabase db push --local`. After testing, you can run `npx supabase db push` to push the migration file to the remote database.
+
+For more information on Supabase, see [Supabase Documentation](https://supabase.com/docs/reference/cli/supabase-bootstrap).
+
+## Running the App
+
+Once you have set up the environment variables, run `npm run dev` to start the app in development mode.
