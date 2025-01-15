@@ -6,7 +6,7 @@ export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   const { data, error } = (await supabase.rpc(
     'get_all_teams_with_members'
   )) as { data: TeamWithUsers[]; error: any };
-  
+
   if (error) {
     console.error('Failed to fetch teams:', error);
     return [];
@@ -76,12 +76,25 @@ export async function createTeam(
   return { data: team, error: null };
 }
 
-export async function updateUserTeam(userId: string, teamId: number | null) {
-  const supabase = await createSupabaseClient();
-  return await supabase
-    .from('users')
-    .update({ team_id: teamId })
-    .eq('user_id', userId);
+export async function updateUserTeam(userId: string, teamId: number | null): Promise<{ data: any | null; error: any | null }> {
+  const supabase = await createSupabaseClient(); // Initialize Supabase
+  console.log('Updating user team for:', { userId, teamId }); // Log inputs for clarity
+
+  // Perform the database operation
+  const { data, error } = await supabase
+    .from('users') // Table name
+    .update({ team_id: teamId }) // Update operation
+    .eq('user_id', userId); // Match condition
+
+  // Log operation results
+  if (error) {
+    console.error('Supabase error during update:', error); // Log detailed error info
+  } else {
+    console.log('Update successful. Data returned:', data); // Log successful operation
+  }
+
+  // Return both data and error for further inspection
+  return { data, error };
 }
 
 export async function disbandTeam(

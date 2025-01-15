@@ -28,11 +28,19 @@ export async function joinTeam(
   return { error: error?.message || null };
 }
 
-export async function leaveTeam(
-  userId: string
-): Promise<{ error: string | null }> {
-  const { error } = await updateUserTeam(userId, null);
-  return { error: error?.message || null };
+export async function leaveTeam(userId: string): Promise<{ error: string | null }> {
+  console.log('Initiating leaveTeam for userId:', userId);
+
+  // Call `updateUserTeam` and capture its results
+  const { data, error } = await updateUserTeam(userId, null);
+
+  if (error) {
+    console.error('Error in leaveTeam:', error); // Log the full error object
+    return { error: error.message || 'Unknown error occurred' }; // Return the error message
+  }
+
+  console.log('Successfully updated user team. Data returned:', data);
+  return { error: null }; // No errors
 }
 
 export async function disbandTeam(

@@ -82,7 +82,10 @@ export function TeamCard({
     try {
       console.log(user_id);
       setIsLoading(true);
-      await leaveTeam(user_id);
+      const result = await leaveTeam(user_id);
+      if (result.error) {
+        throw new Error(result.error);
+      }
       router.refresh();
     } catch (error) {
       console.error('Failed to kick member:', error);
@@ -147,7 +150,7 @@ export function TeamCard({
          : null}
           
 
-          {isLeader && !userIsLeader && isMember ? (
+          {isLeader && isMember ? ( //Add !isUserLeader
             <Button
               className="text-xs"
               onClick={() => handleKickMember(member.user_id)}
