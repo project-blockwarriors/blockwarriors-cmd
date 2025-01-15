@@ -78,6 +78,20 @@ export function TeamCard({
     }
   }
 
+  async function handleKickMember(user_id: string) {
+    try {
+      console.log(user_id);
+      setIsLoading(true);
+      await leaveTeam(user_id);
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to kick member:', error);
+      toast.error('Failed to kick member. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   async function handleDisbandTeam() {
     try {
       setIsLoading(true);
@@ -105,35 +119,48 @@ export function TeamCard({
         {leader_id && (
           <CardDescription className="flex items-center gap-1">
             <Crown className="h-3 w-3" />
-            Led by {members.find((m) => m.first_name)?.first_name}{' '}
+            Led by {members.find((m) => m.user_id)?.first_name}{' '}
             {members.find((m) => m.last_name)?.last_name}
           </CardDescription>
         )}
       </CardHeader>
       <CardContent className="pb-3">
-        <div className="space-y-1.5">
-          {members.map((member, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between text-sm"
-            >
-              <div className="flex items-center gap-2">
-                <Users className="h-3 w-3 text-muted-foreground" />
-                <span>
-                  {member.first_name} {member.last_name}
-                </span>
-              </div>
-              {member.first_name ===
-                members.find((m) => m.first_name)?.first_name &&
-                member.last_name ===
-                  members.find((m) => m.last_name)?.last_name && (
-                  <Badge variant="outline" className="text-xs">
-                    Leader
-                  </Badge>
-                )}
+      <div className="space-y-1.5">
+        {members.map((member, idx) => {
+          const userIsLeader = member.user_id === leader_id;
+            return (
+              <div
+            key={idx}
+            className="flex items-center justify-between text-sm"
+          >
+            <div className="flex items-center gap-2">
+              <Users className="h-3 w-3 text-muted-foreground" />
+              <span>
+                {member.first_name} {member.last_name}
+              </span>
             </div>
-          ))}
+          
+          {userIsLeader ? 
+          <Badge variant="outline" className="text-xs">
+            Leader
+          </Badge>
+         : null}
+          
+
+          {isLeader && !userIsLeader && isMember ? (
+            <Button
+              className="text-xs"
+              onClick={() => handleKickMember(member.user_id)}
+              disabled={isLoading}
+            >
+              Kick Member
+            </Button>
+          ) : null}
+
         </div>
+         );
+         })}
+       </div>
       </CardContent>
       <CardFooter className="flex gap-2">
         {canJoin && (

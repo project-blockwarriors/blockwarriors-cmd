@@ -6,7 +6,7 @@ export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   const { data, error } = (await supabase.rpc(
     'get_all_teams_with_members'
   )) as { data: TeamWithUsers[]; error: any };
-
+  
   if (error) {
     console.error('Failed to fetch teams:', error);
     return [];
