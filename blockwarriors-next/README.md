@@ -26,7 +26,7 @@ Before running the app, you need to set the following environment variables:
 - `NEXT_PUBLIC_SUPABASE_URL`: The URL of your Supabase project.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
 - `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`: The client ID for the Google OAuth provider.
-- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET`: The client secret for the Google OAuth provider.
+- `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`: The client secret for the Google OAuth provider.
 
 You can find the Supabase keys in your Supabase status command `npx supabase status`. For Google OAuth keys, you can make your own keys using the [Google Cloud Console](https://console.cloud.google.com/auth/overview). If you are a member of the BlockWarriors team, you can get access to the keys from the team's Discord channel.
 
