@@ -88,9 +88,12 @@ export default function Home() {
               initial="initial"
               animate="animate"
             >
-              <motion.h1 className="text-6xl font-bold" variants={fadeInUp}>
+              <motion.h1
+                className="text-4xl sm:text-6xl font-bold"
+                variants={fadeInUp}
+              >
                 <motion.span
-                  className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#FFAA33] to-[#FF9900] relative"
+                  className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#FFAA33] to-[#FF9900] relative break-words"
                   animate={{
                     backgroundPosition: ['0% center', '200% center'],
                   }}
@@ -103,7 +106,8 @@ export default function Home() {
                     backgroundSize: '200% auto',
                   }}
                 >
-                  BlockWarriors: Redefining AI through Minecraft
+                  BlockWarriors:
+                  <br className="sm:hidden" /> Redefining AI through Minecraft
                 </motion.span>
               </motion.h1>
               <motion.p
@@ -239,7 +243,7 @@ export default function Home() {
                     step: 3,
                     title: 'Server Integration',
                     description:
-                      'Your code is communicates with our Minecraft server',
+                      'Your code communicates with our Minecraft server',
                     icon: '🖥️',
                   },
                   {
