@@ -1,45 +1,63 @@
 'use client';
 
+import { useState } from 'react';
 import { Header } from './components/Header';
 import { RegistrationBanner } from './components/RegistrationBanner';
 import { motion } from 'framer-motion';
-
 import {
-  CodeBracketIcon,
-  UserGroupIcon,
-  TrophyIcon,
-  RocketLaunchIcon,
   BeakerIcon,
   LightBulbIcon,
   CpuChipIcon,
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
-  // const user = getUser();
-
-  const sectionVariants = {
-    initial: { opacity: 0, y: 50 },
+  const fadeInUp = {
+    initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
-    transition: { duration: 0.8, ease: 'easeOut' },
+    transition: { duration: 0.8 },
   };
 
+  const staggerChildren = {
+    animate: {
+      transition: {
+        staggerChildren: 0.2,
+      },
+    },
+  };
+
+  const shimmer = {
+    animate: {
+      background: [
+        'linear-gradient(to right, #FF9900 0%, #FFAA33 50%, #FF9900 100%)',
+        'linear-gradient(to right, #FFAA33 0%, #FF9900 50%, #FFAA33 100%)',
+      ],
+      transition: {
+        duration: 3,
+        repeat: Infinity,
+        repeatType: 'reverse',
+      },
+    },
+  };
+
+  const [expandedCard, setExpandedCard] = useState(-1);
+
   return (
-    <div className="min-h-screen bg-[#1A1A1A]">
+    <div className="min-h-screen bg-gradient-to-b from-[#1A1A1A] to-[#0D0D0D] relative overflow-hidden">
       <div className="min-h-screen text-gray-100">
         <RegistrationBanner />
 
-        <div className="container mx-auto py-12 space-y-32 max-w-[100vw] px-4 sm:px-6 md:px-8">
+        <div className="container mx-auto py-12 space-y-32 max-w-[100vw] px-4 sm:px-6 md:px-8 relative">
           <Header />
 
           {/* Hero Section */}
           <section id="home" className="relative">
             <motion.div
               className="mb-24 relative overflow-hidden rounded-2xl"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-100px' }}
-              transition={{ duration: 0.8 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 1, ease: 'easeOut' }}
             >
               <div className="relative flex justify-center">
                 <Image
@@ -47,557 +65,591 @@ export default function Home() {
                   alt="BlockWarriors AI Challenge Artwork"
                   width={1200}
                   height={675}
-                  className="w-full h-auto rounded-2xl shadow-2xl"
+                  className="w-full h-auto rounded-2xl shadow-[0_0_50px_rgba(255,153,0,0.15)]"
                   priority
                 />
-                <div className="absolute inset-0 rounded-2xl" />
+                <motion.div
+                  className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#FF9900]/20 to-transparent"
+                  animate={{
+                    opacity: [0.2, 0.4, 0.2],
+                  }}
+                  transition={{
+                    duration: 3,
+                    repeat: Infinity,
+                    repeatType: 'reverse',
+                  }}
+                />
               </div>
             </motion.div>
 
             <motion.div
-              className="max-w-4xl mx-auto text-center space-y-8 relative -mt-12"
-              variants={sectionVariants}
+              className="max-w-4xl mx-auto text-center space-y-8 relative"
+              variants={staggerChildren}
               initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
+              animate="animate"
             >
-              <h1 className="text-6xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#E68A00] to-[#FFAA33]">
-                BlockWarriors: Redefining AI through Minecraft
-              </h1>
-              <p className="text-2xl text-gray-300 leading-relaxed">
+              <motion.h1 className="text-6xl font-bold" variants={fadeInUp}>
+                <motion.span
+                  className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#FFAA33] to-[#FF9900] relative"
+                  animate={{
+                    backgroundPosition: ['0% center', '200% center'],
+                  }}
+                  transition={{
+                    duration: 8,
+                    repeat: Infinity,
+                    ease: 'linear',
+                  }}
+                  style={{
+                    backgroundSize: '200% auto',
+                  }}
+                >
+                  BlockWarriors: Redefining AI through Minecraft
+                </motion.span>
+              </motion.h1>
+              <motion.p
+                className="text-2xl text-gray-300 leading-relaxed"
+                variants={fadeInUp}
+              >
                 Compete. Innovate. Dominate. Join the global challenge to create
                 AI bots that think, adapt, and win in dynamic, player-driven
                 arenas.
-              </p>
+              </motion.p>
             </motion.div>
           </section>
 
-          {/* Section Styles - Apply to all sections */}
-          <style jsx>{`
-            section h2 {
-              background: linear-gradient(to right, #ff9900, #e68a00);
-              -webkit-background-clip: text;
-              color: transparent;
-            }
+          {/* Vision Section */}
+          <section className="relative">
+            {/* Animated background */}
+            <div className="absolute inset-0 rounded-3xl overflow-hidden">
+              {/* Radial gradient background */}
+              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/20 via-[#B8860B]/10 to-[#8B6914]/5" />
 
-            .card-gradient {
-              background: rgba(26, 26, 26, 0.6);
-              backdrop-filter: blur(20px);
-            }
+              {/* Animated gradient overlay */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/10 via-[#FFA500]/5 to-transparent" />
 
-            .section-divider {
-              background: linear-gradient(
-                to right,
-                transparent,
-                #a67f5c,
-                transparent
-              );
-            }
-          `}</style>
+              {/* Grid pattern */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  backgroundImage: `linear-gradient(to right, rgba(255,215,0,0.1) 1px, transparent 1px),
+                                linear-gradient(to bottom, rgba(255,215,0,0.1) 1px, transparent 1px)`,
+                  backgroundSize: '24px 24px',
+                }}
+              />
+
+              {/* Animated border */}
+              <div className="absolute inset-0">
+                <div
+                  className="absolute inset-0 bg-gradient-to-r from-[#FFD700]/30 via-[#FFA500]/20 to-[#FFD700]/30 animate-shimmer"
+                  style={{
+                    maskImage:
+                      'linear-gradient(to bottom, transparent, black, transparent)',
+                    WebkitMaskImage:
+                      'linear-gradient(to bottom, transparent, black, transparent)',
+                  }}
+                />
+              </div>
+            </div>
+
+            <motion.div
+              className="max-w-4xl mx-auto text-center space-y-8 relative p-12 rounded-3xl"
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true, margin: '-100px' }}
+              variants={staggerChildren}
+            >
+              <motion.div
+                className="flex items-center justify-center gap-4 mb-16"
+                variants={fadeInUp}
+              >
+                <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
+                <h2 className="text-4xl font-bold bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent">
+                  The Vision
+                </h2>
+                <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
+              </motion.div>
+
+              <div className="space-y-16 relative backdrop-blur-sm">
+                {/* Vision Statement Subsection */}
+                <div className="space-y-6 relative">
+                  {/* Glowing orbs with reduced opacity */}
+                  <motion.div
+                    className="absolute -top-10 -left-20 w-40 h-40 bg-[#FFD700] rounded-full blur-[100px] opacity-20"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 0.2 }}
+                    transition={{ duration: 1 }}
+                  />
+                  <motion.div
+                    className="absolute -bottom-10 -right-20 w-40 h-40 bg-[#FFA500] rounded-full blur-[100px] opacity-20"
+                    initial={{ opacity: 0 }}
+                    whileInView={{ opacity: 0.2 }}
+                    transition={{ duration: 1, delay: 0.3 }}
+                  />
+
+                  <motion.p
+                    className="text-4xl font-semibold text-gray-100 leading-relaxed relative"
+                    variants={fadeInUp}
+                  >
+                    Where the beloved game of Minecraft meets the future of AI
+                    development.
+                  </motion.p>
+                  <motion.p
+                    className="text-xl text-gray-200 leading-relaxed max-w-3xl mx-auto relative"
+                    variants={fadeInUp}
+                  >
+                    Pioneering the future of AI development through the world's
+                    most beloved sandbox game.
+                  </motion.p>
+                </div>
+              </div>
+            </motion.div>
+          </section>
+
+          {/* Competition Flow Section */}
+          <section className="relative mt-32">
+            <motion.div
+              className="max-w-4xl mx-auto"
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+              variants={staggerChildren}
+            >
+              <motion.h2
+                className="text-4xl font-bold text-center text-[#FFD700] mb-16"
+                variants={fadeInUp}
+              >
+                Your Journey in Game-based AI
+              </motion.h2>
+
+              <div className="grid grid-cols-1 gap-8">
+                {[
+                  {
+                    step: 1,
+                    title: 'Team Formation',
+                    description: 'Register and join a team of innovators',
+                    icon: '👥',
+                  },
+                  {
+                    step: 2,
+                    title: 'Bot Development',
+                    description: "Code your AI bot's strategy and behavior",
+                    icon: '🤖',
+                  },
+                  {
+                    step: 3,
+                    title: 'Server Integration',
+                    description:
+                      'Your code is communicates with our Minecraft server',
+                    icon: '🖥️',
+                  },
+                  {
+                    step: 4,
+                    title: 'Live Competition',
+                    description: 'Bots compete in real-time matches',
+                    icon: '⚔️',
+                  },
+                  {
+                    step: 5,
+                    title: 'Victory Conditions',
+                    description: 'First team to complete objectives wins',
+                    icon: '🏆',
+                  },
+                ].map((item, index) => (
+                  <motion.div
+                    key={item.step}
+                    className="relative flex items-center gap-6 bg-black/30 p-6 rounded-xl border border-[#FFD700]/20"
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    {/* Connector Line */}
+                    {index < 4 && (
+                      <div className="absolute -bottom-8 left-12 w-0.5 h-8 bg-gradient-to-b from-[#FFD700]/50 to-transparent" />
+                    )}
+
+                    {/* Step Number and Icon */}
+                    <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-gradient-to-br from-[#FFD700] to-[#FFA500] text-black font-bold">
+                      {item.icon}
+                    </div>
+
+                    {/* Content */}
+                    <div>
+                      <h3 className="text-xl font-semibold text-[#FFD700] mb-1">
+                        {item.title}
+                      </h3>
+                      <p className="text-gray-300">{item.description}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </motion.div>
+          </section>
 
           {/* Why Minecraft Section */}
           <section className="relative">
             <motion.div
               className="relative"
-              variants={sectionVariants}
               initial="initial"
               whileInView="animate"
               viewport={{ once: true }}
+              variants={staggerChildren}
             >
-              <div className="flex items-center justify-center gap-4 mb-16">
+              <motion.div
+                className="flex items-center justify-center gap-4 mb-16"
+                variants={fadeInUp}
+              >
                 <div className="h-[1px] w-12 section-divider" />
-                <h2 className="text-4xl font-bold text-center text-gray-300">
+                <h2 className="text-4xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#E68A00] to-[#FFAA33]">
                   Why Minecraft as a Testbed for AI?
                 </h2>
                 <div className="h-[1px] w-12 section-divider" />
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <LightBulbIcon className="w-12 h-12 text-[#FF9900] mb-6" />
-                  <h3 className="text-2xl font-semibold mb-4 text-gray-300">
-                    Promoting Interest
-                  </h3>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>Curiosity through gamified AI challenges</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>Groundbreaking research and innovation</span>
-                    </li>
-                  </ul>
-                </motion.div>
-
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <BeakerIcon className="w-12 h-12 text-[#FF9900] mb-6" />
-                  <h3 className="text-2xl font-semibold mb-4 text-gray-300">
-                    Sandbox Environment
-                  </h3>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>
-                        Open-ended gameplay enables creativity and
-                        problem-solving
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>
-                        Dynamic, unpredictable challenges for AI experimentation
-                      </span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>
-                        Scalable platform for complex AI systems testing
-                      </span>
-                    </li>
-                  </ul>
-                </motion.div>
-
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <CpuChipIcon className="w-12 h-12 text-[#FF9900] mb-6" />
-                  <h3 className="text-2xl font-semibold mb-4 text-gray-300">
-                    Real-World Research
-                  </h3>
-                  <ul className="space-y-3 text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>Multi-agent coordination and team algorithms</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>Real-time strategy and adaptation</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                      <span>Resource management and obstacle navigation</span>
-                    </li>
-                  </ul>
-                </motion.div>
-              </div>
-            </motion.div>
-          </section>
-
-          {/* The Importance of AI Section */}
-          <section className="relative">
-            <motion.div
-              className="relative"
-              variants={sectionVariants}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center justify-center gap-4 mb-16">
-                <div className="h-[1px] w-12 section-divider" />
-                <h2 className="text-4xl font-bold text-center text-gray-300">
-                  The Impact of AI Agent Research
-                </h2>
-                <div className="h-[1px] w-12 section-divider" />
-              </div>
-
-              <motion.div
-                className="max-w-3xl mx-auto mb-16 text-center"
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6 }}
-              >
-                <p className="text-xl leading-relaxed text-gray-300">
-                  Artificial Intelligence is at the heart of solving complex
-                  real-world challenges, from logistics optimization to
-                  autonomous robotics. Researching AI in a controlled yet
-                  dynamic environment like Minecraft allows us to simulate and
-                  tackle these challenges with precision and creativity. The
-                  game’s open-ended mechanics provide a unique platform to
-                  develop and refine:
-                </p>
               </motion.div>
 
-              <div className="grid md:grid-cols-2 gap-12 max-w-6xl mx-auto">
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <h3 className="text-2xl font-semibold mb-6 text-gray-300">
-                    Why This Matters
-                  </h3>
-                  <div className="space-y-4 text-gray-300">
-                    <p className="mb-4">
-                      Minecraft provides a safe, controlled setting to develop:
-                    </p>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Team-based algorithms that scale to real-world
-                          applications
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Decision-making strategies under adversarial
-                          conditions
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Advances applicable to robotics, logistics, and
-                          automation
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <h3 className="text-2xl font-semibold mb-6 text-gray-300">
-                    Future Impact
-                  </h3>
-                  <div className="space-y-6 text-gray-300">
-                    <p>
-                      Projects like BlockWarriors bridge the gap between gaming
-                      and groundbreaking research, fostering innovations in:
-                    </p>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Resource optimization and complex decision-making
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Reinforcement learning and adaptive AI systems
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Multi-agent coordination and emergent behavior
-                        </span>
-                      </li>
-                    </ul>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </section>
-
-          {/* Competition Details */}
-          <section id="tournament" className="relative">
-            <motion.div
-              className="relative"
-              variants={sectionVariants}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center justify-center gap-4 mb-16">
-                <div className="h-[1px] w-12 section-divider" />
-                <h2 className="text-4xl font-bold text-center text-gray-300">
-                  Competition Overview
-                </h2>
-                <div className="h-[1px] w-12 section-divider" />
-              </div>
-
               <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
                 <motion.div
-                  className="group card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
+                  className="card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-500 group relative overflow-hidden cursor-pointer"
+                  variants={fadeInUp}
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 0 30px rgba(255,153,0,0.15)',
+                  }}
+                  onClick={() => setExpandedCard(expandedCard === 0 ? -1 : 0)}
                 >
-                  <div className="flex items-center justify-center mb-6">
-                    <CodeBracketIcon className="w-12 h-12 text-[#FF9900] group-hover:scale-110 transition-transform duration-300" />
-                  </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-center text-gray-300">
-                    The Arena
+                  <motion.div
+                    className="w-12 h-12 mx-auto mb-6 text-[#FF9900]"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <BeakerIcon />
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-center mb-4 bg-gradient-to-r from-[#FF9900] to-[#FFAA33] bg-clip-text text-transparent">
+                    Perfect Testing Environment
                   </h3>
-                  <p className="text-gray-300 text-center leading-relaxed">
-                    A pre-configured environment where your AI bots will face
-                    dynamic challenges, processing real-time data streams for
-                    strategic decision-making.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="group card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="flex items-center justify-center mb-6">
-                    <UserGroupIcon className="w-12 h-12 text-[#FF9900] group-hover:scale-110 transition-transform duration-300" />
-                  </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-center text-gray-300">
-                    Global Qualifiers
-                  </h3>
-                  <p className="text-gray-300 text-center leading-relaxed">
-                    Teams worldwide compete in online elimination matches,
-                    showcasing their AI strategies on an international stage.
-                  </p>
-                </motion.div>
-
-                <motion.div
-                  className="group card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="flex items-center justify-center mb-6">
-                    <TrophyIcon className="w-12 h-12 text-[#FF9900] group-hover:scale-110 transition-transform duration-300" />
-                  </div>
-                  <h3 className="text-2xl font-semibold mb-4 text-center text-gray-300">
-                    Princeton Finals
-                  </h3>
-                  <p className="text-gray-300 text-center leading-relaxed">
-                    Experience the excitement live at Princeton University, with
-                    professional commentary and immersive match coverage.
-                  </p>
-                </motion.div>
-              </div>
-
-              <div className="mt-16 max-w-4xl mx-auto">
-                <motion.div
-                  className="card-gradient p-12 rounded-2xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.01 }}
-                >
-                  <h3 className="text-3xl font-bold mb-8 text-center text-gray-300">
-                    Tournament Structure
-                  </h3>
-
-                  <div className="grid md:grid-cols-2 gap-12">
-                    <motion.div
-                      className="space-y-6"
-                      whileHover={{ scale: 1.02 }}
+                  <motion.div
+                    className="overflow-hidden"
+                    animate={{
+                      height: expandedCard === 0 ? 'auto' : 0,
+                      opacity: expandedCard === 0 ? 1 : 0,
+                    }}
+                    transition={{
+                      height: {
+                        duration: 0.4,
+                        ease: 'easeOut',
+                      },
+                      opacity: {
+                        duration: 0.3,
+                        ease: 'easeInOut',
+                        delay: expandedCard === 0 ? 0.2 : 0,
+                      },
+                    }}
+                  >
+                    <p className="text-gray-300 text-center transform">
+                      Minecraft provides a controlled yet flexible environment
+                      for testing AI algorithms. Its sandbox nature allows for
+                      infinite possibilities while maintaining measurable
+                      outcomes.
+                    </p>
+                  </motion.div>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                  />
+                  <motion.div
+                    className="mt-6 flex items-center justify-center gap-2 text-[#FF9900]/80 group-hover:text-[#FF9900] transition-colors duration-300"
+                    animate={{ opacity: expandedCard === 0 ? 0 : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="text-sm font-medium">Learn more</span>
+                    <motion.svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      animate={{
+                        x: expandedCard === 0 ? 0 : [0, 5, 0],
+                        rotate: expandedCard === 0 ? 0 : [0, 0, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
                     >
-                      <div className="flex justify-center items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-[#FF9900]/10 flex items-center justify-center">
-                          <TrophyIcon className="w-6 h-6 text-[#FF9900]" />
-                        </div>
-                        <h4 className="text-2xl font-semibold text-gray-300">
-                          Qualification Phase
-                        </h4>
-                      </div>
-                      <ul className="space-y-4 text-gray-300 ml-16">
-                        <li className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#FFAA33] mt-2" />
-                          <span className="text-lg">
-                            Online qualification matches
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#FFAA33] mt-2" />
-                          <span className="text-lg">
-                            <strong>Top 16</strong> teams advance
-                          </span>
-                        </li>
-                      </ul>
-                    </motion.div>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </motion.svg>
+                  </motion.div>
+                </motion.div>
 
-                    <motion.div
-                      className="space-y-6"
-                      whileHover={{ scale: 1.02 }}
+                <motion.div
+                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-500 group relative overflow-hidden cursor-pointer"
+                  variants={fadeInUp}
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 0 30px rgba(255,153,0,0.15)',
+                  }}
+                  onClick={() => setExpandedCard(expandedCard === 1 ? -1 : 1)}
+                >
+                  <motion.div
+                    className="w-12 h-12 mx-auto mb-6 text-[#FF9900]"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <CpuChipIcon />
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-center mb-4 bg-gradient-to-r from-[#FF9900] to-[#FFAA33] bg-clip-text text-transparent">
+                    Real-time Decision Making
+                  </h3>
+                  <motion.div
+                    className="overflow-hidden"
+                    animate={{
+                      height: expandedCard === 1 ? 'auto' : 0,
+                      opacity: expandedCard === 1 ? 1 : 0,
+                    }}
+                    transition={{
+                      height: {
+                        duration: 0.4,
+                        ease: 'easeOut',
+                      },
+                      opacity: {
+                        duration: 0.3,
+                        ease: 'easeInOut',
+                        delay: expandedCard === 1 ? 0.2 : 0,
+                      },
+                    }}
+                  >
+                    <p className="text-gray-300 text-center transform">
+                      Challenge your AI to make split-second decisions in a
+                      dynamic world. From resource management to combat
+                      strategy, every moment counts.
+                    </p>
+                  </motion.div>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                  />
+                  <motion.div
+                    className="mt-6 flex items-center justify-center gap-2 text-[#FF9900]/80 group-hover:text-[#FF9900] transition-colors duration-300"
+                    animate={{ opacity: expandedCard === 1 ? 0 : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="text-sm font-medium">Learn more</span>
+                    <motion.svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      animate={{
+                        x: expandedCard === 1 ? 0 : [0, 5, 0],
+                        rotate: expandedCard === 1 ? 0 : [0, 0, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
                     >
-                      <div className="flex justify-center items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-[#FF9900]/10 flex items-center justify-center">
-                          <TrophyIcon className="w-6 h-6 text-[#FF9900]" />
-                        </div>
-                        <h4 className="text-2xl font-semibold text-gray-300">
-                          Elimination Phase
-                        </h4>
-                      </div>
-                      <ul className="space-y-4 text-gray-300 ml-16">
-                        <li className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#FFAA33] mt-2" />
-                          <span className="text-lg">
-                            Sixteen teams compete <strong>in person</strong>
-                          </span>
-                        </li>
-                        <li className="flex items-start gap-3">
-                          <div className="w-2 h-2 rounded-full bg-[#FFAA33] mt-2" />
-                          <span className="text-lg">
-                            Single elimination playoffs
-                          </span>
-                        </li>
-                      </ul>
-                    </motion.div>
-                  </div>
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </motion.svg>
+                  </motion.div>
+                </motion.div>
+
+                <motion.div
+                  className="card-gradient p-8 rounded-xl border border-[#A67F5C]/20 hover:border-[#FF9900]/40 transition-all duration-500 group relative overflow-hidden cursor-pointer"
+                  variants={fadeInUp}
+                  whileHover={{
+                    scale: 1.02,
+                    boxShadow: '0 0 30px rgba(255,153,0,0.15)',
+                  }}
+                  onClick={() => setExpandedCard(expandedCard === 2 ? -1 : 2)}
+                >
+                  <motion.div
+                    className="w-12 h-12 mx-auto mb-6 text-[#FF9900]"
+                    whileHover={{ scale: 1.1 }}
+                  >
+                    <LightBulbIcon />
+                  </motion.div>
+                  <h3 className="text-xl font-semibold text-center mb-4 bg-gradient-to-r from-[#FF9900] to-[#FFAA33] bg-clip-text text-transparent">
+                    Emergent Complexity
+                  </h3>
+                  <motion.div
+                    className="overflow-hidden"
+                    animate={{
+                      height: expandedCard === 2 ? 'auto' : 0,
+                      opacity: expandedCard === 2 ? 1 : 0,
+                    }}
+                    transition={{
+                      height: {
+                        duration: 0.4,
+                        ease: 'easeOut',
+                      },
+                      opacity: {
+                        duration: 0.3,
+                        ease: 'easeInOut',
+                        delay: expandedCard === 2 ? 0.2 : 0,
+                      },
+                    }}
+                  >
+                    <p className="text-gray-300 text-center transform">
+                      Simple rules lead to complex behaviors. Watch as your AI
+                      learns to navigate, build, and interact in ways you never
+                      explicitly programmed.
+                    </p>
+                  </motion.div>
+                  <motion.div
+                    className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
+                    whileInView={{ opacity: 1 }}
+                    viewport={{ once: true }}
+                  />
+                  <motion.div
+                    className="mt-6 flex items-center justify-center gap-2 text-[#FF9900]/80 group-hover:text-[#FF9900] transition-colors duration-300"
+                    animate={{ opacity: expandedCard === 2 ? 0 : 1 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <span className="text-sm font-medium">Learn more</span>
+                    <motion.svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="20"
+                      height="20"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      animate={{
+                        x: expandedCard === 2 ? 0 : [0, 5, 0],
+                        rotate: expandedCard === 2 ? 0 : [0, 0, 0],
+                      }}
+                      transition={{
+                        duration: 1.5,
+                        repeat: Infinity,
+                        ease: 'easeInOut',
+                      }}
+                    >
+                      <line x1="5" y1="12" x2="19" y2="12"></line>
+                      <polyline points="12 5 19 12 12 19"></polyline>
+                    </motion.svg>
+                  </motion.div>
                 </motion.div>
               </div>
             </motion.div>
           </section>
 
-          {/* Get Involved */}
-          <section className="relative">
+          {/* Competition CTA Section */}
+          <section className="relative mt-32">
             <motion.div
-              className="relative"
-              variants={sectionVariants}
+              className="max-w-4xl mx-auto text-center"
               initial="initial"
               whileInView="animate"
               viewport={{ once: true }}
+              variants={staggerChildren}
             >
-              <div className="flex items-center justify-center gap-4 mb-16">
-                <div className="h-[1px] w-12 section-divider" />
-                <h2 className="text-4xl font-bold text-center text-gray-300">
-                  Join the Movement
-                </h2>
-                <div className="h-[1px] w-12 section-divider" />
-              </div>
-
-              <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              <motion.div
+                className="inline-block card-gradient p-12 rounded-2xl border border-[#A67F5C]/20 relative overflow-hidden group hover:border-[#FF9900]/40 transition-all duration-500"
+                variants={fadeInUp}
+                whileHover={{
+                  scale: 1.02,
+                  boxShadow: '0 0 30px rgba(255,153,0,0.15)',
+                }}
+              >
+                {/* Animated border */}
                 <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  whileInView={{ opacity: 1 }}
+                  viewport={{ once: true }}
                 >
-                  <h3 className="text-2xl font-semibold mb-6 text-gray-300">
-                    For Competitors
-                  </h3>
-                  <div className="space-y-6 text-gray-300">
-                    <p className="leading-relaxed">
-                      Form your team and develop cutting-edge AI algorithms
-                      using Python, or Javascript. Your bots will compete in
-                      thrilling matches that test their ability to:
-                    </p>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Manage resources strategically</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Coordinate team movements</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Adapt to unexpected challenges</span>
-                      </li>
-                    </ul>
-                  </div>
+                  <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF9900]/30 to-transparent" />
+                  <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#FF9900]/30 to-transparent" />
+                  <div className="absolute top-0 left-0 h-full w-[1px] bg-gradient-to-b from-transparent via-[#FF9900]/30 to-transparent" />
+                  <div className="absolute top-0 right-0 h-full w-[1px] bg-gradient-to-b from-transparent via-[#FF9900]/30 to-transparent" />
                 </motion.div>
 
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
+                {/* Background effects */}
+                <div className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                <div className="absolute inset-0 bg-orange-500 bg-repeat opacity-10" />
+
+                <motion.h2
+                  className="text-4xl font-bold text-gray-100 mb-6"
+                  variants={fadeInUp}
                 >
-                  <h3 className="text-2xl font-semibold mb-6 text-gray-300">
-                    For Contributors
-                  </h3>
-                  <div className="space-y-6 text-gray-300">
-                    <p className="leading-relaxed">
-                      Be part of the team that's revolutionizing AI research
-                      through gaming. We're looking for passionate individuals
-                      to help with:
-                    </p>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Technical infrastructure and development</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Event organization and production</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Community engagement and outreach</span>
-                      </li>
-                    </ul>
-                  </div>
-                </motion.div>
-
-                <motion.div
-                  className="card-gradient p-8 rounded-xl border border-[#333333] hover:border-[#FF9900]/40 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
+                  Ready to Push the Boundaries?
+                </motion.h2>
+                <motion.p
+                  className="text-xl text-gray-200 mb-8"
+                  variants={fadeInUp}
                 >
-                  <h3 className="text-2xl font-semibold mb-6 text-gray-300">
-                    For Sponsors
-                  </h3>
-                  <div className="space-y-6 text-gray-300">
-                    <p className="leading-relaxed">
-                      Join us as a sponsor to drive innovation in AI gaming and
-                      research. Gain exclusive perks including:
-                    </p>
-                    <ul className="space-y-3">
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Access to a pool of talented participants</span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>
-                          Unique marketing opportunities during events
-                        </span>
-                      </li>
-                      <li className="flex items-start gap-3">
-                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-2" />
-                        <span>Engagement with cutting-edge AI projects</span>
-                      </li>
-                    </ul>
-                  </div>
-                </motion.div>
-              </div>
-            </motion.div>
-          </section>
-
-          {/* Vision */}
-          <section className="relative pb-24">
-            <motion.div
-              className="max-w-4xl mx-auto text-center space-y-8"
-              variants={sectionVariants}
-              initial="initial"
-              whileInView="animate"
-              viewport={{ once: true }}
-            >
-              <div className="flex items-center justify-center gap-4 mb-16">
-                <div className="h-[1px] w-12 section-divider" />
-                <h2 className="text-4xl font-bold text-center text-gray-300">
-                  Our Vision
-                </h2>
-                <div className="h-[1px] w-12 section-divider" />
-              </div>
-
-              <div className="space-y-10">
-                <p className="text-3xl font-semibold text-gray-300 leading-relaxed">
-                  <strong>BlockWarriors</strong> is where competitive gaming
-                  meets the future of AI development.
-                </p>
-                <p className="text-xl text-gray-300 leading-relaxed max-w-3xl mx-auto">
-                  Using <strong>Minecraft</strong> as our playground, we
-                  challenge AI developers to create bots that can strategize,
-                  adapt, and compete in dynamic environments.
-                </p>
-
-                <motion.div
-                  className="inline-block bg-gradient-to-br from-[#2A1810] via-[#331A0D] to-[#1F1305] p-6 rounded-lg border border-[#FF9900]/30 hover:border-[#FF9900]/50 transition-all duration-300"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <p className="text-2xl text-gray-300 leading-relaxed">
-                    Ready to push the boundaries of gamifed AI?
-                    <br />
-                    <span className="bg-gradient-to-r from-[#FF9900] to-[#FFAA33] bg-clip-text text-transparent font-semibold">
-                      Join the challenge.
+                  Join the competition and be part of the next generation of AI
+                  innovation.
+                </motion.p>
+                <motion.div variants={fadeInUp}>
+                  <Link
+                    href="/competition"
+                    className="inline-block group relative"
+                  >
+                    <span className="absolute inset-0 bg-gradient-to-r from-[#FFA500] to-[#FFB733] rounded-lg blur-lg opacity-50 group-hover:opacity-75 transition-opacity duration-300" />
+                    <span className="relative px-8 py-3 bg-gradient-to-r from-[#FFA500] to-[#FFB733] rounded-lg text-black font-semibold inline-block">
+                      Learn About the Competition →
                     </span>
-                  </p>
+                  </Link>
                 </motion.div>
-              </div>
+              </motion.div>
             </motion.div>
           </section>
         </div>
       </div>
+
+      <style jsx>{`
+        .card-gradient {
+          background: rgba(26, 26, 26, 0.8);
+          backdrop-filter: blur(20px);
+        }
+
+        .section-divider {
+          background: linear-gradient(
+            to right,
+            transparent,
+            #ff9900,
+            transparent
+          );
+        }
+
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0);
+          }
+          50% {
+            transform: translateY(-20px);
+          }
+        }
+      `}</style>
+
+      <style jsx global>{`
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        .animate-shimmer {
+          animation: shimmer 3s infinite;
+        }
+      `}</style>
     </div>
   );
 }
