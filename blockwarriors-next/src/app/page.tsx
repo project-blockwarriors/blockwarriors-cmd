@@ -29,7 +29,7 @@ export default function Home() {
       <div className="min-h-screen text-gray-100">
         <RegistrationBanner />
 
-        <div className="container mx-auto px-4 py-12 space-y-32">
+        <div className="container mx-auto py-12 space-y-32">
           <Header />
 
           {/* Hero Section */}
