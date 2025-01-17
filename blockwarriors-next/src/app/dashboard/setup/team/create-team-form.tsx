@@ -58,57 +58,64 @@ let timeZone = [
 const customStyles = {
   control: (provided, state) => ({
     ...provided,
-    backgroundColor: '#1c1c1c', // Matches input background
-    border: state.isFocused ? '1px solid #f97316' : '1px solid #444', // Orange border on focus, dark gray otherwise
-    color: '#fff',
-    fontSize: '14px',
-    padding: '4px 8px', // Adjusted padding
-    boxShadow: 'none',
-    borderRadius: '4px', // Matches input border radius
-    '&:hover': {
-      border: '1px solid #666', // Slightly lighter border on hover
-    },
-  }),
-  option: (provided, state) => ({
-    ...provided,
-    backgroundColor: state.isFocused ? '#333' : '#1c1c1c', // Matches dropdown background
-    color: '#fff',
-    padding: '8px 12px', // Proper padding for better alignment
-    cursor: 'pointer',
-  }),
-  singleValue: (provided) => ({
-    ...provided,
-    color: '#fff',
-  }),
-  menu: (provided) => ({
-    ...provided,
-    backgroundColor: '#1c1c1c',
-    border: '1px solid #444', // Matches dropdown border to control
+    width: '100%',
+    padding: '10px',
+    fontSize: '16px',
+    border: state.isFocused
+      ? '1px solid #ff7f32'
+      : '1px solid #3d2a1f',
     borderRadius: '4px',
-    marginTop: '4px',
-    zIndex: 10, // Ensures dropdown appears above other elements
-  }),
-  dropdownIndicator: (provided, state) => ({
-    ...provided,
-    color: state.isFocused ? '#f97316' : '#fff', // Matches the orange focus color
-    '&:hover': {
-      color: '#f97316', // Orange hover effect for the dropdown indicator
-    },
+    backgroundColor: '#1a0e08',
+    color: 'white',
+    outline: 'none',
+    boxShadow: 'none',
+    '&:hover': {},
   }),
   placeholder: (provided) => ({
     ...provided,
-    color: '#888', // Matches placeholder color
+    color: '#9e7c6b',
+  }),
+  singleValue: (provided) => ({
+    ...provided,
+    color: 'white',
+  }),
+  option: (provided, state) => ({
+    ...provided,
+    backgroundColor: state.isFocused ? '#4d2f23' : '#1a0e08',
+    padding: '10px',
+    cursor: 'pointer',
+    '&:hover': {
+      backgroundColor: '#5a382b',
+    },
+  }),
+  menu: (provided) => ({
+    ...provided,
+    backgroundColor: '#1a0e08',
+    border: '1px solid #5a3a2b',
+    borderRadius: '4px',
+    marginTop: '4px',
+    zIndex: 10,
+  }),
+  dropdownIndicator: (provided, state) => ({
+    ...provided,
+    color: state.isFocused ? '#ff7f32' : '#5a3a2b',
+    backgroundImage: `url('data:image/svg+xml;utf8,<svg fill="%235a3a2b" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24px" height="24px"><path d="M7 10l5 5 5-5z"/></svg>')`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: 'right 10px center',
+    backgroundSize: '12px',
+    '&:hover': {
+      color: '#ff7f32',
+    },
   }),
   valueContainer: (provided) => ({
     ...provided,
-    padding: '4px 8px', // Aligns value container with the input box
+    paddingRight: '30px',
   }),
   indicatorsContainer: (provided) => ({
     ...provided,
-    paddingRight: '8px', // Adjust spacing around the dropdown indicator
+    paddingRight: '10px',
   }),
 };
-
 
 type CreateTeamFormData = z.infer<typeof createTeamSchema>;
 
@@ -164,23 +171,23 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
             )}
           />
           <FormField
-                    control={form.control}
-                    name="timeZone"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Preferred Time Zone</FormLabel>
-                        <FormControl>
-                          <Select
-                            options={timeZone}
-                            value={timeZone.find(option => option.value === field.value)}
-                            onChange={(selectedOption) => field.onChange(selectedOption?.value)}
-                            styles={customStyles}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+              control={form.control}
+              name="timeZone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Preferred Time Zone</FormLabel>
+                  <FormControl>
+                    <Select
+                      options={timeZone}
+                      value={timeZone.find(option => option.value === field.value)}
+                      onChange={(selectedOption) => field.onChange(selectedOption?.value)}
+                      styles={customStyles}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
         </div>
 
         <Button type="submit" className="w-full">
