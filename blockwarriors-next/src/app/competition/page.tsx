@@ -3,6 +3,7 @@
 import { Header } from '../components/Header';
 import { RegistrationBanner } from '../components/RegistrationBanner';
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import {
   CodeBracketIcon,
   UserGroupIcon,
@@ -24,6 +25,39 @@ export default function Competition() {
         <div className="container mx-auto py-12 space-y-24 max-w-[100vw] px-4 sm:px-6 md:px-8">
           <Header />
 
+          {/* Futuristic Lab Hero */}
+          <section className="relative h-[70vh] w-full overflow-hidden rounded-2xl mb-24">
+            <Image
+              src="/futuristic-computer-lab.avif"
+              alt="Futuristic Computer Lab"
+              fill
+              className="object-cover"
+              priority
+              quality={100}
+            />
+            <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#1A1A1A]/50 to-[#1A1A1A]" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="text-center max-w-4xl px-4">
+                <motion.h1 
+                  className="text-6xl font-bold text-white mb-6"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.2 }}
+                >
+                  The Future of AI Gaming
+                </motion.h1>
+                <motion.p 
+                  className="text-2xl text-gray-200"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                >
+                  Where Innovation Meets Competition
+                </motion.p>
+              </div>
+            </div>
+          </section>
+
           {/* Hero Section */}
           <section className="relative">
             <motion.div
@@ -40,6 +74,62 @@ export default function Competition() {
                 innovation. Showcase your skills, compete with the best, and
                 push the boundaries of AI development.
               </p>
+            </motion.div>
+          </section>
+
+          {/* Project Overview Section */}
+          <section className="relative">
+            <motion.div
+              className="relative max-w-6xl mx-auto"
+              variants={sectionVariants}
+              initial="initial"
+              animate="animate"
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="grid md:grid-cols-2 gap-12 items-center">
+                <div className="space-y-6 p-8 rounded-2xl bg-[#1A1A1A]/80 border border-[#333333]">
+                  <h2 className="text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#E68A00] to-[#FFAA33]">
+                    The Largest AI Gaming Competition
+                  </h2>
+                  <p className="text-xl text-gray-100 leading-relaxed">
+                    Blockwarriors stands as the premier AI gaming competition, uniting the brightest minds from all Ivy League institutions and other top universities worldwide.
+                  </p>
+                  <div className="grid grid-cols-2 gap-6 mt-8">
+                    <div className="p-6 rounded-xl border border-[#333333] bg-[#1A1A1A]">
+                      <div className="text-3xl font-bold text-[#FF9900] mb-2">8+</div>
+                      <div className="text-gray-100">Ivy League Universities</div>
+                    </div>
+                    <div className="p-6 rounded-xl border border-[#333333] bg-[#1A1A1A]">
+                      <div className="text-3xl font-bold text-[#FF9900] mb-2">20+</div>
+                      <div className="text-gray-100">Partner Institutions</div>
+                    </div>
+                  </div>
+                </div>
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#FF9900]/20 to-transparent rounded-2xl filter blur-3xl opacity-30"></div>
+                  <div className="p-8 rounded-2xl border border-[#333333] relative bg-[#1A1A1A]/80">
+                    <h3 className="text-2xl font-semibold mb-6 text-gray-100">Why Blockwarriors?</h3>
+                    <ul className="space-y-4">
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-[10px]"></div>
+                        <span className="text-gray-100">Unprecedented collaboration between top academic institutions</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-[10px]"></div>
+                        <span className="text-gray-100">Cutting-edge AI research opportunities in gaming</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-[10px]"></div>
+                        <span className="text-gray-100">Network with leading minds in AI and technology</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <div className="w-1.5 h-1.5 rounded-full bg-[#FFAA33] mt-[10px]"></div>
+                        <span className="text-gray-100">Push the boundaries of AI innovation through competition</span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </motion.div>
           </section>
 

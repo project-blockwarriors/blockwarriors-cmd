@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { RegistrationBanner } from './components/RegistrationBanner';
 import { motion } from 'framer-motion';
@@ -42,6 +42,35 @@ export default function Home() {
   };
 
   const [expandedCard, setExpandedCard] = useState(-1);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  const universities = [
+    {
+      image: '/nassau-hall-fall.jpg',
+      name: 'Princeton University',
+      description: 'Home of the Blockwarriors Finals'
+    },
+    {
+      image: '/harvard.jpeg',
+      name: 'Harvard University',
+      description: 'Leading Innovation in AI Research'
+    },
+    {
+      image: '/mit.jpg',
+      name: 'MIT',
+      description: 'Pushing the Boundaries of Technology'
+    }
+  ];
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentIndex((prevIndex) => 
+        prevIndex === universities.length - 1 ? 0 : prevIndex + 1
+      );
+    }, 5000);
+
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#1A1A1A] to-[#0D0D0D] relative overflow-hidden">
@@ -209,6 +238,67 @@ export default function Home() {
             </motion.div>
           </section>
 
+          {/* University Partners Carousel */}
+          <section className="relative">
+            <motion.div
+              className="max-w-4xl mx-auto text-center mb-16"
+              initial="initial"
+              whileInView="animate"
+              viewport={{ once: true }}
+              variants={staggerChildren}
+            >
+            </motion.div>
+
+            <div className="relative h-[60vh] w-full overflow-hidden rounded-2xl">
+              {universities.map((university, index) => (
+                <motion.div
+                  key={university.name}
+                  className="absolute inset-0"
+                  initial={{ opacity: 0 }}
+                  animate={{ 
+                    opacity: currentIndex === index ? 1 : 0,
+                    transition: { duration: 0.8 }
+                  }}
+                >
+                  <Image
+                    src={university.image}
+                    alt={university.name}
+                    fill
+                    className="object-cover"
+                    priority={index === 0}
+                    quality={100}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent" />
+                  <motion.div 
+                    className="absolute bottom-8 left-8 right-8 text-white"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ 
+                      opacity: currentIndex === index ? 1 : 0,
+                      y: currentIndex === index ? 0 : 20,
+                      transition: { duration: 0.8, delay: 0.2 }
+                    }}
+                  >
+                    <h2 className="text-2xl font-semibold mb-2">{university.name}</h2>
+                    <p className="text-gray-200">{university.description}</p>
+                  </motion.div>
+                </motion.div>
+              ))}
+              
+              {/* Navigation Dots */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
+                {universities.map((_, index) => (
+                  <button
+                    key={index}
+                    className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                      currentIndex === index ? 'bg-[#FFD700] w-4' : 'bg-white/50'
+                    }`}
+                    onClick={() => setCurrentIndex(index)}
+                  />
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* Competition Flow Section */}
           <section className="relative mt-32">
             <motion.div
@@ -346,12 +436,22 @@ export default function Home() {
                       },
                     }}
                   >
-                    <p className="text-gray-300 text-center transform">
+                    <p className="text-gray-300 text-center transform mb-6">
                       Minecraft provides a controlled yet flexible environment
                       for testing AI algorithms. Its sandbox nature allows for
                       infinite possibilities while maintaining measurable
                       outcomes.
                     </p>
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                      <video
+                        src="/rl-sim.mov"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </motion.div>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
@@ -426,11 +526,21 @@ export default function Home() {
                       },
                     }}
                   >
-                    <p className="text-gray-300 text-center transform">
+                    <p className="text-gray-300 text-center transform mb-6">
                       Challenge your AI to make split-second decisions in a
                       dynamic world. From resource management to combat
                       strategy, every moment counts.
                     </p>
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                      <video
+                        src="/robot-walk.mov"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </motion.div>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
@@ -505,11 +615,21 @@ export default function Home() {
                       },
                     }}
                   >
-                    <p className="text-gray-300 text-center transform">
+                    <p className="text-gray-300 text-center transform mb-6">
                       Simple rules lead to complex behaviors. Watch as your AI
                       learns to navigate, build, and interact in ways you never
                       explicitly programmed.
                     </p>
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden">
+                      <video
+                        src="/ai-stairs.mov"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
                   </motion.div>
                   <motion.div
                     className="absolute inset-0 bg-gradient-to-t from-[#FF9900]/10 to-transparent opacity-0 transition-opacity duration-300"
