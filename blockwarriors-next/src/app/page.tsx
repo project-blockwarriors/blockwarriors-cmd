@@ -48,23 +48,23 @@ export default function Home() {
     {
       image: '/nassau-hall-fall.jpg',
       name: 'Princeton University',
-      description: 'Home of the Blockwarriors Finals'
+      description: 'Home of the Blockwarriors Finals',
     },
     {
       image: '/harvard.jpeg',
       name: 'Harvard University',
-      description: 'Leading Innovation in AI Research'
+      description: 'Leading Innovation in AI Research',
     },
     {
       image: '/mit.jpg',
       name: 'MIT',
-      description: 'Pushing the Boundaries of Technology'
-    }
+      description: 'Pushing the Boundaries of Technology',
+    },
   ];
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setCurrentIndex((prevIndex) => 
+      setCurrentIndex((prevIndex) =>
         prevIndex === universities.length - 1 ? 0 : prevIndex + 1
       );
     }, 5000);
@@ -246,8 +246,7 @@ export default function Home() {
               whileInView="animate"
               viewport={{ once: true }}
               variants={staggerChildren}
-            >
-            </motion.div>
+            ></motion.div>
 
             <div className="relative h-[60vh] w-full overflow-hidden rounded-2xl">
               {universities.map((university, index) => (
@@ -255,9 +254,9 @@ export default function Home() {
                   key={university.name}
                   className="absolute inset-0"
                   initial={{ opacity: 0 }}
-                  animate={{ 
+                  animate={{
                     opacity: currentIndex === index ? 1 : 0,
-                    transition: { duration: 0.8 }
+                    transition: { duration: 0.8 },
                   }}
                 >
                   <Image
@@ -269,28 +268,32 @@ export default function Home() {
                     quality={100}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#1A1A1A] via-transparent to-transparent" />
-                  <motion.div 
+                  <motion.div
                     className="absolute bottom-8 left-8 right-8 text-white"
                     initial={{ opacity: 0, y: 20 }}
-                    animate={{ 
+                    animate={{
                       opacity: currentIndex === index ? 1 : 0,
                       y: currentIndex === index ? 0 : 20,
-                      transition: { duration: 0.8, delay: 0.2 }
+                      transition: { duration: 0.8, delay: 0.2 },
                     }}
                   >
-                    <h2 className="text-2xl font-semibold mb-2">{university.name}</h2>
+                    <h2 className="text-2xl font-semibold mb-2">
+                      {university.name}
+                    </h2>
                     <p className="text-gray-200">{university.description}</p>
                   </motion.div>
                 </motion.div>
               ))}
-              
+
               {/* Navigation Dots */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-2">
                 {universities.map((_, index) => (
                   <button
                     key={index}
                     className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                      currentIndex === index ? 'bg-[#FFD700] w-4' : 'bg-white/50'
+                      currentIndex === index
+                        ? 'bg-[#FFD700] w-4'
+                        : 'bg-white/50'
                     }`}
                     onClick={() => setCurrentIndex(index)}
                   />
@@ -444,13 +447,16 @@ export default function Home() {
                     </p>
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                       <video
-                        src="/rl-sim.mov"
                         autoPlay
                         loop
                         muted
                         playsInline
                         className="w-full h-full object-cover"
-                      />
+                      >
+                        <source src="/rl-sim.mov" type="video/quicktime" />
+                        <source src="/rl-sim.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                   </motion.div>
                   <motion.div
@@ -533,13 +539,16 @@ export default function Home() {
                     </p>
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                       <video
-                        src="/robot-walk.mov"
                         autoPlay
                         loop
                         muted
                         playsInline
                         className="w-full h-full object-cover"
-                      />
+                      >
+                        <source src="/robot-walk.mov" type="video/quicktime" />
+                        <source src="/robot-walk.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                   </motion.div>
                   <motion.div
@@ -622,13 +631,16 @@ export default function Home() {
                     </p>
                     <div className="relative w-full aspect-video rounded-lg overflow-hidden">
                       <video
-                        src="/ai-stairs.mov"
                         autoPlay
                         loop
                         muted
                         playsInline
                         className="w-full h-full object-cover"
-                      />
+                      >
+                        <source src="/ai-stairs.mov" type="video/quicktime" />
+                        <source src="/ai-stairs.mp4" type="video/mp4" />
+                        Your browser does not support the video tag.
+                      </video>
                     </div>
                   </motion.div>
                   <motion.div
