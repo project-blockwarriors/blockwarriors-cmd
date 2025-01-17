@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '@/auth/server';
+import { createAdminSupabaseClient, createSupabaseClient } from '@/auth/server';
 import { TeamWithUsers, Team } from '@/types/team';
 
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
@@ -76,15 +76,19 @@ export async function createTeam(
   return { data: team, error: null };
 }
 
-export async function updateUserTeam(userId: string, teamId: number | null): Promise<{ data: any | null; error: any | null }> {
-  const supabase = await createSupabaseClient(); // Initialize Supabase
-  console.log('Updating user team for:', { userId, teamId }); // Log inputs for clarity
+export async function updateUserTeam(
+  userId: string,
+  teamId: number | null
+): Promise<{ data: any | null; error: any | null }> {
+  const supabase = await createAdminSupabaseClient(); // Initialize Supabase
+  console.log('Updating user team for: ', { userId, teamId }); // Log inputs for clarity
 
   // Perform the database operation
   const { data, error } = await supabase
     .from('users') // Table name
     .update({ team_id: teamId }) // Update operation
-    .eq('user_id', userId); // Match condition
+    .eq('user_id', userId) // Match condition
+    .select(); // Add select to return updated data
 
   // Log operation results
   if (error) {
@@ -132,7 +136,9 @@ export async function disbandTeam(
 }
 
 // Statistics data about teams
-export async function getTeamElo(teamId: number): Promise<{ data?: number; error?: string | null }> {
+export async function getTeamElo(
+  teamId: number
+): Promise<{ data?: number; error?: string | null }> {
   const supabase = await createSupabaseClient();
   const { data: team, error: teamError } = await supabase
     .from('teams')
@@ -148,7 +154,10 @@ export async function getTeamElo(teamId: number): Promise<{ data?: number; error
   return { data: team.team_elo, error: null };
 }
 
-export async function getAllTeamsScores(): Promise<{ data?: Team[]; error?: string | null }> {
+export async function getAllTeamsScores(): Promise<{
+  data?: Team[];
+  error?: string | null;
+}> {
   const supabase = await createSupabaseClient();
   const { data: teams, error: teamsError } = await supabase
     .from('teams')

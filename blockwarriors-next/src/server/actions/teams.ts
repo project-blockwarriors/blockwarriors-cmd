@@ -28,7 +28,9 @@ export async function joinTeam(
   return { error: error?.message || null };
 }
 
-export async function leaveTeam(userId: string): Promise<{ error: string | null }> {
+export async function leaveTeam(
+  userId: string
+): Promise<{ error: string | null }> {
   console.log('Initiating leaveTeam for userId:', userId);
 
   // Call `updateUserTeam` and capture its results
@@ -50,6 +52,9 @@ export async function disbandTeam(
   return await disbandTeamDb(teamId, leaderId);
 }
 
-export async function getTeamLeaderboard(): Promise<{ data?: Team[]; error?: string | null }> {
+export async function getTeamLeaderboard(): Promise<{
+  data?: Team[];
+  error?: string | null;
+}> {
   return await getAllTeamsScores();
 }

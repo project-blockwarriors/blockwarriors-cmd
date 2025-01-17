@@ -82,10 +82,7 @@ export function TeamCard({
     try {
       console.log(user_id);
       setIsLoading(true);
-      const result = await leaveTeam(user_id);
-      if (result.error) {
-        throw new Error(result.error);
-      }
+      await leaveTeam(user_id);
       router.refresh();
     } catch (error) {
       console.error('Failed to kick member:', error);
@@ -128,42 +125,40 @@ export function TeamCard({
         )}
       </CardHeader>
       <CardContent className="pb-3">
-      <div className="space-y-1.5">
-        {members.map((member, idx) => {
-          const userIsLeader = member.user_id === leader_id;
+        <div className="space-y-1.5">
+          {members.map((member, idx) => {
+            const userIsLeader = member.user_id === leader_id;
             return (
               <div
-            key={idx}
-            className="flex items-center justify-between text-sm"
-          >
-            <div className="flex items-center gap-2">
-              <Users className="h-3 w-3 text-muted-foreground" />
-              <span>
-                {member.first_name} {member.last_name}
-              </span>
-            </div>
-          
-          {userIsLeader ? 
-          <Badge variant="outline" className="text-xs">
-            Leader
-          </Badge>
-         : null}
-          
+                key={idx}
+                className="flex items-center justify-between text-sm"
+              >
+                <div className="flex items-center gap-2">
+                  <Users className="h-3 w-3 text-muted-foreground" />
+                  <span>
+                    {member.first_name} {member.last_name}
+                  </span>
+                </div>
 
-          {isLeader && isMember ? ( //Add !isUserLeader
-            <Button
-              className="text-xs"
-              onClick={() => handleKickMember(member.user_id)}
-              disabled={isLoading}
-            >
-              Kick Member
-            </Button>
-          ) : null}
+                {userIsLeader ? (
+                  <Badge variant="outline" className="text-xs">
+                    Leader
+                  </Badge>
+                ) : null}
 
+                {isLeader && !userIsLeader && isMember ? (
+                  <Button
+                    className="text-xs"
+                    onClick={() => handleKickMember(member.user_id)}
+                    disabled={isLoading}
+                  >
+                    Kick Member
+                  </Button>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
-         );
-         })}
-       </div>
       </CardContent>
       <CardFooter className="flex gap-2">
         {canJoin && (
