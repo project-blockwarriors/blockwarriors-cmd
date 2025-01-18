@@ -184,6 +184,9 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
                       styles={customStyles}
                     />
                   </FormControl>
+                  <FormDescription>
+                      Choose the time zone you live in/would like your team to play in. This will be used to schedule your matches appropriately.
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
