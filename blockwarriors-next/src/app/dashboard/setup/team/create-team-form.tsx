@@ -129,6 +129,7 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
     resolver: zodResolver(createTeamSchema),
     defaultValues: {
       teamName: '',
+      timeZone: '',
     },
   });
 
