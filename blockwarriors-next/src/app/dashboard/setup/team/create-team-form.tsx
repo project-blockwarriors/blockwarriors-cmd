@@ -172,26 +172,26 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
             )}
           />
           <FormField
-              control={form.control}
-              name="timeZone"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Preferred Time Zone</FormLabel>
-                  <FormControl>
-                    <Select
-                      options={timeZone}
-                      value={timeZone.find(option => option.value === field.value)}
-                      onChange={(selectedOption) => field.onChange(selectedOption?.value)}
-                      styles={customStyles}
-                    />
-                  </FormControl>
-                  <FormDescription>
-                      Choose the time zone you live in/would like your team to play in. This will be used to schedule your matches appropriately.
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            control={form.control}
+            name="timeZone"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Preferred Time Zone</FormLabel>
+                <FormControl>
+                  <Select
+                    options={timeZone}
+                    value={timeZone.find(option => option.value === field.value)}
+                    onChange={(selectedOption) => field.onChange(selectedOption?.value)}
+                    styles={customStyles}
+                  />
+                </FormControl>
+                <FormDescription>
+                    Choose the time zone you live in/would like your team to play in. This will be used to schedule your matches appropriately.
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
         </div>
 
         <Button type="submit" className="w-full">
