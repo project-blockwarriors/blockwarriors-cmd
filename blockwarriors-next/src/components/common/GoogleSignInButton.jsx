@@ -4,8 +4,8 @@ import React from 'react';
 import { useTransition } from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import ActiveButton from './ActiveButton';
 import { googleSigninAction } from '@/server/actions/users';
+import Image from 'next/image';
 
 export default function GoogleSignInButton() {
   const [isGoogleSigninPending, startGoogleSigninTransition] = useTransition();
@@ -25,16 +25,25 @@ export default function GoogleSignInButton() {
   };
 
   return (
-    <ActiveButton
-      text={
-        isGoogleSigninPending ? (
-          <Loader2 className="w-4 h-4 animate-spin" />
-        ) : (
-          'Sign in with Google'
-        )
-      }
+    <button
       onClick={googleSignin}
-      className="bg-blue-600 hover:bg-blue-700 py-2 px-4 text-sm"
-    />
+      disabled={isGoogleSigninPending}
+      className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4285f4] disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      {isGoogleSigninPending ? (
+        <Loader2 className="w-4 h-4 animate-spin" />
+      ) : (
+        <>
+          <Image
+            src="/google-logo.svg"
+            alt="Google logo"
+            width={18}
+            height={18}
+            className="w-[18px] h-[18px]"
+          />
+          <span>Continue with Google</span>
+        </>
+      )}
+    </button>
   );
 }
