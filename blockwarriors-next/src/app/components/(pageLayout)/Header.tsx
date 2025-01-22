@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button';
 import { Gamepad2 } from 'lucide-react';
 import Link from 'next/link';
 
-export function Header() {
+export function Header({ startTournament }: { startTournament: boolean }) {
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mb-8">
       <div className="flex items-center gap-3">
@@ -13,15 +13,23 @@ export function Header() {
       </div>
       <div className="flex gap-4">
         <Button variant="outline" asChild>
-          <Link href="/competition" className="flex items-center gap-2">
+          <Link
+            href="/competition"
+            className="flex items-center gap-2"
+          >
             Competition Details
           </Link>
         </Button>
-        <Button variant="outline" asChild>
-          <Link href="/dashboard" className="flex items-center gap-2">
-            View Tournament
-          </Link>
-        </Button>
+        {startTournament && (
+          <Button variant="outline" asChild>
+            <Link
+              href="/dashboard"
+              className="flex items-center gap-2"
+            >
+              View Tournament
+            </Link>
+          </Button>
+        )}
       </div>
     </div>
   );

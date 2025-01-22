@@ -1,13 +1,17 @@
-'use client';
+'use server';
 
-import GoogleSignInButton from '@/app/components/GoogleSignInButton';
+import { getSettings } from '@/server/db/home';
+import LoginContent from './(components)/LoginContent';
 
-function LoginPage() {
+export default async function LoginPage() {
+  const settings = await getSettings();
+  
   return (
-    <div className="space-y-8">
-      <GoogleSignInButton></GoogleSignInButton>
-    </div>
+    <LoginContent
+      startTournament={settings?.start_tournament}
+      showTopBanner={settings?.show_banner}
+      bannerTextContent={settings?.banner_text_content}
+      bannerButtonContent={settings?.banner_button_content}
+    />
   );
 }
-
-export default LoginPage;

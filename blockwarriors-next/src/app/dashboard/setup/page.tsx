@@ -2,7 +2,7 @@ import { getUser } from '@/auth/server';
 import { redirect } from 'next/navigation';
 import { CheckCircle2, Circle } from 'lucide-react';
 import { Card } from '@/components/ui/card';
-import ClientButton from './ClientButton';
+import ClientButton from './(components)/ClientButton';
 import { UserProfile } from '@/types/user';
 import { getUserProfile } from '@/server/db/users';
 

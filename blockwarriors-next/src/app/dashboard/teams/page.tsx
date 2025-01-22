@@ -1,5 +1,5 @@
 import { getAllTeamsWithMembers } from '@/server/db/teams';
-import { TeamCard } from '../../components/TeamCard';
+import { TeamCard } from '../(components)/TeamCard';
 
 export default async function TeamsPage() {
   const teams = await getAllTeamsWithMembers();

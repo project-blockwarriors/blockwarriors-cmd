@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LeaderboardRow } from "../../components/LeaderboardRow";
+import { LeaderboardRow } from "./(components)/LeaderboardRow";
 import { getAllTeamsScores } from "@/server/db/teams";
 
 export default async function LeaderboardPage() {

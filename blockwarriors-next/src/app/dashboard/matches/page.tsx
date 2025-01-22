@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MatchCard } from "../../components/MatchCard";
+import { MatchCard } from "../(components)/MatchCard";
 import { upcomingMatches } from "../../data/tournament";
 
 export default function MatchesPage() {

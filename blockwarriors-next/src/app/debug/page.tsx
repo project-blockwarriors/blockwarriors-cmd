@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import GoogleSignInButton from '@/app/components/GoogleSignInButton';
+import GoogleSignInButton from '@/components/common/GoogleSignInButton';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { signOutAction } from '@/server/actions/users';

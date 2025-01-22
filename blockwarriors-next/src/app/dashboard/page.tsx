@@ -1,8 +1,8 @@
 import { Trophy, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { StatsCard } from '../components/StatsCard';
-import { MatchCard } from '../components/MatchCard';
-import { TournamentProgress } from '../components/TournamentProgress';
+import { StatsCard } from './(components)/StatsCard';
+import { MatchCard } from './(components)/MatchCard';
+import { TournamentProgress } from './(components)/TournamentProgress';
 import { featuredMatches } from '../data/tournament';
 
 export default function Dashboard() {
