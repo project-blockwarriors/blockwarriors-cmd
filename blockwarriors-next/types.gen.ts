@@ -120,6 +120,36 @@ export type Database = {
         }
         Relationships: []
       }
+      settings: {
+        Row: {
+          banner_button_content: string | null
+          banner_text_content: string | null
+          created_at: string
+          id: string
+          show_banner: boolean
+          start_tournament: boolean
+          updated_at: string
+        }
+        Insert: {
+          banner_button_content?: string | null
+          banner_text_content?: string | null
+          created_at?: string
+          id?: string
+          show_banner?: boolean
+          start_tournament?: boolean
+          updated_at?: string
+        }
+        Update: {
+          banner_button_content?: string | null
+          banner_text_content?: string | null
+          created_at?: string
+          id?: string
+          show_banner?: boolean
+          start_tournament?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
       teams: {
         Row: {
           created_at: string | null

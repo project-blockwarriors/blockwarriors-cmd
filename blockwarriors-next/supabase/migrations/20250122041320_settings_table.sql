@@ -7,7 +7,6 @@ create table if not exists settings (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null
 );
-
 -- Create a single row that will be used to store all settings
 insert into settings (start_tournament, show_banner, banner_text_content, banner_button_content)
 values (false, false, '', '')

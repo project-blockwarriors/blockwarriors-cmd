@@ -1,5 +1,4 @@
 set check_function_bodies = off;
-
 CREATE OR REPLACE FUNCTION public.disband_team(team_id_param bigint, leader_id_param uuid)
  RETURNS void
  LANGUAGE plpgsql
@@ -29,9 +28,7 @@ begin
     -- If any of the above fails, the entire transaction will be rolled back
   end;
 end;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.get_all_teams_with_members()
  RETURNS TABLE(id integer, team_name text, leader_id uuid, team_elo integer, team_wins integer, team_losses integer, members jsonb)
  LANGUAGE plpgsql
@@ -61,9 +58,7 @@ BEGIN
   LEFT JOIN users u ON u.team_id = t.id
   GROUP BY t.id, t.team_name, t.leader_id;
 END;
-$function$
-;
-
+$function$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
  RETURNS trigger
  LANGUAGE plpgsql
@@ -84,7 +79,4 @@ BEGIN
     );
     RETURN new;
 END;
-$function$
-;
-
-
+$function$;
