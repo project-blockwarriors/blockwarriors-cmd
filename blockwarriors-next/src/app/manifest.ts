@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: 'BlockWarriors',
     start_url: '/',
     display: 'standalone',
-    background_color: '#000000',
-    theme_color: '#F26B0C',
+    background_color: '#0D0100',
+    theme_color: 'transparent',
     icons: [
       {
         src: '/favicon.ico',
