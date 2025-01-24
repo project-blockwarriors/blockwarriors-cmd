@@ -34,5 +34,7 @@ export async function POST(req) {
     tokenError = error;
   } while (tokenError);
 
+  console.log(`Match created with ID: ${matchId}`);
+  console.log(`Token created: ${token}`);
   return new Response(JSON.stringify({ token, matchId }), { status: 200 });
 }

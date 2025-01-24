@@ -10,6 +10,8 @@ const server = createServer(app);
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+console.log("Supabase URL:", supabaseUrl);
+console.log("Supabase key:", supabaseKey);
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const io = new Server(server, {
@@ -54,6 +56,40 @@ async function validateToken(token) {
 // Handle socket connections
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
+
+
+  socket.on("login", async ({ playerId, token }, callback ) => {
+    try {
+      const validation = await validateToken(token);
+      if (!validation.valid) {
+        socket.emit("error", { message: validation.error });
+        callback({ status: "bad" });
+        return;
+      }
+      const matchId = validation.matchId;
+      console.log(`Player ${playerId} joining match ${matchId}`);
+      socket.join(matchId);
+      console.log("socket joined room", matchId);
+      if (!gameSessions.has(matchId)) {
+        gameSessions.set(matchId, {
+          players: new Set(),
+          playerData: new Map(),
+        });
+        console.log("Set new game session with players: ", gameSessions.get(matchId).players);
+        console.log("Set new game session with playerData: ", gameSessions.get(matchId).playerData);
+      }
+      const matchSession = gameSessions.get(matchId);
+      matchSession.players.add(playerId);
+      socket.to(matchId).emit("playerJoined", { playerId });
+      callback({ status: "ok" });
+      console.log("Callback ran: ", callback);
+    } catch (error) {
+      console.error("Error joining match:", error);
+      socket.emit("error", { message: "Failed to join match" });
+      callback({ status: "bad" });
+    }
+  });
+  
 
   // Handle joining a game session
   socket.on("joinGame", async ({ playerId, token }) => {
