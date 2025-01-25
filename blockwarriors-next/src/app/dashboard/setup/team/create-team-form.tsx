@@ -134,16 +134,19 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
   });
 
   async function onSubmit(data: CreateTeamFormData) {
-    try {
-      await createTeam(data.teamName, data.timeZone, userId);
-      router.push('/dashboard/setup');
-    } catch (error) {
+    const {error} = await createTeam(data.teamName, data.timeZone, userId);
+    if (error) {
       console.error('Failed to create team:', error);
       form.setError('teamName', {
         type: 'manual',
         message: 'Failed to create team. Please try again.',
       });
+      form.setError('timeZone', {
+        type: 'manual',
+        message: 'Failed to create team. Please try again.',
+      });
     }
+    else {router.push('/dashboard/setup')}
   }
 
   return (
