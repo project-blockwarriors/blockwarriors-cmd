@@ -15,9 +15,10 @@ export async function getTeams(): Promise<TeamWithUsers[]> {
 
 export async function createTeam(
   teamName: string,
+  timeZone: string,
   leaderId: string
 ): Promise<{ data: Team | null; error: string | null }> {
-  return await createTeamDb(teamName, leaderId);
+  return await createTeamDb(teamName, timeZone, leaderId);
 }
 
 export async function joinTeam(

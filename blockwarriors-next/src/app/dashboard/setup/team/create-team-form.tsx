@@ -135,7 +135,7 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
 
   async function onSubmit(data: CreateTeamFormData) {
     try {
-      await createTeam(data.teamName, userId);
+      await createTeam(data.teamName, data.timeZone, userId);
       router.push('/dashboard/setup');
     } catch (error) {
       console.error('Failed to create team:', error);
