@@ -10,8 +10,6 @@ const server = createServer(app);
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-console.log("Supabase URL:", supabaseUrl);
-console.log("Supabase key:", supabaseKey);
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const io = new Server(server, {
@@ -23,6 +21,8 @@ const io = new Server(server, {
 
 // Store active game sessions
 const gameSessions = new Map();
+const socketToPlayer = new Map();
+const playerToSocket = new Map();
 
 app.get("/", (req, res) => {
   res.send("<h1>BlockWarriors Socket.IO Server</h1>");
@@ -53,18 +53,35 @@ async function validateToken(token) {
   }
 }
 
-
-
 // declare the namespace
 const playerNamespace = io.of("/player");
 // handle the connection to the namespace
 playerNamespace.on("connection", (socket) => {
   console.log(`Client connected to player namespace: ${socket.id}`);
 
-  // Handle disconnection
-  socket.on("disconnect", () => {
-    console.log(`Client (player) disconnected: ${socket.id}`);
+  // Handle disconnecting process
+  socket.on("disconnecting", () => {
+    console.log(`Client (player) disconnecting: ${socket.id}`);
+    console.log("The socket was in rooms: ", socket.rooms);
+    socket.rooms.forEach((room) => {
+      // if room is a number
+      if (typeof room === "number") {
+        console.log("Leaving room: ", room);
+        socket.to(37).emit("playerLeft", { playerId: socketToPlayer.get(socket.id) });
+      }
+      // handled for us
+      // socket.leave(room);
+    });
   });
+
+  // Handle disconnect
+  socket.on("disconnect", () => { 
+    console.log(`Client (player) disconnected: ${socket.id}`);
+    playerToSocket.delete(socketToPlayer.get(socket.id));
+    socketToPlayer.delete(socket.id);
+  });
+
+
 
   // Handles a player doing a /login command, to join a match, adds them to a new (or existing)
   // match session in the gameSessions map.
@@ -76,6 +93,8 @@ playerNamespace.on("connection", (socket) => {
         callback({ status: "bad" });
         return;
       }
+      socketToPlayer.set(socket.id, playerId);
+      playerToSocket.set(playerId, socket.id);
       const matchId = validation.matchId;
       console.log(`Player ${playerId} joining match ${matchId}`);
       socket.join(matchId);
@@ -91,7 +110,7 @@ playerNamespace.on("connection", (socket) => {
       const matchSession = gameSessions.get(matchId);
       matchSession.players.add(playerId);
 
-      // Notify others in the match
+      // Notify others in the match, emits to all players except the player that just joined
       socket.to(matchId).emit("playerJoined", { playerId });
       callback({ status: "ok" });
       console.log("Callback ran: ", callback);
