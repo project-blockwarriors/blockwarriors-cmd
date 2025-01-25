@@ -61,6 +61,13 @@ const playerNamespace = io.of("/player");
 playerNamespace.on("connection", (socket) => {
   console.log(`Client connected to player namespace: ${socket.id}`);
 
+  // Handle disconnection
+  socket.on("disconnect", () => {
+    console.log(`Client (player) disconnected: ${socket.id}`);
+  });
+
+  // Handles a player doing a /login command, to join a match, adds them to a new (or existing)
+  // match session in the gameSessions map.
   socket.on("login", async ({ playerId, token }, callback ) => {
     try {
       const validation = await validateToken(token);
@@ -83,6 +90,8 @@ playerNamespace.on("connection", (socket) => {
       }
       const matchSession = gameSessions.get(matchId);
       matchSession.players.add(playerId);
+
+      // Notify others in the match
       socket.to(matchId).emit("playerJoined", { playerId });
       callback({ status: "ok" });
       console.log("Callback ran: ", callback);
@@ -93,48 +102,8 @@ playerNamespace.on("connection", (socket) => {
     }
   });
 
-  
 
-});
-
-
-// Handle socket connections
-io.on("connection", (socket) => {
-  console.log(`Client connected to main namespace: ${socket.id}`);
-
-
-  // socket.on("login", async ({ playerId, token }, callback ) => {
-  //   try {
-  //     const validation = await validateToken(token);
-  //     if (!validation.valid) {
-  //       socket.emit("error", { message: validation.error });
-  //       callback({ status: "bad" });
-  //       return;
-  //     }
-  //     const matchId = validation.matchId;
-  //     console.log(`Player ${playerId} joining match ${matchId}`);
-  //     socket.join(matchId);
-  //     console.log("socket joined room", matchId);
-  //     if (!gameSessions.has(matchId)) {
-  //       gameSessions.set(matchId, {
-  //         players: new Set(),
-  //         playerData: new Map(),
-  //       });
-  //       console.log("Set new game session with players: ", gameSessions.get(matchId).players);
-  //       console.log("Set new game session with playerData: ", gameSessions.get(matchId).playerData);
-  //     }
-  //     const matchSession = gameSessions.get(matchId);
-  //     matchSession.players.add(playerId);
-  //     socket.to(matchId).emit("playerJoined", { playerId });
-  //     callback({ status: "ok" });
-  //     console.log("Callback ran: ", callback);
-  //   } catch (error) {
-  //     console.error("Error joining match:", error);
-  //     socket.emit("error", { message: "Failed to join match" });
-  //     callback({ status: "bad" });
-  //   }
-  // });
-  
+  // review
 
   // Handle joining a game session
   socket.on("joinGame", async ({ playerId, token }) => {
@@ -144,6 +113,7 @@ io.on("connection", (socket) => {
         socket.emit("error", { message: validation.error });
         return;
       }
+ 
 
       const matchId = validation.matchId;
       console.log(`Player ${playerId} joining match ${matchId}`);
@@ -172,6 +142,7 @@ io.on("connection", (socket) => {
 
   // Handle real-time player data updates
   socket.on("updatePlayerData", async ({ playerId, data, token }) => {
+    // data is an object
     try {
       const validation = await validateToken(token);
       if (!validation.valid) {
@@ -189,6 +160,7 @@ io.on("connection", (socket) => {
       matchSession.playerData.set(playerId, data);
 
       // Broadcast the update to all players in the match except sender
+      // What will/could this be used for? - iamin
       socket.to(matchId).emit("playerDataUpdate", { playerId, data });
     } catch (error) {
       console.error("Error updating player data:", error);
@@ -225,9 +197,20 @@ io.on("connection", (socket) => {
     }
   });
 
+  
+
+});
+
+
+// Handle main socket connections
+io.on("connection", (socket) => {
+  console.log(`Client connected to main namespace: ${socket.id}`);
+  // Handle all exclusively minecraft server logic here.
+  
+
   // Handle disconnection
   socket.on("disconnect", () => {
-    console.log(`Client disconnected: ${socket.id}`);
+    console.log(`Client (main) disconnected: ${socket.id}`);
   });
 });
 
