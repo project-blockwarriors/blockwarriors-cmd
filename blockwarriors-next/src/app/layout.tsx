@@ -6,10 +6,9 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Princeton BlockWarriors',
-  description: 'Princeton University Minecraft AI Tournament',
+  description: 'AI Bot Tournament',
   icons: {
-    icon: ['/favicon.ico'],
-    shortcut: ['/apple-touch-icon.png'],
+    icon: [{ url: '/favicon.ico' }],
   },
 };
 
