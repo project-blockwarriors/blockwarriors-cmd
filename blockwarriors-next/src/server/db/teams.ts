@@ -17,6 +17,7 @@ export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
 
 export async function createTeam(
   teamName: string,
+  timeZone: string,
   leaderId: string
 ): Promise<{ data: Team | null; error: string | null }> {
   const supabase = await createSupabaseClient();
@@ -40,11 +41,12 @@ export async function createTeam(
   }
 
   // Create the team
-  const { data: team, error: createError } = await supabase
+  const { data: team, error: createError } = await supabase // TRY CATCH FAIL
     .from('teams')
     .insert([
       {
         team_name: teamName,
+        time_zone: timeZone,
         leader_id: leaderId,
       },
     ])

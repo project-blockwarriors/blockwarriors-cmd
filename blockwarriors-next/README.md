@@ -19,7 +19,7 @@ This app uses Supabase as the backend for authentication and database management
 6. Access the Supabase dashboard at `http://127.0.0.1:54323` in your browser.
 7. Link your Supabase project to the remote Supabase database by running `npx supabase link`.
 
-## Environement Variables Setup
+## Environment Variables Setup
 
 Before running the app, you need to set the following environment variables:
 
@@ -32,12 +32,20 @@ You can find the Supabase keys in your Supabase status command `npx supabase sta
 
 ## Syncing the Local Supabase Database with the Remote Supabase Database
 
-To sync the local Supabase database with the remote Supabase database, you must get your local migration files and push them to the remote database. You can do by running the following commands:
+To sync the local Supabase database with the remote Supabase database and ensure you have the most up-to-date Supabase migration history, run the following commands:
 
-1. Run `npx supabase db pull --local` to generate migration files from your local database.
-2. Run `npx supabase db push` to push the migration files to the remote database.
+1. Run `npx supabase migration fetch` to get the latest migration history.
+2. Run `npx supabase db pull --local` to generate migration files from your local database.
 
-It is recommended to create a migration file for each change you make to the database. You can do this by running `npx supabase migration new <name>` and then adding your changes to the migration file. Once you have created the migration file, you can push it to the local database by running `npx supabase db push --local`. After testing, you can run `npx supabase db push` to push the migration file to the remote database.
+It is recommended to create a migration file for each change you make to the database. You can do this by running `npx supabase migration new <name>` and then adding your changes to the migration file. Once the migration file is created, push it to the local database using `npx supabase migration up`.
+
+To ensure that your Supabase modifications pass type checking, generate the latest TypeScript definitions by running:
+
+```bash
+npx supabase gen types typescript --local > types.gen.ts
+```
+
+Perform this step before opening a pull request. Note that the remote database updates automatically once your PR is merged.
 
 For more information on Supabase, see [Supabase Documentation](https://supabase.com/docs/reference/cli/supabase-bootstrap).
 
