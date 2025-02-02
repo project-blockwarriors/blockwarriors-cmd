@@ -160,6 +160,7 @@ export type Database = {
           team_losses: number
           team_name: string
           team_wins: number
+          time_zone: string | null
         }
         Insert: {
           created_at?: string | null
@@ -170,6 +171,7 @@ export type Database = {
           team_losses?: number
           team_name: string
           team_wins?: number
+          time_zone?: string | null
         }
         Update: {
           created_at?: string | null
@@ -180,6 +182,7 @@ export type Database = {
           team_losses?: number
           team_name?: string
           team_wins?: number
+          time_zone?: string | null
         }
         Relationships: []
       }
