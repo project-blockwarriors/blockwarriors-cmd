@@ -1,4 +1,4 @@
-import { createSupabaseClient } from '@/auth/server';
+import { createSupabaseClient, getUser } from '@/auth/server';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(req) {
@@ -8,6 +8,11 @@ export async function POST(req) {
   if (!selectedMode) {
     return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
   }
+
+   
+  const userId = (await getUser()).id;
+
+  // Rewrite code below as SQL queries. 
 
   // Insert into matches table
   const { data: matchData, error: matchError } = await supabase
@@ -33,7 +38,6 @@ export async function POST(req) {
       .insert([{ token, match_id: matchId }]);
     tokenError = error;
   } while (tokenError);
-
   console.log(`Match created with ID: ${matchId}`);
   console.log(`Token created: ${token}`);
   return new Response(JSON.stringify({ token, matchId }), { status: 200 });
