@@ -28,6 +28,12 @@ app.get("/", (req, res) => {
   res.send("<h1>BlockWarriors Socket.IO Server</h1>");
 });
 
+app.post("/api/create-pvp-match", async (req, res) => {
+  const { token } = req.body;
+  const validation = await validateToken(token);
+  res.json(validation);
+});
+
 // Helper function to validate game token and get match ID
 async function validateToken(token) {
   try {
@@ -61,8 +67,6 @@ playerNamespace.on("connection", (socket) => {
 
   // Handle disconnecting process
   socket.on("disconnecting", () => {
-    console.log(`Client (player) disconnecting: ${socket.id}`);
-    console.log("The socket was in rooms: ", socket.rooms);
     socket.rooms.forEach((room) => {
       // if room is a number
       if (typeof room === "number") {
