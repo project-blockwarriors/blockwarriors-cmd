@@ -49,11 +49,9 @@ graph TD
     %% Backend Layer
     subgraph Backend
         NextAPI[Next.js Server Actions/API Routes]
-        Supabase[Supabase]
 
-        MC[Minecraft Game Server]
-
-        subgraph Database
+        subgraph "Supabase"
+            SupabaseEndpoint[Supabase Endpoint]
             PostgreSQL[(PostgreSQL)]
             Auth[Supabase Auth]
             Storage[Supabase Storage]
@@ -63,6 +61,8 @@ graph TD
             Express[Express.js]
             Socket[Socket.io Server]
         end
+
+        MC["Minecraft Server<br/>(Paper/Spigot API)"]
     end
 
     %% Auth Providers
@@ -74,24 +74,21 @@ graph TD
     %% Frontend Connections
     Next --- React
     React --- TW & RadixUI
-    Next --- Express[Express.js]
+    Next --- NextAPI & Express
 
     %% Backend Connections
-    Next --- NextAPI
-    NextAPI --- Supabase
+    NextAPI --- SupabaseEndpoint
+    SupabaseEndpoint --- PostgreSQL & Auth & Storage
     Express --- Socket
     Socket --- MC
-
-    %% Database Connections
-    Supabase --- PostgreSQL & Auth & Storage
 
     %% Auth Connections
     Auth --- Google & Email
 
     %% Styling
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px,color:black;
-    classDef db fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
-    class PostgreSQL db;
+    classDef supabase fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
+    class Supabase supabase;
 ```
 
 ## How to Contribute
