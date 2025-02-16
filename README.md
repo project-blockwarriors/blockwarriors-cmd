@@ -34,6 +34,66 @@ Real-time communication server handling live updates and events.
 - **Description**: A web application for managing BlockWarriors tournaments and teams.
 - **Repository**: [https://github.com/project-blockwarriors/blockwarriors-cmd](https://github.com/project-blockwarriors/blockwarriors-cmd)
 
+## Technology Stack
+
+```mermaid
+graph TD
+    %% Frontend Layer
+    subgraph Frontend
+        Next[Next.js v15]
+        React[React v18]
+        TW[TailwindCSS]
+        RadixUI[Radix UI Components]
+    end
+
+    %% Backend Layer
+    subgraph Backend
+        NextAPI[Next.js Server Actions/API Routes]
+        Supabase[Supabase]
+
+        MC[Minecraft Game Server]
+
+        subgraph Database
+            PostgreSQL[(PostgreSQL)]
+            Auth[Supabase Auth]
+            Storage[Supabase Storage]
+        end
+
+        subgraph ExpressServer[Express Server]
+            Express[Express.js]
+            Socket[Socket.io Server]
+        end
+    end
+
+    %% Auth Providers
+    subgraph Authentication
+        Google[Google OAuth]
+        Email[Email/Password]
+    end
+
+    %% Frontend Connections
+    Next --- React
+    React --- TW & RadixUI
+    Next --- Express[Express.js]
+
+    %% Backend Connections
+    Next --- NextAPI
+    NextAPI --- Supabase
+    Express --- Socket
+    Socket --- MC
+
+    %% Database Connections
+    Supabase --- PostgreSQL & Auth & Storage
+
+    %% Auth Connections
+    Auth --- Google & Email
+
+    %% Styling
+    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px,color:black;
+    classDef db fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
+    class PostgreSQL db;
+```
+
 ## How to Contribute
 
 To maintain a clean and functional main branch while allowing contributors to work independently, this repository follows a strict branching and merging procedure.

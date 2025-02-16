@@ -1,54 +1,93 @@
-# BlockWarriors Command Block - Next.js App
+# BlockWarriors Next
 
-This is the documentation for the BlockWarriors Command Block - Next.js app.
+Welcome to BlockWarriors Next! This project leverages Supabase to manage our database both locally and remotely. Follow the instructions below to set up your local Supabase environment and ensure you’re synchronized with the remote database before submitting any Pull Requests.
 
-## Getting Started
+## Prerequisites
 
-1. Clone this repository to your local machine.
-2. Install the dependencies using `npm install`.
+- [Node.js](https://nodejs.org/) installed
+- [Docker](https://www.docker.com/get-started) installed. Docker is required to run the Supabase local server. Make sure Docker Desktop (or its equivalent) is installed and running.
+- [Supabase CLI](https://supabase.com/docs/guides/cli) installed
+- A basic understanding of PostgreSQL (Supabase’s underlying database)
+- **Important:** All Supabase commands listed in this README should be executed from the `blockwarriors-next` directory with the `npx` prefix.
 
-## Supabase Local Environment Setup
+## Setting Up the Supabase Local Server
 
-This app uses Supabase as the backend for authentication and database management. To set up a local Supabase environment, follow these steps:
+1. **Install the Supabase CLI**
 
-1. Ensure Docker Desktop is installed. If not, download and install it from [Docker's official website](https://www.docker.com/get-started/).
-2. Make sure you are in the `blockwarriors-next` folder.
-3. Install the Supabase CLI by running `npm install supabase --save-dev`.
-4. Start the local Supabase environment with `npx supabase start`.
-5. Check the status of the local Supabase environment with `npx supabase status`.
-6. Access the Supabase dashboard at `http://127.0.0.1:54323` in your browser.
-7. Link your Supabase project to the remote Supabase database by running `npx supabase link`.
+   Follow the official [Supabase CLI installation guide](https://supabase.com/docs/guides/cli) to install the CLI on your system.
 
-## Environment Variables Setup
+2. **Login to Supabase**
 
-Before running the app, you need to set the following environment variables:
+   Run the following command to log in to your Supabase account:
 
-- `NEXT_PUBLIC_SUPABASE_URL`: The URL of your Supabase project.
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
-- `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`: The client ID for the Google OAuth provider.
-- `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`: The client secret for the Google OAuth provider.
+   ```bash
+   npx supabase login
+   ```
 
-You can find the Supabase keys in your Supabase status command `npx supabase status`. For Google OAuth keys, you can make your own keys using the [Google Cloud Console](https://console.cloud.google.com/auth/overview). If you are a member of the BlockWarriors team, you can get access to the keys from the team's Discord channel.
+3. **Initialize Your Supabase Project**
 
-## Syncing the Local Supabase Database with the Remote Supabase Database
+   If you haven’t set up Supabase in this project yet, initialize it by running:
 
-To sync the local Supabase database with the remote Supabase database and ensure you have the most up-to-date Supabase migration history, run the following commands:
+   ```bash
+   npx supabase init
+   ```
 
-1. Run `npx supabase migration fetch` to get the latest migration history.
-2. Run `npx supabase db pull --local` to generate migration files from your local database.
+4. **Start the Supabase Local Server**
 
-It is recommended to create a migration file for each change you make to the database. You can do this by running `npx supabase migration new <name>` and then adding your changes to the migration file. Once the migration file is created, push it to the local database using `npx supabase migration up`.
+   Launch your local Supabase environment with:
 
-To ensure that your Supabase modifications pass type checking, generate the latest TypeScript definitions by running:
+   ```bash
+   npx supabase start
+   ```
 
-```bash
-npx supabase gen types typescript --local > types.gen.ts
-```
+   This command spins up a local PostgreSQL server along with emulators for Auth and Storage, mirroring the production setup for effective local development.
 
-Perform this step before opening a pull request. Note that the remote database updates automatically once your PR is merged.
+5. **Configure Your Environment**
 
-For more information on Supabase, see [Supabase Documentation](https://supabase.com/docs/reference/cli/supabase-bootstrap).
+   Ensure that your `.env` file is up-to-date with the correct Supabase keys and API settings. Compare your configuration with the [Supabase documentation](https://supabase.com/docs) if you’re unsure.
 
-## Running the App
+   Set the following environment variables in your `.env` file:
 
-Once you have set up the environment variables, run `npm run dev` to start the app in development mode.
+   - `NEXT_PUBLIC_SUPABASE_URL`: The URL of your Supabase project.
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
+   - `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID`: The client ID for the Google OAuth provider.
+   - `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`: The client secret for the Google OAuth provider.
+
+## Keeping Your Supabase Instance Up-to-Date
+
+1. **Fetch Latest Migration History**
+
+   Run the following command to fetch the latest migration history from the remote Supabase database. This is the preferred method to update your local migration files:
+
+   ```bash
+   npx supabase migration fetch
+   ```
+
+   This ensures that any updates committed remotely are reflected in your local migration setup, keeping your environment in sync.
+
+2. **Review the Changes**
+
+   After fetching the latest migration history, review the differences to confirm that your local setup aligns with the remote configuration.
+
+3. **Proceed with Your PR**
+
+   Once you have verified that your local database is in sync, you can safely proceed with your development and submit your PR. When your PR is accepted and merged, the remote Supabase database will automatically apply the changes.
+
+## Managing Database Migrations
+
+To ensure your database migrations are accurately tracked and up-to-date, incorporate the following commands into your workflow:
+
+- **List Available Migrations:**
+
+  Run `npx supabase migration list` to display all migrations recorded in your project. This helps you verify the order and status of applied migrations.
+
+Regularly using these commands ensures consistency in your development environment before making a PR.
+
+> **Note:** If you choose to run migrations using the Supabase UI instead of the CLI, you must manually pull the local migration files by running `npx supabase db pull --local` to update your migration history. This approach is not recommended because it may not reliably capture all changes, potentially leading to discrepancies between your local setup and the remote database.
+
+## Troubleshooting & Additional Resources
+
+- If you encounter issues while starting Supabase, check that your required ports are free and that you’re using the latest version of the Supabase CLI.
+- For further assistance, refer to the official [Supabase Documentation](https://supabase.com/docs) and community resources.
+
+Happy coding!
