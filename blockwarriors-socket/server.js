@@ -24,10 +24,12 @@ const gameSessions = new Map();
 const socketToPlayer = new Map();
 const playerToSocket = new Map();
 
+// Web response
 app.get("/", (req, res) => {
   res.send("<h1>BlockWarriors Socket.IO Server</h1>");
 });
 
+// Test handler route for api/create pvp match.e
 app.post("/api/create-pvp-match", async (req, res) => {
   const { token } = req.body;
   const validation = await validateToken(token);
