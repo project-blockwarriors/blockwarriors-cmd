@@ -47,7 +47,7 @@ export default function HomeContent(props: HomeContentProps) {
   return (
     <PageLayout {...props}>
       {/* Hero Section */}
-      <section id="home" className="relative">
+      <section id="home" className="relative bg-[#0A0F1F] text-white min-h-screen w-full">
         <motion.div
           className="mb-24 relative overflow-hidden rounded-2xl"
           initial={{ opacity: 0, scale: 0.95 }}
@@ -60,19 +60,13 @@ export default function HomeContent(props: HomeContentProps) {
               alt="BlockWarriors AI Challenge Artwork"
               width={1200}
               height={675}
-              className="w-full h-auto rounded-2xl shadow-[0_0_50px_rgba(255,153,0,0.15)]"
+              className="w-full h-auto rounded-2xl shadow-[0_0_50px_rgba(0,255,153,0.3)]"
               priority
             />
             <motion.div
-              className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#FF9900]/20 to-transparent"
-              animate={{
-                opacity: [0.2, 0.4, 0.2],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                repeatType: 'reverse',
-              }}
+              className="absolute inset-0 rounded-2xl bg-gradient-to-r from-[#00FF99]/20 to-transparent"
+              animate={{ opacity: [0.2, 0.4, 0.2] }}
+              transition={{ duration: 3, repeat: Infinity, repeatType: 'reverse' }}
             />
           </div>
         </motion.div>
@@ -83,38 +77,22 @@ export default function HomeContent(props: HomeContentProps) {
           initial="initial"
           animate="animate"
         >
-          <motion.h1
-            className="text-4xl sm:text-6xl font-bold"
-            variants={fadeInUp}
-          >
+          <motion.h1 className="text-4xl sm:text-6xl font-bold" variants={fadeInUp}>
             <motion.span
-              className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#FF9900] via-[#FFAA33] to-[#FF9900] relative break-words"
-              animate={{
-                backgroundPosition: ['0% center', '200% center'],
-              }}
-              transition={{
-                duration: 8,
-                repeat: Infinity,
-                ease: 'linear',
-              }}
-              style={{
-                backgroundSize: '200% auto',
-              }}
+              className="inline-block bg-clip-text text-transparent bg-gradient-to-r from-[#00FFFF] via-[#00FF99] to-[#8A2BE2] relative break-words"
+              animate={{ backgroundPosition: ['0% center', '200% center'] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+              style={{ backgroundSize: '200% auto' }}
             >
-              BlockWarriors:
-              <br className="sm:hidden" /> Redefining AI through Minecraft
+              <br className="sm:hidden" /> Inspiring the Future Tech Leaders and Entrepreneurs of Saudi Arabia
             </motion.span>
           </motion.h1>
-          <motion.p
-            className="text-2xl text-gray-300 leading-relaxed"
-            variants={fadeInUp}
-          >
-            Compete. Innovate. Dominate. Join the global challenge to create
-            AI bots that think, adapt, and win in dynamic, player-driven
-            arenas.
+          <motion.p className="text-2xl text-gray-300 leading-relaxed" variants={fadeInUp}>
+            Compete. Innovate. Dominate. Join the global challenge to create AI bots that think, adapt, and win in dynamic, player-driven arenas.
           </motion.p>
         </motion.div>
       </section>
+
 
       {/* Vision Section */}
       <section className="relative">
