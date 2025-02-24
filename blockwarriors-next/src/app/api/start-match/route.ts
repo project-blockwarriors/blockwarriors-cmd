@@ -9,7 +9,6 @@ export async function POST(req) {
     return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
   }
 
-   
   const userId = (await getUser()).id;
 
   // Rewrite code below as SQL queries. 
@@ -30,15 +29,31 @@ export async function POST(req) {
   let token;
   let tokenError;
 
-  // Ensure unique token
-  do {
-    token = uuidv4();
-    const { error } = await supabase
-      .from('active_tokens')
-      .insert([{ token, match_id: matchId }]);
-    tokenError = error;
-  } while (tokenError);
+
+  // TODO: Generate a dynamic number of tokens and add them.
+
+  let tokens = [];
+  
+  let selectedModeToTokenMap = {
+    'pvp': 2,
+    'bedwars': 8,
+    'ctf': 10,
+  }
+
+  for (let i = 0; i < selectedModeToTokenMap[selectedMode]; i++) {
+    // Ensure unique token
+    do {
+      token = uuidv4();
+      const { error } = await supabase
+        .from('active_tokens')
+        .insert([{ token, match_id: matchId }]);
+      tokenError = error;
+    } while (tokenError);
+    tokens.push(token);
+  }
+
+
   console.log(`Match created with ID: ${matchId}`);
   console.log(`Token created: ${token}`);
-  return new Response(JSON.stringify({ token, matchId }), { status: 200 });
+  return new Response(JSON.stringify({ tokens, matchId }), { status: 200 });
 }

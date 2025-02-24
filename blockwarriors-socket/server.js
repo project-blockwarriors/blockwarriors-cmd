@@ -8,6 +8,8 @@ import { initializeSocket } from "./socket.js";
 const app = express();
 const server = createServer(app);
 
+initializeSocket(server);
+
 app.use(express.json());
 app.use(routes);
 
@@ -15,7 +17,6 @@ app.use(routes);
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
-const io = initializeSocket(server);
 
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
@@ -23,5 +24,3 @@ server.listen(PORT, () => {
     `BlockWarriors Socket.IO server running at http://localhost:${PORT}`
   );
 });
-
-export { io };
