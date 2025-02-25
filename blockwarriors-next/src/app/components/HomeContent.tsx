@@ -93,23 +93,22 @@ export default function HomeContent(props: HomeContentProps) {
         </motion.div>
       </section>
 
-
       {/* Vision Section */}
-      <section className="relative">
+      <section className="relative bg-[#0A0F1F] text-white min-h-screen w-full">
         {/* Animated background */}
         <div className="absolute inset-0 rounded-3xl overflow-hidden">
           {/* Radial gradient background */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#FFD700]/20 via-[#B8860B]/10 to-[#8B6914]/5" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#00FF99]/20 via-[#008B8B]/10 to-[#006400]/5" />
 
           {/* Animated gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-br from-[#FFD700]/10 via-[#FFA500]/5 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-br from-[#00FF99]/10 via-[#00FFFF]/5 to-transparent" />
 
           {/* Grid pattern */}
           <div
             className="absolute inset-0"
             style={{
-              backgroundImage: `linear-gradient(to right, rgba(255,215,0,0.1) 1px, transparent 1px),
-                                linear-gradient(to bottom, rgba(255,215,0,0.1) 1px, transparent 1px)`,
+              backgroundImage: `linear-gradient(to right, rgba(0,255,153,0.1) 1px, transparent 1px),
+                                linear-gradient(to bottom, rgba(0,255,153,0.1) 1px, transparent 1px)`,
               backgroundSize: '24px 24px',
             }}
           />
@@ -117,12 +116,10 @@ export default function HomeContent(props: HomeContentProps) {
           {/* Animated border */}
           <div className="absolute inset-0">
             <div
-              className="absolute inset-0 bg-gradient-to-r from-[#FFD700]/30 via-[#FFA500]/20 to-[#FFD700]/30 animate-shimmer"
+              className="absolute inset-0 bg-gradient-to-r from-[#00FF99]/30 via-[#00FFFF]/20 to-[#00FF99]/30 animate-shimmer"
               style={{
-                maskImage:
-                  'linear-gradient(to bottom, transparent, black, transparent)',
-                WebkitMaskImage:
-                  'linear-gradient(to bottom, transparent, black, transparent)',
+                maskImage: 'linear-gradient(to bottom, transparent, black, transparent)',
+                WebkitMaskImage: 'linear-gradient(to bottom, transparent, black, transparent)',
               }}
             />
           </div>
@@ -139,11 +136,11 @@ export default function HomeContent(props: HomeContentProps) {
             className="flex items-center justify-center gap-4 mb-16"
             variants={fadeInUp}
           >
-            <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
-            <h2 className="text-4xl font-bold bg-gradient-to-r from-[#FFD700] to-[#FFA500] bg-clip-text text-transparent">
-              The Vision
+            <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#00FF99] to-transparent" />
+            <h2 className="text-5xl font-extrabold bg-gradient-to-r from-[#00FFFF] to-[#00FF99] bg-clip-text text-transparent">
+              Vision
             </h2>
-            <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#FFD700] to-transparent" />
+            <div className="h-px w-12 bg-gradient-to-r from-transparent via-[#00FF99] to-transparent" />
           </motion.div>
 
           <div className="space-y-16 relative backdrop-blur-sm">
@@ -151,13 +148,13 @@ export default function HomeContent(props: HomeContentProps) {
             <div className="space-y-6 relative">
               {/* Glowing orbs with reduced opacity */}
               <motion.div
-                className="absolute -top-10 -left-20 w-40 h-40 bg-[#FFD700] rounded-full blur-[100px] opacity-20"
+                className="absolute -top-10 -left-20 w-40 h-40 bg-[#00FF99] rounded-full blur-[100px] opacity-20"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 0.2 }}
                 transition={{ duration: 1 }}
               />
               <motion.div
-                className="absolute -bottom-10 -right-20 w-40 h-40 bg-[#FFA500] rounded-full blur-[100px] opacity-20"
+                className="absolute -bottom-10 -right-20 w-40 h-40 bg-[#00FFFF] rounded-full blur-[100px] opacity-20"
                 initial={{ opacity: 0 }}
                 whileInView={{ opacity: 0.2 }}
                 transition={{ duration: 1, delay: 0.3 }}
@@ -167,15 +164,13 @@ export default function HomeContent(props: HomeContentProps) {
                 className="text-4xl font-semibold text-gray-100 leading-relaxed relative"
                 variants={fadeInUp}
               >
-                Where the beloved game of Minecraft meets the future of AI
-                development.
+                <span className="font-extrabold text-white">BlockWarriors</span> unites top AI talent from the <span className="font-bold text-[#00FFFF]">United States</span>, <span className="font-bold text-[#00FFFF]">China</span>, and <span className="font-bold text-[#00FFFF]">Saudi Arabia</span>—three powerhouses in AI research—through an innovative esports-driven competition.
               </motion.p>
               <motion.p
                 className="text-xl text-gray-200 leading-relaxed max-w-3xl mx-auto relative"
                 variants={fadeInUp}
               >
-                Pioneering the future of AI development through the world's
-                most beloved sandbox game.
+                As <span className="font-bold text-[#00FF99]">Saudi Arabia</span> rapidly invests in AI under <span className="font-bold text-[#00FF99]">Vision 2030</span>, we bridge global academic institutions to foster cross-border innovation. By combining ESports with cutting-edge AI development, <span className="font-bold text-[#00FF99]">BlockWarriors</span> creates a platform for collaboration, talent exchange, and technological breakthroughs, positioning <span className="font-bold text-[#00FF99]">Saudi Arabia</span> as a global AI hub while shaping the future of intelligent systems.
               </motion.p>
             </div>
           </div>
