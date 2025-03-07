@@ -81,9 +81,8 @@ Follow these steps to set up your local Supabase instance:
 
 1. Install the Supabase CLI
 2. Log in to Supabase: `npx supabase login`
-3. Initialize Supabase: `npx supabase init`
-4. Start Supabase: `npx supabase start`
-5. Update your `.env` file with the Supabase URL and anonymous key
+3. Start Supabase: `npx supabase start`
+4. Update your `.env` file with the Supabase URL and anonymous key
 
 For detailed instructions on working with Supabase, see [Supabase Guide](./supabase.md).
 
