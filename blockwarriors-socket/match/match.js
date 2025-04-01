@@ -68,7 +68,28 @@ function startMatch() {
     const io = getIO();
     const playerNamespace = io.of("/player");
     // First argument should be a JSON object with the required data.
-    io.emit("startMatch", { message: "Match started" });
+    io.emit("startMatch", {
+      matchType: "pvp",
+      playersPerTeam: 1,
+      teams: [
+        { playerId: "uuid1" },
+        { playerId: "uuid2" },
+      ],
+      });
 }
+
+
+// {
+//     "matchType": "pvp",
+//     "playersPerTeam": 1,
+//     "teams": [
+//         {
+//             "playerId": "uuid1"
+//         },
+//         {
+//             "playerId": "uuid2"
+//         }
+//     ]
+// }
 
 export default router;
