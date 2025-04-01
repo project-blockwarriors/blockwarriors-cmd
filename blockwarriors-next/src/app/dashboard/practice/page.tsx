@@ -25,7 +25,8 @@ export default function PracticePage() {
     playersOnline: 0,
     serverLoad: 0,
   });
-  
+  const [tokensGenerated, setTokensGenerated] = useState(false);
+
   const [tokens, setTokens] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -55,7 +56,7 @@ export default function PracticePage() {
 
   const serverAddress = 'play.blockwarriors.ai';
 
-  const startMatch = async () => {
+  const generateTokens = async () => {
     if (!selectedMode) return;
 
     setIsLoading(true);
@@ -65,7 +66,7 @@ export default function PracticePage() {
       // const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
       
 
-      const response = await fetch('/api/start-match', {
+      const response = await fetch('/api/generate_tokens', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,14 +84,26 @@ export default function PracticePage() {
         prefixedTokens.push('GAME_' + token);
       });
 
+      if (response.ok) {
+        // response is ok, so display new start match button
+        setTokensGenerated(true);
+      }
+
       setTokens(prefixedTokens);
     } catch (error) {
+      setTokensGenerated(false);
       console.error('Failed to start match:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Invariant, tokens have been generated (within the last 10 minutes <-- IMPLEMENT THIS)
+  const startMatch = async () => { 
+    setIsLoading(true);
+
+
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -219,7 +232,18 @@ export default function PracticePage() {
           </div>
         </div>
 
-        <Button
+        {!tokensGenerated ? <Button
+          onClick={generateTokens}
+          disabled={!selectedMode || isLoading}
+          className="w-full flex items-center justify-center gap-2 py-6 text-lg"
+        >
+          {isLoading ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+          ) : (
+            <PlayIcon className="w-5 h-5" />
+          )}
+          {isLoading ? 'Generating Tokens...' : 'Generate Tokens'}
+        </Button> : <Button
           onClick={startMatch}
           disabled={!selectedMode || isLoading}
           className="w-full flex items-center justify-center gap-2 py-6 text-lg"
@@ -230,7 +254,7 @@ export default function PracticePage() {
             <PlayIcon className="w-5 h-5" />
           )}
           {isLoading ? 'Starting Match...' : 'Start Match'}
-        </Button>
+        </Button>}
       </motion.div>
 
       {tokens && tokens.length > 0 && (
