@@ -75,6 +75,14 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 ```
 
+Create a `.env` file in the `blockwarriors-socket` directory with the following variables:
+
+```
+# Supabase credentials (obtain these from running 'npx supabase status')
+SUPABASE_URL=your_supabase_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+```
+
 ### 3. Set Up Supabase
 
 Follow these steps to set up your local Supabase instance:
@@ -101,8 +109,6 @@ npm install
 # or
 yarn
 ```
-
-Create a `.env` file with the required environment variables.
 
 ### 5. Run the Applications
 
