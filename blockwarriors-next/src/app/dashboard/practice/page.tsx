@@ -102,8 +102,23 @@ export default function PracticePage() {
   const startMatch = async () => { 
     setIsLoading(true);
 
+    const response = await fetch('/api/generate_tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ tokens }),
+      });
 
-  };
+    if (!response.ok) {
+      throw new Error('Failed to start match');
+    }
+
+    setIsLoading(false);
+  }
+
+
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
