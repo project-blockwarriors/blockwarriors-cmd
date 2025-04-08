@@ -11,7 +11,7 @@ export async function POST(req) {
     const selectedMode = await req.json();
 
     // Connect to a socket.io server with a given URI
-    const socket = io('http://100.112.84.22:3001');
+    const socket = io(process.env.EXPRESS_URI);
     socket.emit('start_match', { selectedMode });
 
     // Rest of the code...
