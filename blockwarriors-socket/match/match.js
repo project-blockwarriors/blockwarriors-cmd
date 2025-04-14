@@ -9,8 +9,8 @@ const router = express.Router();
 
 // Add from Next.js OLD api route: generate_tokens
 router.post("/generate_tokens", async (req, res) => {
-  console.log("REQUEST RECEIVED")
-  const { selectedMode, jwtToken } = await req.json();
+  console.log("REQUEST RECEIVED");
+  const selectedMode = req.body.selectedMode;
   const user = await supabase.auth.getUser();
   
   if (!selectedMode) {
@@ -63,9 +63,9 @@ router.post("/generate_tokens", async (req, res) => {
 
 
   console.log(`Match created with ID: ${matchId}`);
-  console.log(`Token created: ${token}`);
-  return new Response(JSON.stringify({ tokens, matchId }), { status: 200 });
- });
+  console.log(`Tokens created: ${tokens}`);
+  return res.status(200).send(JSON.stringify({ tokens, matchId }));
+});
 
 
 
