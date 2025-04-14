@@ -9,8 +9,9 @@ const router = express.Router();
 
 // Add from Next.js OLD api route: generate_tokens
 router.post("/generate_tokens", async (req, res) => {
+  console.log("REQUEST RECEIVED")
   const { selectedMode, jwtToken } = await req.json();
-  const user = supabase.auth.getUser(jwtToken);
+  const user = await supabase.auth.getUser();
   
   if (!selectedMode) {
     return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });

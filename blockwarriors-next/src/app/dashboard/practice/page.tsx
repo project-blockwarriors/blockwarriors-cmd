@@ -9,6 +9,7 @@ import {
   UsersIcon,
   CommandLineIcon,
 } from '@heroicons/react/24/outline';
+import { supabase } from '@/auth/client';
 
 type GameMode = 'bedwars' | 'pvp' | 'ctf';
 
@@ -57,6 +58,7 @@ export default function PracticePage() {
   const serverAddress = 'play.blockwarriors.ai';
 
   const generateTokens = async () => {
+    console.log("generate tokens called");
     if (!selectedMode) return;
 
     setIsLoading(true);
@@ -66,7 +68,7 @@ export default function PracticePage() {
       // const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
       
 
-      const response = await fetch('/api/generate_tokens', {
+      const response = await fetch('http://localhost:3001/api/match/generate_tokens', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -102,7 +104,13 @@ export default function PracticePage() {
   const startMatch = async () => { 
     setIsLoading(true);
 
-    const response = await fetch('/api/generate_tokens', {
+    const session = await supabase.auth.getSession();
+    if (!session) {
+      console.error('No active session found');
+      return;
+    }
+
+    const response = await fetch('http://localhost:3001/api/match/start_match', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

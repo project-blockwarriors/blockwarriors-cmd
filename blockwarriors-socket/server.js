@@ -4,14 +4,19 @@ import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import routes from "./routes.js";
 import { initializeSocket } from "./socket.js";
+import cors from "cors";
 
 const app = express();
+
+app.use(cors({ origin: "http://localhost:3000" }));
+
 const server = createServer(app);
 
 initializeSocket(server);
 
 app.use(express.json());
 app.use(routes);
+
 
 // Initialize Supabase client
 const supabaseUrl = process.env.SUPABASE_URL;
