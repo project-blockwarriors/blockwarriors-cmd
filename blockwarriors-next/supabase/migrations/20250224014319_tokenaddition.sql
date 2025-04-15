@@ -10,9 +10,7 @@
 
 CREATE TABLE game_teams2 (
     game_team_id BIGINT PRIMARY KEY GENERATED ALWAYS AS IDENTITY,
-    -- red bots is a dynamic range postgres array
-    red_bots INTEGER[] NOT NULL,
-    blue_bots INTEGER[] NOT NULL,
+    bots INTEGER[] NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
