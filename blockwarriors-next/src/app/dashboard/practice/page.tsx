@@ -67,11 +67,21 @@ export default function PracticePage() {
       // await new Promise((resolve) => setTimeout(resolve, 1000));
       // const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
       
+      // get jwttoken
+      const session = await supabase.auth.getSession();
+      if (!session) {
+        console.error('No active session found');
+        return;
+      }
+      const { access_token } = session.data.session;
+      console.log('Access Token:', access_token);
 
       const response = await fetch('http://localhost:3001/api/match/generate_tokens', {
-      method: 'POST',
+        method: 'POST',
+        // add authorization header
       headers: {
         'Content-Type': 'application/json',
+        Authorization: `${access_token}`,
       },
       body: JSON.stringify({ selectedMode }),
       });
@@ -109,6 +119,11 @@ export default function PracticePage() {
       console.error('No active session found');
       return;
     }
+
+    // Get the associated match from any one of the tokens:
+    const token = tokens[0];
+    
+
 
     const response = await fetch('http://localhost:3001/api/match/start_match', {
       method: 'POST',

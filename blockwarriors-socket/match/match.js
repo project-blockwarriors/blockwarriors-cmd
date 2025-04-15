@@ -11,21 +11,46 @@ const router = express.Router();
 router.post("/generate_tokens", async (req, res) => {
   console.log("REQUEST RECEIVED");
   const selectedMode = req.body.selectedMode;
-  const user = await supabase.auth.getUser();
-  
+  const user = await supabase.auth.getUser(req.headers.authorization);
+
   if (!selectedMode) {
     return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
   }
 
   // JWT token, (refresh token), -> 
   // const userId = (await getUser()).id;
-
-  // Rewrite code below as SQL queries. 
+  // Rewrite code below as SQL queries.
 
   // Insert into matches table
-  const { data: matchData, error: matchError } = await supabase
-    .from('matches')
-    .insert([{ mode: selectedMode }])
+  // const { data: matchData, error: matchError } = await supabase
+  //   .from('matches')
+  //   .insert([{ mode: selectedMode }])
+  //   .select('match_id')
+  //   .single();
+  
+  // Create
+
+  // Create game_team 1 and game_team 2 
+  const { data: gameTeamData, error: gameTeamError } = await supabase
+    .from('game_teams2')
+    .insert([{ bots: [1] }, { bots: [2] }]).select('game_team_id');
+  
+  if (gameTeamError) {
+    console.log(gameTeamError);
+    return new Response(JSON.stringify({ error: 'Failed to create game teams' }), { status: 500 });
+  }
+  
+  console.log(gameTeamData)
+
+  // New: Insert into matches2 table:
+    const { data: matchData, error: matchError } = await supabase
+    .from('matches2')
+      .insert([{
+        match_type: selectedMode,
+        match_status: 'waiting',
+        red_team_id: gameTeamData[0].game_team_id,
+        blue_team_id: gameTeamData[1].game_team_id,
+     }])
     .select('match_id')
     .single();
 
@@ -35,6 +60,9 @@ router.post("/generate_tokens", async (req, res) => {
   }
 
   const matchId = matchData.match_id;
+
+
+
   let token;
   let tokenError;
 
@@ -49,21 +77,65 @@ router.post("/generate_tokens", async (req, res) => {
     'ctf': 10,
   }
 
-  for (let i = 0; i < selectedModeToTokenMap[selectedMode]; i++) {
+  // for (let i = 0; i < selectedModeToTokenMap[selectedMode]; i++) {
+  //   // Ensure unique token
+  //   do {
+  //     token = uuidv4();
+  //     const { error } = await supabase
+  //       .from('active_tokens')
+  //       .insert([{ token, match_id: matchId }]);
+  //     tokenError = error;
+  //   } while (tokenError);
+  //   tokens.push(token);
+  // }
+
+  // Insert the required amount of tokens into each team
+  for (let i = 0; i < selectedModeToTokenMap[selectedMode]/2; i++) {
     // Ensure unique token
     do {
-      token = uuidv4();
+    token = uuidv4();
       const { error } = await supabase
-        .from('active_tokens')
-        .insert([{ token, match_id: matchId }]);
+        .from('active_tokens2')
+        .insert([{
+          token: token,
+          user_id: user.id,
+          match_id: matchId,
+          game_team_id: gameTeamData[0].game_team_id,
+
+        }]);
+    tokenError = error;
+    console.log(error);
+    } while (tokenError);
+    tokens.push(token);
+    console.log("pushing")
+  }
+
+    // Insert the required amount of tokens into each team
+  for (let i = 0; i < selectedModeToTokenMap[selectedMode]/2; i++) {
+    // Ensure unique token
+    do {
+    token = uuidv4();
+      const { error } = await supabase
+        .from('active_tokens2')
+        .insert([{
+          token: token,
+          user_id: user.id,
+          match_id: matchId,
+          game_team_id: gameTeamData[1].game_team_id,
+
+        }]);
       tokenError = error;
     } while (tokenError);
     tokens.push(token);
+    console.log("pushing")
   }
 
 
   console.log(`Match created with ID: ${matchId}`);
-  console.log(`Tokens created: ${tokens}`);
+  console.log(`Tokens created: ${tokens.join(', ')}`);
+  // Log teams
+  console.log(`Team 1 ID: ${gameTeamData[0].game_team_id}`);
+  console.log(`Team 2 ID: ${gameTeamData[1].game_team_id}`);
   return res.status(200).send(JSON.stringify({ tokens, matchId }));
 });
 
@@ -71,12 +143,33 @@ router.post("/generate_tokens", async (req, res) => {
 
 // Add from Next.js OLD api route: start_match
 router.post("/start_match", async (req, res) => { 
-    const selectedMode = await req.json();
+  const tokens = req.body.tokens;
+  console.log(tokens);
 
-    // Connect to a socket.io server with a given URI
-    const socket = io(process.env.EXPRESS_URI);
+  // I'm given a list of tokens, I need to assoiciate each token
+  // with a currently logged in user. 
+  const user = await supabase.auth.getUser();
+  
 
-    // Rest of the code...
+  const io = getIO();
+    const playerNamespace = io.of("/player");
+    // First argument should be a JSON object with the required data.
+    io.emit("startMatch", {
+      matchType: "pvp",
+      playersPerTeam: 1,
+      teams: [
+        { playerId: "uuid1" },
+        { playerId: "uuid2" },
+      ],
+      });
+
+
+  if (!selectedMode) {
+    return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
+  }
+
+  startMatch();
+
 });
 
 
@@ -136,21 +229,6 @@ router.post("/setup", async (req, res) => {
 
       
 });
-
-// Start the new match
-function startMatch() { 
-    const io = getIO();
-    const playerNamespace = io.of("/player");
-    // First argument should be a JSON object with the required data.
-    io.emit("startMatch", {
-      matchType: "pvp",
-      playersPerTeam: 1,
-      teams: [
-        { playerId: "uuid1" },
-        { playerId: "uuid2" },
-      ],
-      });
-}
 
 
 // {
