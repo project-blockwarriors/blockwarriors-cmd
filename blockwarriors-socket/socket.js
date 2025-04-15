@@ -19,7 +19,7 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 async function validateToken(token) {
   try {
     const { data: tokenData, error: tokenError } = await supabase
-      .from("active_tokens")
+      .from("active_tokens2")
       .select("match_id")
       .eq("token", token)
       .single();
@@ -65,6 +65,11 @@ async function handleLogin(socket, { playerId, token }, callback) {
       callback({ status: "bad" });
       return;
     }
+
+    // On login, we need to store who logged in, (token)
+    // along with what team they are on.
+    // Do this using local variables and supabase
+    // to get the team ID.
 
     state.socketToPlayer.set(socket.id, playerId);
     state.playerToSocket.set(playerId, socket.id);
