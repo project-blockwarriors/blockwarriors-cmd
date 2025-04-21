@@ -1,7 +1,7 @@
 // match.js
 import express from 'express';
 import supabase from '../supabaseClient.js';
-import { getIO } from '../socket.js';
+import { getIO, getSocketState } from '../socket.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
@@ -147,33 +147,39 @@ router.post("/start_match", async (req, res) => {
   console.log(tokens);
 
   // I'm given a list of tokens, I need to assoiciate each token
-  // with a currently logged in user. 
-  const user = await supabase.auth.getUser();
+  // with a currently logged in user.
+  // const user = await supabase.auth.getUser();
   
 
-  const io = getIO();
-    const playerNamespace = io.of("/player");
-    // First argument should be a JSON object with the required data.
-    io.emit("startMatch", {
-      matchType: "pvp",
-      playersPerTeam: 1,
-      teams: [
-        { playerId: "uuid1" },
-        { playerId: "uuid2" },
-      ],
-      });
-
-
-  if (!selectedMode) {
-    return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
+  const state = getSocketState();
+  const io = state.io;
+  const playerUUIDs = state.gameSessions.get(matchId).players
+  // Validate whether there are enough logged in players to start the match
+  if (playerUUIDs.length < 2) { 
+    return new Response(JSON.stringify({ error: 'Not enough players to start the match' }), { status: 400 });
   }
 
-  startMatch();
+  // Create an object from the set of strings in the form [{playerId: "uuid1"}, {playerId: "uuid2"}]
+  const players = Array.from(playerUUIDs).map((playerId) => ({ playerId }));
+  // Cut this in half
+  const half = Math.ceil(players.length / 2);
+  const team1 = players.slice(0, half);
+  const team2 = players.slice(half);
+
+  const playerNamespace = io.of("/player");
+  // First argument should be a JSON object with the required data.
+  io.emit("startMatch", {
+    matchType: "pvp",
+    playersPerTeam: 1,
+    blue_team: team1, // list of {playerId: "uuid"} objects
+    red_team: team2, // list of {playerId: "uuid"} objects
+    });
+
 
 });
 
 
-// Setup the new match
+// DOESNT NO ANYTHING Setup the new match
 router.post("/setup", async (req, res) => {
     const { selectedMode } = req.body;
 

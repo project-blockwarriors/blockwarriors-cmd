@@ -5,6 +5,9 @@ import { createClient } from "@supabase/supabase-js";
 const state = {
   io: null,
   gameSessions: new Map(),
+  // Key: match_id, Value: { players: Set, playerData: Map }
+  // gameSessions.get(matchId).players is a set of player (minecraft uuids)
+  
   socketToPlayer: new Map(),
   playerToSocket: new Map(),
   playerNamespace: null
@@ -140,9 +143,17 @@ function getIO() {
   return state.io;
 }
 
+function getSocketState() { 
+  if (!state) { 
+    throw new Error('Socket state has not been initialized. Call initializeSocket first.');
+    return state;
+  }
+}
+
 // Export functions and state getters
 export {
   initializeSocket,
   getIO,
+  getSocketState,
   state
 };
