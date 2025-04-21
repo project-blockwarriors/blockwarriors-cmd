@@ -27,8 +27,3 @@ CREATE INDEX "users_team_id_idx" ON "public"."users" USING "btree" ("team_id");
 ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Users can update their own profile" ON "public"."users" FOR UPDATE TO "authenticated" USING (("user_id" = "auth"."uid"()));
-
--- Moving this policy to 30_users.sql after teams table is created
--- CREATE POLICY "Users can view team members" ON "public"."users" FOR SELECT TO "authenticated" USING ((("team_id" IN ( SELECT "teams"."id"
---    FROM "public"."teams"
---   WHERE ("teams"."leader_id" = "auth"."uid"()))) OR ("user_id" = "auth"."uid"())));
