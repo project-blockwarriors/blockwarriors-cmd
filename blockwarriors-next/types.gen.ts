@@ -380,10 +380,7 @@ export type Database = {
     }
     Functions: {
       disband_team: {
-        Args: {
-          team_id_param: number
-          leader_id_param: string
-        }
+        Args: { team_id_param: number; leader_id_param: string }
         Returns: undefined
       }
       get_all_teams_with_members: {
