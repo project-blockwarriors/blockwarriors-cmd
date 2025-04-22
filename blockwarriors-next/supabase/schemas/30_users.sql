@@ -1,51 +1,43 @@
--- Change this file to contain teams table since users are now defined in 20_profiles.sql
-
-CREATE TABLE IF NOT EXISTS "public"."teams" (
-    "id" integer NOT NULL,
-    "team_name" "text" NOT NULL,
-    "description" "text",
-    "created_at" timestamp without time zone DEFAULT "now"(),
-    "leader_id" "uuid",
-    "team_elo" integer DEFAULT 0 NOT NULL,
-    "team_wins" integer DEFAULT 0 NOT NULL,
-    "team_losses" integer DEFAULT 0 NOT NULL,
-    "time_zone" "text"
+-- Users table
+CREATE TABLE IF NOT EXISTS "public"."users" (
+    "user_id" uuid NOT NULL,
+    "first_name" text,
+    "last_name" text,
+    "email" text,
+    "institution" text,
+    "geographic_location" text,
+    "created_at" timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
+    "team_id" bigint
 );
 
-ALTER TABLE "public"."teams" OWNER TO "postgres";
+ALTER TABLE "public"."users" OWNER TO "postgres";
 
-CREATE SEQUENCE IF NOT EXISTS "public"."teams_id_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
+-- Comments
+COMMENT ON TABLE "public"."users" IS 'User profiles for the application';
+COMMENT ON COLUMN "public"."users"."user_id" IS 'References auth.users.id';
+COMMENT ON COLUMN "public"."users"."team_id" IS 'Team that the user belongs to';
 
-ALTER TABLE "public"."teams_id_seq" OWNER TO "postgres";
+-- Primary key and constraints
+ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_pkey" PRIMARY KEY ("user_id");
+ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_email_key" UNIQUE ("email");
+ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "auth"."users"("id") ON DELETE CASCADE;
 
-ALTER SEQUENCE "public"."teams_id_seq" OWNED BY "public"."teams"."id";
+-- Indexes
+CREATE INDEX "users_team_id_idx" ON "public"."users" USING "btree" ("team_id");
 
-ALTER TABLE ONLY "public"."teams" ALTER COLUMN "id" SET DEFAULT "nextval"('"public"."teams_id_seq"'::"regclass");
+-- Enable RLS
+ALTER TABLE "public"."users" ENABLE ROW LEVEL SECURITY;
 
-ALTER TABLE ONLY "public"."teams" ADD CONSTRAINT "teams_pkey" PRIMARY KEY ("id");
+-- Policies
+CREATE POLICY "Users can view their own profile" ON "public"."users" 
+    FOR SELECT TO authenticated 
+    USING (user_id = auth.uid());
 
-ALTER TABLE ONLY "public"."teams" ADD CONSTRAINT "teams_team_name_key" UNIQUE ("team_name");
+CREATE POLICY "Users can update their own profile" ON "public"."users" 
+    FOR UPDATE TO authenticated 
+    USING (user_id = auth.uid());
 
-ALTER TABLE ONLY "public"."teams" ADD CONSTRAINT "teams_leader_id_fkey" FOREIGN KEY ("leader_id") REFERENCES "auth"."users"("id");
-
--- This constraint is added after the teams table exists
-ALTER TABLE ONLY "public"."users" ADD CONSTRAINT "users_team_id_fkey" FOREIGN KEY ("team_id") REFERENCES "public"."teams"("id");
-
-ALTER TABLE "public"."teams" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Team leaders can update their team" ON "public"."teams" FOR UPDATE TO "authenticated" USING (("leader_id" = "auth"."uid"()));
-
-CREATE POLICY "Users can create teams" ON "public"."teams" FOR INSERT TO "authenticated" WITH CHECK (("leader_id" = "auth"."uid"()));
-
-CREATE POLICY "Users can view all teams" ON "public"."teams" FOR SELECT TO "authenticated" USING (true);
-
--- Now that teams table exists, we can add the policy for users that references teams
-CREATE POLICY "Users can view team members" ON "public"."users" FOR SELECT TO "authenticated" USING ((("team_id" IN ( SELECT "teams"."id"
-   FROM "public"."teams"
-  WHERE ("teams"."leader_id" = "auth"."uid"()))) OR ("user_id" = "auth"."uid"())));
+-- Grant access 
+GRANT ALL ON TABLE "public"."users" TO "anon";
+GRANT ALL ON TABLE "public"."users" TO "authenticated";
+GRANT ALL ON TABLE "public"."users" TO "service_role";
