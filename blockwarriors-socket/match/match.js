@@ -144,6 +144,10 @@ router.post("/generate_tokens", async (req, res) => {
 // Add from Next.js OLD api route: start_match
 router.post("/start_match", async (req, res) => { 
   const tokens = req.body.tokens;
+  const matchId = req.body.matchId;
+  console.log("REQUEST RECEIVED");
+  console.log("Tokens: ", tokens);
+  console.log("Match ID: ", matchId);
   console.log(tokens);
 
   // I'm given a list of tokens, I need to assoiciate each token
@@ -152,28 +156,55 @@ router.post("/start_match", async (req, res) => {
   
 
   const state = getSocketState();
-  const io = state.io;
-  const playerUUIDs = state.gameSessions.get(matchId).players
+  const io = getIO();
+  const playerUUIDs = state.gameSessions.get(matchId)
+  console.log("BELOW IS PLAYERUUIDS")
+  console.log(playerUUIDs);
+
+  //{
+//   players: Set(2) {
+//     '103576cf-f9f2-4f12-b5db-c471a3252dc6',
+//     '7865141f-780a-4367-8896-85592e999263'
+//   },
+//   playerData: Map(0) {}
+  // }
+  // playerUUIDS is above, extract the players
+
+  const playerUUIDArray = Array.from(playerUUIDs.players);
+  console.log("ARRAY BELOW");
+  console.log(playerUUIDArray);
+
+  
   // Validate whether there are enough logged in players to start the match
   if (playerUUIDs.length < 2) { 
     return new Response(JSON.stringify({ error: 'Not enough players to start the match' }), { status: 400 });
   }
 
   // Create an object from the set of strings in the form [{playerId: "uuid1"}, {playerId: "uuid2"}]
-  const players = Array.from(playerUUIDs).map((playerId) => ({ playerId }));
-  // Cut this in half
-  const half = Math.ceil(players.length / 2);
-  const team1 = players.slice(0, half);
-  const team2 = players.slice(half);
+  // const players = Array.from(playerUUIDs).map((playerId) => ({ playerId }));
 
-  const playerNamespace = io.of("/player");
-  // First argument should be a JSON object with the required data.
+  // console.log(players)
+  // // Cut this in half
+  // const half = Math.ceil(players.length / 2);
+  // const team1 = players[0]
+  // const team2 = players[1]
+  
+
+  // emit to the server socket
+  console.log("emitting to server socket")
   io.emit("startMatch", {
     matchType: "pvp",
     playersPerTeam: 1,
-    blue_team: team1, // list of {playerId: "uuid"} objects
-    red_team: team2, // list of {playerId: "uuid"} objects
-    });
+    blue_team: [playerUUIDArray[0]], // list of {playerId: "uuid"} objects
+    red_team: [playerUUIDArray[1]], // list of {playerId: "uuid"} objects
+  });
+  console.log("Match started (emit complete)");
+  console.log ({
+    matchType: "pvp",
+    playersPerTeam: 1,
+    blue_team: [playerUUIDs[0]], // list of {playerId: "uuid"} objects
+    red_team: [playerUUIDs[1]], // list of {playerId: "uuid"} objects
+  });
 
 
 });

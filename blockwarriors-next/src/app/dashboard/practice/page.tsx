@@ -28,6 +28,7 @@ export default function PracticePage() {
   });
   const [tokensGenerated, setTokensGenerated] = useState(false);
 
+  const [matchId, setMatchId] = useState<string | null>(null);
   const [tokens, setTokens] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -96,6 +97,8 @@ export default function PracticePage() {
         prefixedTokens.push('GAME_' + token);
       });
 
+      setMatchId(data['matchId']);
+
       if (response.ok) {
         // response is ok, so display new start match button
         setTokensGenerated(true);
@@ -130,7 +133,7 @@ export default function PracticePage() {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tokens }),
+      body: JSON.stringify({ tokens, matchId }),
       });
 
     if (!response.ok) {
@@ -283,7 +286,7 @@ export default function PracticePage() {
           {isLoading ? 'Generating Tokens...' : 'Generate Tokens'}
         </Button> : <Button
           onClick={startMatch}
-          disabled={!selectedMode || isLoading}
+          disabled={(!selectedMode || isLoading) && false}
           className="w-full flex items-center justify-center gap-2 py-6 text-lg"
         >
           {isLoading ? (

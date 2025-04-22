@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 // Initialize state
 const state = {
   io: null,
+  serverSockets: [],
   gameSessions: new Map(),
   // Key: match_id, Value: { players: Set, playerData: Map }
   // gameSessions.get(matchId).players is a set of player (minecraft uuids)
@@ -112,6 +113,10 @@ function setupPlayerNamespace() {
 function setupMainNamespace() {
   state.io.on("connection", (socket) => {
     console.log(`Client connected to main namespace: ${socket.id}`);
+    // save as a server socket
+    state.io.emit("hello", "Hello from the server!");
+    state.serverSockets.push(socket.id);
+
     socket.on("disconnect", () => {
       console.log(`Client (main) disconnected: ${socket.id}`);
     });
@@ -121,6 +126,7 @@ function setupMainNamespace() {
 // Initialize socket.io
 function initializeSocket(server) {
   if (state.io) return state.io;
+
 
   state.io = new Server(server, {
     cors: {
@@ -132,6 +138,7 @@ function initializeSocket(server) {
   setupPlayerNamespace();
   setupMainNamespace();
 
+  state.io.emit("hello", "Hello from the server!");
   return state.io;
 }
 
@@ -146,8 +153,9 @@ function getIO() {
 function getSocketState() { 
   if (!state) { 
     throw new Error('Socket state has not been initialized. Call initializeSocket first.');
-    return state;
+    
   }
+  return state;
 }
 
 // Export functions and state getters
