@@ -71,16 +71,16 @@ SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=your_google_client_id
 SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=your_google_client_secret
 
 # Supabase (Add these AFTER launching Supabase)
-NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+NEXT_PUBLIC_SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_SUPABASE_ANON_KEY
 ```
 
 Create a `.env` file in the `blockwarriors-socket` directory with the following variables:
 
 ```
 # Supabase credentials (obtain these from running 'npx supabase status')
-SUPABASE_URL=your_supabase_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=your_SUPABASE_SERVICE_ROLE_KEY
 ```
 
 ### 3. Set Up Supabase
