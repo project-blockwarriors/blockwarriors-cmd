@@ -1,49 +1,34 @@
--- Update this file to contain the tokens and matches tables from prod.sql
+-- Update this file to contain consolidated tokens and matches tables
 
--- Active tokens tables
-CREATE TABLE IF NOT EXISTS "public"."active_tokens" (
-    "token" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
-    "match_id" bigint,
-    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()),
-    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:05:00'::interval)
-);
-
-ALTER TABLE "public"."active_tokens" OWNER TO "postgres";
-
-COMMENT ON COLUMN "public"."active_tokens"."expires_at" IS 'should be 5 minutes after created_at';
-
-CREATE TABLE IF NOT EXISTS "public"."active_tokens2" (
-    "token" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+-- Unified tokens table replacing active_tokens, active_tokens2, and blockwarriors_tokens
+CREATE TABLE IF NOT EXISTS "public"."tokens" (
+    "token_id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
+    "token" "uuid" DEFAULT "extensions"."uuid_generate_v4"(),
     "user_id" "uuid",
-    "bot_id" integer NOT NULL,
     "match_id" bigint,
     "game_team_id" bigint,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval)
+    "bot_id" integer,
+    "created_at" timestamp with time zone DEFAULT "timezone"('utc'::"text", "now"()),
+    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval),
+    "is_active" boolean DEFAULT true
 );
 
-ALTER TABLE "public"."active_tokens2" OWNER TO "postgres";
+ALTER TABLE "public"."tokens" OWNER TO "postgres";
 
-ALTER TABLE "public"."active_tokens2" ALTER COLUMN "bot_id" ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME "public"."active_tokens2_bot_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+COMMENT ON TABLE "public"."tokens" IS 'Unified tokens table that replaces active_tokens, active_tokens2, and blockwarriors_tokens';
+COMMENT ON COLUMN "public"."tokens"."expires_at" IS 'Tokens typically expire 15 minutes after creation';
 
 -- Game teams table
-CREATE TABLE IF NOT EXISTS "public"."game_teams2" (
+CREATE TABLE IF NOT EXISTS "public"."game_teams" (
     "game_team_id" bigint NOT NULL,
     "bots" integer[] NOT NULL,
     "created_at" timestamp with time zone DEFAULT "now"()
 );
 
-ALTER TABLE "public"."game_teams2" OWNER TO "postgres";
+ALTER TABLE "public"."game_teams" OWNER TO "postgres";
 
-ALTER TABLE "public"."game_teams2" ALTER COLUMN "game_team_id" ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME "public"."game_teams2_game_team_id_seq"
+ALTER TABLE "public"."game_teams" ALTER COLUMN "game_team_id" ADD GENERATED ALWAYS AS IDENTITY (
+    SEQUENCE NAME "public"."game_teams_game_team_id_seq"
     START WITH 1
     INCREMENT BY 1
     NO MINVALUE
@@ -51,63 +36,26 @@ ALTER TABLE "public"."game_teams2" ALTER COLUMN "game_team_id" ADD GENERATED ALW
     CACHE 1
 );
 
--- Matches tables
+-- Unified matches table replacing matches, matches2, and matches_duplicate
 CREATE TABLE IF NOT EXISTS "public"."matches" (
     "match_id" bigint NOT NULL,
-    "winner_team_id" integer,
+    "match_type" "text" DEFAULT 'standard',
+    "match_status" "text" DEFAULT 'pending',
     "match_elo" integer,
-    "match_status" integer,
-    "blue_team_id" integer,
-    "red_team_id" integer,
+    "winner_team_id" bigint,
+    "blue_team_id" bigint,
+    "red_team_id" bigint,
+    "created_at" timestamp with time zone DEFAULT "now"(),
+    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval),
     "mode" "text" DEFAULT ''::"text"
 );
 
 ALTER TABLE "public"."matches" OWNER TO "postgres";
 
+COMMENT ON TABLE "public"."matches" IS 'Unified matches table that replaces matches, matches2, and matches_duplicate';
 COMMENT ON COLUMN "public"."matches"."mode" IS 'bedwars, pvp, or ctf';
-
-CREATE TABLE IF NOT EXISTS "public"."matches2" (
-    "match_id" bigint NOT NULL,
-    "match_type" "text" NOT NULL,
-    "match_status" "text" DEFAULT 'pending'::"text",
-    "red_team_id" bigint,
-    "blue_team_id" bigint,
-    "created_at" timestamp with time zone DEFAULT "now"(),
-    "expires_at" timestamp with time zone DEFAULT ("now"() + '00:15:00'::interval)
-);
-
-ALTER TABLE "public"."matches2" OWNER TO "postgres";
-
-ALTER TABLE "public"."matches2" ALTER COLUMN "match_id" ADD GENERATED ALWAYS AS IDENTITY (
-    SEQUENCE NAME "public"."matches2_match_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
-
-CREATE TABLE IF NOT EXISTS "public"."matches_duplicate" (
-    "match_id" bigint NOT NULL,
-    "winner_team_id" integer,
-    "match_elo" integer,
-    "match_status" integer,
-    "blue_team_id" integer,
-    "red_team_id" integer
-);
-
-ALTER TABLE "public"."matches_duplicate" OWNER TO "postgres";
-
-COMMENT ON TABLE "public"."matches_duplicate" IS 'This is a duplicate of matches';
-
-ALTER TABLE "public"."matches_duplicate" ALTER COLUMN "match_id" ADD GENERATED BY DEFAULT AS IDENTITY (
-    SEQUENCE NAME "public"."matches_duplicate_match_id_seq"
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1
-);
+COMMENT ON COLUMN "public"."matches"."match_type" IS 'Type of match (e.g., standard, tournament)';
+COMMENT ON COLUMN "public"."matches"."match_status" IS 'Status of match: pending, in_progress, completed';
 
 ALTER TABLE "public"."matches" ALTER COLUMN "match_id" ADD GENERATED BY DEFAULT AS IDENTITY (
     SEQUENCE NAME "public"."matches_match_id_seq"
@@ -132,63 +80,36 @@ CREATE TABLE IF NOT EXISTS "public"."settings" (
 ALTER TABLE "public"."settings" OWNER TO "postgres";
 
 -- Primary keys
-ALTER TABLE ONLY "public"."active_tokens" ADD CONSTRAINT "active_tokens_pkey" PRIMARY KEY ("token");
-ALTER TABLE ONLY "public"."active_tokens2" ADD CONSTRAINT "active_tokens_pkey2" PRIMARY KEY ("token");
-ALTER TABLE ONLY "public"."game_teams2" ADD CONSTRAINT "game_teams2_pkey" PRIMARY KEY ("game_team_id");
-ALTER TABLE ONLY "public"."matches2" ADD CONSTRAINT "matches2_pkey" PRIMARY KEY ("match_id");
-ALTER TABLE ONLY "public"."matches_duplicate" ADD CONSTRAINT "matches_duplicate_pkey" PRIMARY KEY ("match_id");
+ALTER TABLE ONLY "public"."tokens" ADD CONSTRAINT "tokens_pkey" PRIMARY KEY ("token_id");
+ALTER TABLE ONLY "public"."game_teams" ADD CONSTRAINT "game_teams_pkey" PRIMARY KEY ("game_team_id");
 ALTER TABLE ONLY "public"."matches" ADD CONSTRAINT "matches_pkey" PRIMARY KEY ("match_id");
 ALTER TABLE ONLY "public"."settings" ADD CONSTRAINT "settings_pkey" PRIMARY KEY ("id");
 
 -- Foreign key constraints
-ALTER TABLE ONLY "public"."active_tokens2" ADD CONSTRAINT "active_tokens2_game_team_id_fkey" FOREIGN KEY ("game_team_id") REFERENCES "public"."game_teams2"("game_team_id") ON DELETE CASCADE;
-ALTER TABLE ONLY "public"."active_tokens2" ADD CONSTRAINT "active_tokens2_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."matches2"("match_id") ON DELETE CASCADE;
-ALTER TABLE ONLY "public"."active_tokens2" ADD CONSTRAINT "active_tokens2_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE CASCADE;
-ALTER TABLE ONLY "public"."active_tokens" ADD CONSTRAINT "active_tokens_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("match_id");
-ALTER TABLE ONLY "public"."matches2" ADD CONSTRAINT "matches2_blue_team_id_fkey" FOREIGN KEY ("blue_team_id") REFERENCES "public"."game_teams2"("game_team_id");
-ALTER TABLE ONLY "public"."matches2" ADD CONSTRAINT "matches2_red_team_id_fkey" FOREIGN KEY ("red_team_id") REFERENCES "public"."game_teams2"("game_team_id");
+ALTER TABLE ONLY "public"."tokens" ADD CONSTRAINT "tokens_game_team_id_fkey" FOREIGN KEY ("game_team_id") REFERENCES "public"."game_teams"("game_team_id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."tokens" ADD CONSTRAINT "tokens_match_id_fkey" FOREIGN KEY ("match_id") REFERENCES "public"."matches"("match_id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."tokens" ADD CONSTRAINT "tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE CASCADE;
+ALTER TABLE ONLY "public"."matches" ADD CONSTRAINT "matches_blue_team_id_fkey" FOREIGN KEY ("blue_team_id") REFERENCES "public"."game_teams"("game_team_id");
+ALTER TABLE ONLY "public"."matches" ADD CONSTRAINT "matches_red_team_id_fkey" FOREIGN KEY ("red_team_id") REFERENCES "public"."game_teams"("game_team_id");
+
+-- Function to automatically handle expired tokens
+CREATE OR REPLACE FUNCTION "public"."delete_expired_tokens"() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  UPDATE public.tokens SET is_active = false WHERE expires_at < now();
+  return new;
+end;
+$$;
+
+-- Create a trigger to run this function periodically
+DROP TRIGGER IF EXISTS delete_expired_tokens_trigger ON public.tokens;
+CREATE TRIGGER delete_expired_tokens_trigger
+AFTER INSERT ON public.tokens
+EXECUTE FUNCTION public.delete_expired_tokens();
 
 -- Row level security
-ALTER TABLE "public"."matches_duplicate" ENABLE ROW LEVEL SECURITY;
-
--- Tokens table (legacy)
--- Note: This might need to be removed if not in use anymore
-CREATE TABLE "public"."blockwarriors_tokens" (
-    "id" "uuid" DEFAULT "extensions"."uuid_generate_v4"() NOT NULL,
-    "user_id" "uuid" NOT NULL,
-    "token" "text" NOT NULL,
-    "created_at" timestamp with time zone DEFAULT "now"() NOT NULL,
-    "updated_at" timestamp with time zone DEFAULT "now"() NOT NULL
-);
-
-ALTER TABLE "public"."blockwarriors_tokens" OWNER TO "postgres";
-
-CREATE SEQUENCE "public"."blockwarriors_tokens_id_seq"
-    AS integer
-    START WITH 1
-    INCREMENT BY 1
-    NO MINVALUE
-    NO MAXVALUE
-    CACHE 1;
-
-ALTER TABLE "public"."blockwarriors_tokens_id_seq" OWNER TO "postgres";
-
-ALTER SEQUENCE "public"."blockwarriors_tokens_id_seq" OWNED BY "public"."blockwarriors_tokens"."id";
-
-ALTER TABLE ONLY "public"."blockwarriors_tokens" ADD CONSTRAINT "blockwarriors_tokens_pkey" PRIMARY KEY ("id");
-
-ALTER TABLE ONLY "public"."blockwarriors_tokens" ADD CONSTRAINT "blockwarriors_tokens_token_key" UNIQUE ("token");
-
--- Update the foreign key reference to point to users table instead of blockwarriors_users
-ALTER TABLE ONLY "public"."blockwarriors_tokens"
-    ADD CONSTRAINT "blockwarriors_tokens_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "public"."users"("user_id") ON DELETE CASCADE;
-
-CREATE TRIGGER "delete_expired_tokens_trigger" AFTER INSERT OR UPDATE ON "public"."blockwarriors_tokens" FOR EACH STATEMENT EXECUTE FUNCTION "public"."delete_expired_records"();
-
-CREATE TRIGGER "set_public_blockwarriors_tokens_updated_at" BEFORE UPDATE ON "public"."blockwarriors_tokens" FOR EACH ROW EXECUTE FUNCTION "public"."update_modified_column"();
-
-ALTER TABLE "public"."blockwarriors_tokens" ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Enable insert access for all users" ON "public"."blockwarriors_tokens" FOR INSERT WITH CHECK (true);
-
-CREATE POLICY "Enable read access for all users" ON "public"."blockwarriors_tokens" FOR SELECT USING (true);
+ALTER TABLE "public"."tokens" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."game_teams" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."matches" ENABLE ROW LEVEL SECURITY;
+ALTER TABLE "public"."settings" ENABLE ROW LEVEL SECURITY;

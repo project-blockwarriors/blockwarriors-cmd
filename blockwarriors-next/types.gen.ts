@@ -34,120 +34,7 @@ export type Database = {
   }
   public: {
     Tables: {
-      active_tokens: {
-        Row: {
-          created_at: string | null
-          expires_at: string | null
-          match_id: number | null
-          token: string
-        }
-        Insert: {
-          created_at?: string | null
-          expires_at?: string | null
-          match_id?: number | null
-          token?: string
-        }
-        Update: {
-          created_at?: string | null
-          expires_at?: string | null
-          match_id?: number | null
-          token?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "active_tokens_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches"
-            referencedColumns: ["match_id"]
-          },
-        ]
-      }
-      active_tokens2: {
-        Row: {
-          bot_id: number
-          created_at: string | null
-          expires_at: string | null
-          game_team_id: number | null
-          match_id: number | null
-          token: string
-          user_id: string | null
-        }
-        Insert: {
-          bot_id?: never
-          created_at?: string | null
-          expires_at?: string | null
-          game_team_id?: number | null
-          match_id?: number | null
-          token?: string
-          user_id?: string | null
-        }
-        Update: {
-          bot_id?: never
-          created_at?: string | null
-          expires_at?: string | null
-          game_team_id?: number | null
-          match_id?: number | null
-          token?: string
-          user_id?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "active_tokens2_game_team_id_fkey"
-            columns: ["game_team_id"]
-            isOneToOne: false
-            referencedRelation: "game_teams2"
-            referencedColumns: ["game_team_id"]
-          },
-          {
-            foreignKeyName: "active_tokens2_match_id_fkey"
-            columns: ["match_id"]
-            isOneToOne: false
-            referencedRelation: "matches2"
-            referencedColumns: ["match_id"]
-          },
-          {
-            foreignKeyName: "active_tokens2_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      blockwarriors_tokens: {
-        Row: {
-          created_at: string
-          id: string
-          token: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          token: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          token?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "blockwarriors_tokens_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "users"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
-      game_teams2: {
+      game_teams: {
         Row: {
           bots: number[]
           created_at: string | null
@@ -168,101 +55,53 @@ export type Database = {
       matches: {
         Row: {
           blue_team_id: number | null
+          created_at: string | null
+          expires_at: string | null
           match_elo: number | null
           match_id: number
-          match_status: number | null
+          match_status: string | null
+          match_type: string | null
           mode: string | null
           red_team_id: number | null
           winner_team_id: number | null
         }
         Insert: {
           blue_team_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
           match_elo?: number | null
           match_id?: number
-          match_status?: number | null
+          match_status?: string | null
+          match_type?: string | null
           mode?: string | null
           red_team_id?: number | null
           winner_team_id?: number | null
         }
         Update: {
           blue_team_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
           match_elo?: number | null
           match_id?: number
-          match_status?: number | null
+          match_status?: string | null
+          match_type?: string | null
           mode?: string | null
           red_team_id?: number | null
           winner_team_id?: number | null
-        }
-        Relationships: []
-      }
-      matches_duplicate: {
-        Row: {
-          blue_team_id: number | null
-          match_elo: number | null
-          match_id: number
-          match_status: number | null
-          red_team_id: number | null
-          winner_team_id: number | null
-        }
-        Insert: {
-          blue_team_id?: number | null
-          match_elo?: number | null
-          match_id?: number
-          match_status?: number | null
-          red_team_id?: number | null
-          winner_team_id?: number | null
-        }
-        Update: {
-          blue_team_id?: number | null
-          match_elo?: number | null
-          match_id?: number
-          match_status?: number | null
-          red_team_id?: number | null
-          winner_team_id?: number | null
-        }
-        Relationships: []
-      }
-      matches2: {
-        Row: {
-          blue_team_id: number | null
-          created_at: string | null
-          expires_at: string | null
-          match_id: number
-          match_status: string | null
-          match_type: string
-          red_team_id: number | null
-        }
-        Insert: {
-          blue_team_id?: number | null
-          created_at?: string | null
-          expires_at?: string | null
-          match_id?: never
-          match_status?: string | null
-          match_type: string
-          red_team_id?: number | null
-        }
-        Update: {
-          blue_team_id?: number | null
-          created_at?: string | null
-          expires_at?: string | null
-          match_id?: never
-          match_status?: string | null
-          match_type?: string
-          red_team_id?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "matches2_blue_team_id_fkey"
+            foreignKeyName: "matches_blue_team_id_fkey"
             columns: ["blue_team_id"]
             isOneToOne: false
-            referencedRelation: "game_teams2"
+            referencedRelation: "game_teams"
             referencedColumns: ["game_team_id"]
           },
           {
-            foreignKeyName: "matches2_red_team_id_fkey"
+            foreignKeyName: "matches_red_team_id_fkey"
             columns: ["red_team_id"]
             isOneToOne: false
-            referencedRelation: "game_teams2"
+            referencedRelation: "game_teams"
             referencedColumns: ["game_team_id"]
           },
         ]
@@ -332,6 +171,64 @@ export type Database = {
           time_zone?: string | null
         }
         Relationships: []
+      }
+      tokens: {
+        Row: {
+          bot_id: number | null
+          created_at: string | null
+          expires_at: string | null
+          game_team_id: number | null
+          is_active: boolean | null
+          match_id: number | null
+          token: string | null
+          token_id: string
+          user_id: string | null
+        }
+        Insert: {
+          bot_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          game_team_id?: number | null
+          is_active?: boolean | null
+          match_id?: number | null
+          token?: string | null
+          token_id?: string
+          user_id?: string | null
+        }
+        Update: {
+          bot_id?: number | null
+          created_at?: string | null
+          expires_at?: string | null
+          game_team_id?: number | null
+          is_active?: boolean | null
+          match_id?: number | null
+          token?: string | null
+          token_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tokens_game_team_id_fkey"
+            columns: ["game_team_id"]
+            isOneToOne: false
+            referencedRelation: "game_teams"
+            referencedColumns: ["game_team_id"]
+          },
+          {
+            foreignKeyName: "tokens_match_id_fkey"
+            columns: ["match_id"]
+            isOneToOne: false
+            referencedRelation: "matches"
+            referencedColumns: ["match_id"]
+          },
+          {
+            foreignKeyName: "tokens_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["user_id"]
+          },
+        ]
       }
       users: {
         Row: {
