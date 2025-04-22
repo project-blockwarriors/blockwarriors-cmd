@@ -7,6 +7,7 @@ import {
   Trophy,
   Users,
   User,
+  ChartColumnIncreasing,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -136,6 +137,12 @@ export async function DashboardSidebar({ className = '' }: SidebarProps) {
               <div className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Practice
+              </div>
+            </NavButton>
+            <NavButton href="/dashboard/stats">
+              <div className="flex items-center gap-2">
+                <ChartColumnIncreasing className="h-4 w-4" />
+                Stats
               </div>
             </NavButton>
 
