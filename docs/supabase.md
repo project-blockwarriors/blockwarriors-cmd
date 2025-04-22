@@ -42,7 +42,7 @@ Before starting your project, update your `.env` file with the following credent
 
 After you have launched your Supabase instance, update your `.env` file with your project details:
 
-- `NEXT_PUBLIC_SUPABASE_URL`: The URL of your Supabase project.
+- `NEXT_PUBLIC_SUPABASE_DATABASE_URL`: The URL of your Supabase project.
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`: The anonymous key for your Supabase project.
 
 ## Database Management Guide
