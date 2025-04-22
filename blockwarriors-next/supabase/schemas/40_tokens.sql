@@ -47,6 +47,27 @@ EXECUTE FUNCTION public.delete_expired_tokens();
 -- Enable RLS
 ALTER TABLE "public"."tokens" ENABLE ROW LEVEL SECURITY;
 
+-- RLS Policies
+-- Allow authenticated users to view all tokens
+CREATE POLICY "Users can view all tokens" ON "public"."tokens"
+FOR SELECT
+USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+-- Allow authenticated users to insert new tokens
+CREATE POLICY "Users can create new tokens" ON "public"."tokens"
+FOR INSERT
+WITH CHECK (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+-- Allow authenticated users to update tokens they created
+CREATE POLICY "Users can update tokens" ON "public"."tokens"
+FOR UPDATE
+USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
+-- Allow authenticated users to delete tokens they created
+CREATE POLICY "Users can delete tokens" ON "public"."tokens"
+FOR DELETE
+USING (auth.role() = 'authenticated' OR auth.role() = 'service_role');
+
 -- Grant access to anon and authenticated roles
 GRANT ALL ON TABLE "public"."tokens" TO "anon";
 GRANT ALL ON TABLE "public"."tokens" TO "authenticated";
