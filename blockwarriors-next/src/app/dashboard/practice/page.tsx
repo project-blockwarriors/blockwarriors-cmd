@@ -55,28 +55,14 @@ export default function PracticePage() {
     if (!selectedMode) return;
 
     setIsLoading(true);
-    // Simulate API call
+    
     try {
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-      // const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
+      // Simulate token generation - this will eventually be handled by the Express server
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const mockToken = 'PLACEHOLDER_' + Math.random().toString(36).substring(2, 15);
+      setToken('GAME_' + mockToken);
       
-
-      const response = await fetch('/api/start-match', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ selectedMode }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to start match');
-      }
-      
-      const data = await response.json();
-      setToken('GAME_' + data['token']);
-        console.log('Match started:', data);
-
+      console.log('Mock match started with mode:', selectedMode);
     } catch (error) {
       console.error('Failed to start match:', error);
     } finally {
