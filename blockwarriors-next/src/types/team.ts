@@ -10,6 +10,7 @@ export interface Team {
 export interface TeamMember {
   first_name: string;
   last_name: string;
+  user_id: string;
 }
 
 export interface TeamWithUsers extends Team {

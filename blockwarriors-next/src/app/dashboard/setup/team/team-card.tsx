@@ -123,14 +123,11 @@ export function TeamCard({
                   {member.first_name} {member.last_name}
                 </span>
               </div>
-              {member.first_name ===
-                members.find((m) => m.first_name)?.first_name &&
-                member.last_name ===
-                  members.find((m) => m.last_name)?.last_name && (
-                  <Badge variant="outline" className="text-xs">
-                    Leader
-                  </Badge>
-                )}
+              {member.user_id === leader_id && (
+                <Badge variant="outline" className="text-xs">
+                  Leader
+                </Badge>
+              )}
             </div>
           ))}
         </div>
