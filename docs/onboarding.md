@@ -61,38 +61,47 @@ npm install
 yarn
 ```
 
-#### Set Up Environment Variables
+#### Set Up Google OAuth Environment Variables
 
-Create a `.env.local` file in the `blockwarriors-next` directory with the following variables:
+Before setting up Supabase, you need to configure Google OAuth credentials. Create a `.env.local` file in the `blockwarriors-next` directory with the following variables:
 
 ```
-# Google OAuth (Add these BEFORE launching Supabase)
+# Google OAuth (Required BEFORE launching Supabase)
 SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=your_google_client_id
 SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=your_google_client_secret
-
-# Supabase (Add these AFTER launching Supabase)
-NEXT_PUBLIC_SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_SUPABASE_ANON_KEY
-```
-
-Create a `.env` file in the `blockwarriors-socket` directory with the following variables:
-
-```
-# Supabase credentials (obtain these from running 'npx supabase status')
-SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=your_SUPABASE_SERVICE_ROLE_KEY
 ```
 
 ### 3. Set Up Supabase
 
 Follow these steps to set up your local Supabase instance:
 
-1. Install the Supabase CLI
-2. Log in to Supabase: `npx supabase login`
-3. Start Supabase: `npx supabase start`
-4. Update your `.env` file with the Supabase URL and anonymous key
+1. Navigate to `blockwarriors-next` directory
+2. Install the Supabase CLI if it does not exist
+3. Log in to Supabase: `npx supabase login`
+4. Start Supabase: `npx supabase start`
+5. Update your `.env` file with the Supabase URL and anonymous key
 
 For detailed instructions on working with Supabase, see [Supabase Guide](./supabase.md).
+
+#### Update Environment Variables with Supabase Credentials
+
+After starting Supabase, you need to add the Supabase credentials to your environment files.
+
+**For the Next.js application**, add these variables to your `.env.local` file in the `blockwarriors-next` directory:
+
+```
+# Supabase (Add these AFTER launching Supabase)
+NEXT_PUBLIC_SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your_SUPABASE_ANON_KEY
+```
+
+**For the Socket.io server**, create a `.env` file in the `blockwarriors-socket` directory with the following variables:
+
+```
+# Supabase credentials (obtain these from running 'npx supabase status')
+SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
+SUPABASE_SERVICE_ROLE_KEY=your_SUPABASE_SERVICE_ROLE_KEY
+```
 
 ### 4. Set Up Socket.io Server
 
@@ -125,9 +134,9 @@ yarn dev
 
 ```bash
 cd blockwarriors-socket
-npm run dev
+npm run start
 # or
-yarn dev
+yarn start
 ```
 
 ## Development Workflow
