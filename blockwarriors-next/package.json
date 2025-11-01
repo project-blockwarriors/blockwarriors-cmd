@@ -60,6 +60,7 @@
     "react-resizable-panels": "^2.1.7",
     "react-select": "^5.8.3",
     "recharts": "^2.13.3",
+    "socket.io-client": "^4.8.1",
     "sonner": "^1.7.1",
     "tailwind-merge": "^2.0.0",
     "tailwindcss-animate": "^1.0.7",
