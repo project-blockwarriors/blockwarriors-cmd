@@ -2,17 +2,22 @@
   "name": "blockwarriors-cmd",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "BlockWarriors Command Block monorepo",
   "workspaces": [
     "blockwarriors-next",
     "blockwarriors-socket"
   ],
   "scripts": {
+    "dev": "concurrently -n \"convex,socket,next\" -c \"cyan,magenta,green\" \"npm run convex:dev\" \"npm run dev:socket\" \"npm run dev:next\"",
+    "dev:socket": "cd blockwarriors-socket && npm start",
+    "dev:next": "cd blockwarriors-next && npm run dev",
     "convex:dev": "convex dev",
     "convex:deploy": "convex deploy",
     "convex:codegen": "convex codegen"
   },
   "devDependencies": {
-    "convex": "^1.28.0"
+    "convex": "^1.28.0",
+    "concurrently": "^9.1.0"
   }
 }
