@@ -42,6 +42,7 @@
     "@supabase/supabase-js": "^2.47.13",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.0.0",
+    "convex": "^1.20.0",
     "cmdk": "^1.0.4",
     "date-fns": "^2.30.0",
     "dotenv": "^16.4.7",
