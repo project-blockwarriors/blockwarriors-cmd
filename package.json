@@ -9,7 +9,7 @@
     "blockwarriors-socket"
   ],
   "scripts": {
-    "dev": "concurrently -n \"convex,socket,next\" -c \"cyan,magenta,green\" \"npm run convex:dev\" \"npm run dev:socket\" \"npm run dev:next\"",
+    "dev": "concurrently -n \"convex,socket,next,dashboard\" -c \"cyan,magenta,green,yellow\" \"npm run convex:dev\" \"npm run dev:socket\" \"npm run dev:next\" \"convex dashboard\"",
     "dev:socket": "cd blockwarriors-socket && npm start",
     "dev:next": "cd blockwarriors-next && npm run dev",
     "convex:dev": "convex dev",
