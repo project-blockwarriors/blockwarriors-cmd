@@ -63,10 +63,12 @@ export default function PracticePage() {
     if (!selectedMode) return;
 
     setIsLoading(true);
-    // Simulate API call
+    
     try {
-      // await new Promise((resolve) => setTimeout(resolve, 1000));
-      // const mockToken = 'GAME_' + Math.random().toString(36).substring(2, 15);
+      // Simulate token generation - this will eventually be handled by the Express server
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const mockToken = 'PLACEHOLDER_' + Math.random().toString(36).substring(2, 15);
+      setToken('GAME_' + mockToken);
       
       // get jwttoken
       const session = await supabase.auth.getSession();
