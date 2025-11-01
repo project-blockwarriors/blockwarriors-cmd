@@ -1,0 +1,18 @@
+{
+  "name": "blockwarriors-cmd",
+  "version": "1.0.0",
+  "private": true,
+  "description": "BlockWarriors Command Block monorepo",
+  "workspaces": [
+    "blockwarriors-next",
+    "blockwarriors-socket"
+  ],
+  "scripts": {
+    "convex:dev": "convex dev",
+    "convex:deploy": "convex deploy",
+    "convex:codegen": "convex codegen"
+  },
+  "devDependencies": {
+    "convex": "^1.28.0"
+  }
+}

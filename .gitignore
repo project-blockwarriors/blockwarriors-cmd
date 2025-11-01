@@ -2,3 +2,10 @@
 .env
 .DS_Store
 .gitignore
+
+# Convex
+.convex/
+convex/_generated/
+*.log
+
+node_modules/

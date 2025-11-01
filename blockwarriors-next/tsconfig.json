@@ -25,6 +25,9 @@
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "../convex/_generated": [
+        "../convex/_generated"
       ]
     },
     "target": "ES2017"
@@ -33,7 +36,8 @@
     "next-env.d.ts",
     ".next/types/**/*.ts",
     "**/*.ts",
-    "**/*.tsx"
+    "**/*.tsx",
+    "../convex/_generated/**/*.ts"
   ],
   "exclude": [
     "node_modules"
