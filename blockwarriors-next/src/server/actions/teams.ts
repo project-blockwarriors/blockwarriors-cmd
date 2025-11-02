@@ -8,6 +8,10 @@ import {
   disbandTeam as disbandTeamDb,
   getAllTeamsScores,
 } from '../db/teams';
+import { Id } from '../../../convex/_generated/dataModel';
+import { fetchMutation } from 'convex/nextjs';
+import { api } from '@/lib/convex';
+import { getToken } from '@/lib/auth-server';
 
 export async function getTeams(): Promise<TeamWithUsers[]> {
   return await getAllTeamsWithMembersDb();
@@ -22,22 +26,50 @@ export async function createTeam(
 }
 
 export async function joinTeam(
-  teamId: number,
+  teamId: Id<'teams'>,
   userId: string
 ): Promise<{ error: string | null }> {
-  const { error } = await updateUserTeam(userId, teamId);
-  return { error: error?.message || null };
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
+
+    await fetchMutation(
+      api.teams.joinTeam,
+      { teamId, userId },
+      { token }
+    );
+
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function leaveTeam(
   userId: string
 ): Promise<{ error: string | null }> {
-  const { error } = await updateUserTeam(userId, null);
-  return { error: error?.message || null };
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
+
+    await fetchMutation(
+      api.teams.leaveTeam,
+      { userId },
+      { token }
+    );
+
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function disbandTeam(
-  teamId: number,
+  teamId: Id<'teams'>,
   leaderId: string
 ): Promise<{ error: string | null }> {
   return await disbandTeamDb(teamId, leaderId);

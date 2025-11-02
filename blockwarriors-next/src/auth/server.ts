@@ -1,41 +1,35 @@
-import { createServerClient } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import type { User } from '@supabase/supabase-js';
+import { fetchQuery } from 'convex/nextjs';
+import { api } from '@/lib/convex';
+import { getToken } from '@/lib/auth-server';
 
-export async function createSupabaseClient() {
-  const cookieStore = await cookies();
+// Get the current authenticated user using BetterAuth via Convex
+export async function getUser() {
+  try {
+    const token = await getToken();
+    if (!token) {
+      return null;
+    }
+    const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_DATABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    // BetterAuth user structure: getAuthUser returns user with userId or _id field
+    // Ensure we always have an id field
+    if (user) {
+      const userId = user.userId || user._id;
+      if (!userId) {
+        console.error('User object missing id field:', user);
+        return null;
+      }
+      return {
+        ...user,
+        id: userId,
+      };
+    }
 
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase environment variables');
+    return null;
+  } catch (error) {
+    console.error('Failed to get user:', error);
+    return null;
   }
-
-  return createServerClient(supabaseUrl, supabaseKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll();
-      },
-      setAll(cookiesToSet) {
-        try {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options)
-          );
-        } catch {
-          // The `setAll` method was called from a Server Component.
-          // This can be ignored if you have middleware refreshing
-          // user sessions.
-        }
-      },
-    },
-  });
-}
-
-export async function getUser(): Promise<User | null> {
-  const { auth } = await createSupabaseClient();
-  const user = (await auth.getUser()).data.user;
-  return user || null;
 }
 
 export async function protectRoute() {
@@ -43,4 +37,5 @@ export async function protectRoute() {
   if (!user) {
     throw new Error('Unauthorized');
   }
+  return user;
 }

@@ -1,20 +1,36 @@
 // match.js
 import express from 'express';
-import supabase from '../supabaseClient.js';
+import { mutateWithAuth, queryWithAuth, api } from '../convexClient.js';
 import { getIO, getSocketState } from '../socket.js';
 import { v4 as uuidv4 } from 'uuid';
 
 const router = express.Router();
 
 
-// Add from Next.js OLD api route: generate_tokens
+/**
+ * @deprecated This endpoint is deprecated. Use POST /api/match/generate-tokens in Next.js instead.
+ * This endpoint will be removed in a future version.
+ * 
+ * Add from Next.js OLD api route: generate_tokens
+ */
 router.post("/generate_tokens", async (req, res) => {
+  console.warn("DEPRECATED: /api/match/generate_tokens endpoint called. Please use Next.js API route instead.");
   console.log("REQUEST RECEIVED");
   const selectedMode = req.body.selectedMode;
-  const user = await supabase.auth.getUser(req.headers.authorization);
+  const authToken = req.headers.authorization;
 
   if (!selectedMode) {
-    return new Response(JSON.stringify({ error: 'Missing selected mode' }), { status: 400 });
+    return res.status(400).json({ error: 'Missing selected mode' });
+  }
+
+  if (!authToken) {
+    return res.status(401).json({ error: 'Missing authorization token' });
+  }
+
+  // Validate auth token and get user
+  const user = await queryWithAuth(api.auth.validateAuthToken, {}, authToken);
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid authorization token' });
   }
 
   // JWT token, (refresh token), -> 
@@ -30,241 +46,371 @@ router.post("/generate_tokens", async (req, res) => {
   
   // Create
 
-  // Create game_team 1 and game_team 2 
-  const { data: gameTeamData, error: gameTeamError } = await supabase
-    .from('game_teams2')
-    .insert([{ bots: [1] }, { bots: [2] }]).select('game_team_id');
-  
-  if (gameTeamError) {
-    console.log(gameTeamError);
-    return new Response(JSON.stringify({ error: 'Failed to create game teams' }), { status: 500 });
+  try {
+    // Create game teams (red and blue)
+    const gameTeams = await mutateWithAuth(
+      api.gameTeams.createGameTeamsForMatch,
+      {
+        redTeamBots: [1],
+        blueTeamBots: [2],
+      },
+      authToken
+    );
+
+    const redTeamId = gameTeams.redTeamId;
+    const blueTeamId = gameTeams.blueTeamId;
+
+    // Create match
+    const matchId = await mutateWithAuth(
+      api.matches.createMatch,
+      {
+        matchType: selectedMode,
+        matchStatus: 'waiting',
+        blueTeamId: blueTeamId,
+        redTeamId: redTeamId,
+        mode: selectedMode,
+      },
+      authToken
+    );
+
+
+
+    // Generate tokens for the match
+    let tokens = [];
+    const selectedModeToTokenMap = {
+      'pvp': 2,
+      'bedwars': 8,
+      'ctf': 10,
+    };
+
+    const tokensPerTeam = selectedModeToTokenMap[selectedMode] / 2;
+
+    // Generate tokens for red team
+    for (let i = 0; i < tokensPerTeam; i++) {
+      let token;
+      let tokenCreated = false;
+      do {
+        token = uuidv4();
+        try {
+          await mutateWithAuth(
+            api.tokens.createToken,
+            {
+              token: token,
+              userId: user.id,
+              matchId: matchId,
+              gameTeamId: redTeamId,
+              botId: null,
+            },
+            authToken
+          );
+          tokens.push(token);
+          tokenCreated = true;
+        } catch (error) {
+          // Token already exists, try again
+          if (error.message && error.message.includes('already exists')) {
+            tokenCreated = false;
+          } else {
+            throw error;
+          }
+        }
+      } while (!tokenCreated);
+    }
+
+    // Generate tokens for blue team
+    for (let i = 0; i < tokensPerTeam; i++) {
+      let token;
+      let tokenCreated = false;
+      do {
+        token = uuidv4();
+        try {
+          await mutateWithAuth(
+            api.tokens.createToken,
+            {
+              token: token,
+              userId: user.id,
+              matchId: matchId,
+              gameTeamId: blueTeamId,
+              botId: null,
+            },
+            authToken
+          );
+          tokens.push(token);
+          tokenCreated = true;
+        } catch (error) {
+          // Token already exists, try again
+          if (error.message && error.message.includes('already exists')) {
+            tokenCreated = false;
+          } else {
+            throw error;
+          }
+        }
+      } while (!tokenCreated);
+    }
+
+    console.log(`Match created with ID: ${matchId}`);
+    console.log(`Tokens created: ${tokens.join(', ')}`);
+    console.log(`Red Team ID: ${redTeamId}`);
+    console.log(`Blue Team ID: ${blueTeamId}`);
+    // Convert Convex ID to string for JSON response
+    return res.status(200).json({ tokens, matchId: matchId.toString() });
+  } catch (error) {
+    console.error('Error generating tokens:', error);
+    return res.status(500).json({ error: error.message || 'Failed to generate tokens' });
   }
-  
-  console.log(gameTeamData)
-
-  // New: Insert into matches2 table:
-    const { data: matchData, error: matchError } = await supabase
-    .from('matches2')
-      .insert([{
-        match_type: selectedMode,
-        match_status: 'waiting',
-        red_team_id: gameTeamData[0].game_team_id,
-        blue_team_id: gameTeamData[1].game_team_id,
-     }])
-    .select('match_id')
-    .single();
-
-  if (matchError) {
-    console.log(matchError);
-    return new Response(JSON.stringify({ error: 'Failed to create match' }), { status: 500 });
-  }
-
-  const matchId = matchData.match_id;
-
-
-
-  let token;
-  let tokenError;
-
-
-  // TODO: Generate a dynamic number of tokens and add them.
-
-  let tokens = [];
-  
-  let selectedModeToTokenMap = {
-    'pvp': 2,
-    'bedwars': 8,
-    'ctf': 10,
-  }
-
-  // for (let i = 0; i < selectedModeToTokenMap[selectedMode]; i++) {
-  //   // Ensure unique token
-  //   do {
-  //     token = uuidv4();
-  //     const { error } = await supabase
-  //       .from('active_tokens')
-  //       .insert([{ token, match_id: matchId }]);
-  //     tokenError = error;
-  //   } while (tokenError);
-  //   tokens.push(token);
-  // }
-
-  // Insert the required amount of tokens into each team
-  for (let i = 0; i < selectedModeToTokenMap[selectedMode]/2; i++) {
-    // Ensure unique token
-    do {
-    token = uuidv4();
-      const { error } = await supabase
-        .from('active_tokens2')
-        .insert([{
-          token: token,
-          user_id: user.id,
-          match_id: matchId,
-          game_team_id: gameTeamData[0].game_team_id,
-
-        }]);
-    tokenError = error;
-    console.log(error);
-    } while (tokenError);
-    tokens.push(token);
-    console.log("pushing")
-  }
-
-    // Insert the required amount of tokens into each team
-  for (let i = 0; i < selectedModeToTokenMap[selectedMode]/2; i++) {
-    // Ensure unique token
-    do {
-    token = uuidv4();
-      const { error } = await supabase
-        .from('active_tokens2')
-        .insert([{
-          token: token,
-          user_id: user.id,
-          match_id: matchId,
-          game_team_id: gameTeamData[1].game_team_id,
-
-        }]);
-      tokenError = error;
-    } while (tokenError);
-    tokens.push(token);
-    console.log("pushing")
-  }
-
-
-  console.log(`Match created with ID: ${matchId}`);
-  console.log(`Tokens created: ${tokens.join(', ')}`);
-  // Log teams
-  console.log(`Team 1 ID: ${gameTeamData[0].game_team_id}`);
-  console.log(`Team 2 ID: ${gameTeamData[1].game_team_id}`);
-  return res.status(200).send(JSON.stringify({ tokens, matchId }));
 });
 
 
 
 // Add from Next.js OLD api route: start_match
 router.post("/start_match", async (req, res) => { 
-  const tokens = req.body.tokens;
-  const matchId = req.body.matchId;
-  console.log("REQUEST RECEIVED");
-  console.log("Tokens: ", tokens);
-  console.log("Match ID: ", matchId);
-  console.log(tokens);
+  try {
+    const tokens = req.body.tokens;
+    const matchId = req.body.matchId;
 
-  // I'm given a list of tokens, I need to assoiciate each token
-  // with a currently logged in user.
-  // const user = await supabase.auth.getUser();
-  
+    // Validate input
+    if (!tokens || !Array.isArray(tokens) || tokens.length === 0) {
+      return res.status(400).json({ error: 'Invalid or missing tokens array' });
+    }
 
-  const state = getSocketState();
-  const io = getIO();
-  const playerUUIDs = state.gameSessions.get(matchId)
-  console.log("BELOW IS PLAYERUUIDS")
-  console.log(playerUUIDs);
+    if (!matchId) {
+      return res.status(400).json({ error: 'Missing matchId' });
+    }
 
-  //{
-//   players: Set(2) {
-//     '103576cf-f9f2-4f12-b5db-c471a3252dc6',
-//     '7865141f-780a-4367-8896-85592e999263'
-//   },
-//   playerData: Map(0) {}
-  // }
-  // playerUUIDS is above, extract the players
+    console.log("REQUEST RECEIVED");
+    console.log("Tokens: ", tokens);
+    console.log("Match ID: ", matchId);
 
-  const playerUUIDArray = Array.from(playerUUIDs.players);
-  console.log("ARRAY BELOW");
-  console.log(playerUUIDArray);
+    // Convert matchId string to Convex ID type
+    // matchId comes as a string from the request, but Convex expects Id<"matches">
+    let matchIdAsId;
+    try {
+      // Convex IDs are strings, so we can use them directly
+      matchIdAsId = matchId;
+    } catch (error) {
+      return res.status(400).json({ error: 'Invalid matchId format' });
+    }
 
-  
-  // Validate whether there are enough logged in players to start the match
-  if (playerUUIDs.length < 2) { 
-    return new Response(JSON.stringify({ error: 'Not enough players to start the match' }), { status: 400 });
+    // Validate match exists in Convex and get match info
+    let match;
+    try {
+      match = await queryWithAuth(
+        api.matches.getMatchById,
+        { matchId: matchIdAsId },
+        null // No auth needed for match lookup
+      );
+
+      if (!match) {
+        return res.status(404).json({ error: 'Match not found' });
+      }
+    } catch (error) {
+      console.error('Error fetching match:', error);
+      return res.status(500).json({ 
+        error: 'Failed to validate match',
+        details: error.message 
+      });
+    }
+
+    // Validate tokens belong to this match
+    try {
+      for (const tokenWithPrefix of tokens) {
+        // Strip "GAME_" prefix if present
+        const token = tokenWithPrefix.startsWith('GAME_') 
+          ? tokenWithPrefix.substring(5) 
+          : tokenWithPrefix;
+
+        const tokenValidation = await queryWithAuth(
+          api.tokens.validateToken,
+          { token },
+          null
+        );
+
+        if (!tokenValidation || !tokenValidation.valid) {
+          return res.status(400).json({ 
+            error: `Invalid token: ${tokenWithPrefix}` 
+          });
+        }
+
+        // Verify token belongs to this match (compare as strings)
+        const tokenMatchId = tokenValidation.matchId.toString();
+        const expectedMatchId = matchId.toString();
+        if (tokenMatchId !== expectedMatchId) {
+          return res.status(400).json({ 
+            error: `Token ${tokenWithPrefix} does not belong to match ${matchId}` 
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error validating tokens:', error);
+      return res.status(500).json({ 
+        error: 'Failed to validate tokens',
+        details: error.message 
+      });
+    }
+
+    const state = getSocketState();
+    const io = getIO();
+    const gameSession = state.gameSessions.get(matchId);
+
+    console.log("Game session:", gameSession);
+
+    // Check if game session exists and has players
+    if (!gameSession) {
+      return res.status(400).json({ 
+        error: 'No players have joined this match yet. Players must connect via socket first.' 
+      });
+    }
+
+    if (!gameSession.players || gameSession.players.size < 2) {
+      return res.status(400).json({ 
+        error: `Not enough players to start the match. Current players: ${gameSession.players?.size || 0}, required: 2` 
+      });
+    }
+
+    const playerUUIDArray = Array.from(gameSession.players);
+    console.log("Player UUIDs:", playerUUIDArray);
+
+    // Determine players per team based on match type
+    const playersPerTeam = Math.ceil(playerUUIDArray.length / 2);
+    const blueTeam = playerUUIDArray.slice(0, playersPerTeam);
+    const redTeam = playerUUIDArray.slice(playersPerTeam);
+
+    // Emit to the server socket
+    console.log("Emitting to server socket");
+    io.emit("startMatch", {
+      matchType: match.match_type || "pvp",
+      playersPerTeam: playersPerTeam,
+      blue_team: blueTeam,
+      red_team: redTeam,
+    });
+
+    // Update match status to "started" in Convex
+    try {
+      await mutateWithAuth(
+        api.matches.updateMatchStatus,
+        {
+          matchId: matchIdAsId,
+          status: 'started',
+        },
+        null // Match status updates might need auth, but for now allow unauthenticated
+      );
+    } catch (error) {
+      console.error('Failed to update match status:', error);
+      // Don't fail the request if status update fails
+    }
+
+    console.log("Match started (emit complete)");
+    console.log({
+      matchType: match.match_type || "pvp",
+      playersPerTeam: playersPerTeam,
+      blue_team: blueTeam,
+      red_team: redTeam,
+    });
+
+    return res.status(200).json({ 
+      success: true,
+      matchType: match.match_type,
+      blueTeam: blueTeam,
+      redTeam: redTeam,
+    });
+  } catch (error) {
+    console.error('Error starting match:', error);
+    return res.status(500).json({ 
+      error: 'Failed to start match',
+      details: error.message 
+    });
   }
-
-  // Create an object from the set of strings in the form [{playerId: "uuid1"}, {playerId: "uuid2"}]
-  // const players = Array.from(playerUUIDs).map((playerId) => ({ playerId }));
-
-  // console.log(players)
-  // // Cut this in half
-  // const half = Math.ceil(players.length / 2);
-  // const team1 = players[0]
-  // const team2 = players[1]
-  
-
-  // emit to the server socket
-  console.log("emitting to server socket")
-  io.emit("startMatch", {
-    matchType: "pvp",
-    playersPerTeam: 1,
-    blue_team: [playerUUIDArray[0]], // list of {playerId: "uuid"} objects
-    red_team: [playerUUIDArray[1]], // list of {playerId: "uuid"} objects
-  });
-  console.log("Match started (emit complete)");
-  console.log ({
-    matchType: "pvp",
-    playersPerTeam: 1,
-    blue_team: [playerUUIDs[0]], // list of {playerId: "uuid"} objects
-    red_team: [playerUUIDs[1]], // list of {playerId: "uuid"} objects
-  });
-
-
 });
 
 
-// DOESNT NO ANYTHING Setup the new match
+// Setup the new match (legacy endpoint, consider using generate_tokens instead)
 router.post("/setup", async (req, res) => {
     const { selectedMode } = req.body;
+    const authToken = req.headers.authorization;
 
     if (!selectedMode) {
         return res.status(400).json({error: 'Missing selected mode'});
     }
 
+    if (!authToken) {
+        return res.status(401).json({ error: 'Missing authorization token' });
+    }
+
     try {
-        // Insert into matches table
-        const { data: matchData, error: matchError } = await supabase
-          .from('matches')
-          .insert([{ mode: selectedMode }])
-          .select('match_id')
-          .single();
-    
-        if (matchError) {
-          console.log(matchError);
-          return res.status(500).json({ error: 'Failed to create match' });
+        // Validate auth token and get user
+        const user = await queryWithAuth(api.auth.validateAuthToken, {}, authToken);
+        if (!user) {
+            return res.status(401).json({ error: 'Invalid authorization token' });
         }
-    
-        const matchId = matchData.match_id;
-        let token;
-        let tokenError;
-        let tokens = [];
-    
+
+        // Create game teams
+        const gameTeams = await mutateWithAuth(
+            api.gameTeams.createGameTeamsForMatch,
+            {
+                redTeamBots: [],
+                blueTeamBots: [],
+            },
+            authToken
+        );
+
+        // Create match
+        const matchId = await mutateWithAuth(
+            api.matches.createMatch,
+            {
+                matchType: selectedMode,
+                matchStatus: 'waiting',
+                blueTeamId: gameTeams.blueTeamId,
+                redTeamId: gameTeams.redTeamId,
+                mode: selectedMode,
+            },
+            authToken
+        );
+
+        // Generate tokens
         const selectedModeToTokenMap = {
-          'pvp': 2,
-          'bedwars': 8,
-          'ctf': 10,
+            'pvp': 2,
+            'bedwars': 8,
+            'ctf': 10,
         };
-    
-        // Generate tokens based on game mode
+
+        const tokens = [];
         for (let i = 0; i < selectedModeToTokenMap[selectedMode]; i++) {
-          // Ensure unique token
-          do {
-            token = uuidv4();
-            const { error } = await supabase
-              .from('active_tokens')
-              .insert([{ token, match_id: matchId }]);
-            tokenError = error;
-          } while (tokenError);
-          tokens.push(token);
+            let token;
+            let tokenCreated = false;
+            do {
+                token = uuidv4();
+                try {
+                    await mutateWithAuth(
+                        api.tokens.createToken,
+                        {
+                            token: token,
+                            userId: user.id,
+                            matchId: matchId,
+                            gameTeamId: gameTeams.redTeamId, // Default to red team for legacy endpoint
+                            botId: null,
+                        },
+                        authToken
+                    );
+                    tokens.push(token);
+                    tokenCreated = true;
+                } catch (error) {
+                    if (error.message && error.message.includes('already exists')) {
+                        tokenCreated = false;
+                    } else {
+                        throw error;
+                    }
+                }
+            } while (!tokenCreated);
         }
-    
+
         console.log(`Match created with ID: ${matchId}`);
         console.log(`Tokens created: ${tokens.join(', ')}`);
-        res.status(200).json({ tokens, matchId });
-    
-      } catch (error) {
-        console.error('Error creating match:', error);
-        res.status(500).json({ error: 'Internal server error' });
-      }
+        // Convert Convex ID to string for JSON response
+        res.status(200).json({ tokens, matchId: matchId.toString() });
 
-      
+    } catch (error) {
+        console.error('Error creating match:', error);
+        res.status(500).json({ error: error.message || 'Internal server error' });
+    }
 });
 
 

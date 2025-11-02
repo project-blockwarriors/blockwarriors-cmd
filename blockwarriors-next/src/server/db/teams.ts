@@ -1,18 +1,28 @@
-import { createSupabaseClient } from '@/auth/server';
+import { fetchQuery, fetchMutation } from 'convex/nextjs';
+import { api } from '@/lib/convex';
+import { getToken } from '@/lib/auth-server';
 import { TeamWithUsers, Team } from '@/types/team';
+import { Id } from '../../../convex/_generated/dataModel';
 
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
-  const supabase = await createSupabaseClient();
-  const { data, error } = (await supabase.rpc(
-    'get_all_teams_with_members'
-  )) as { data: TeamWithUsers[]; error: any };
+  try {
+    const token = await getToken();
+    if (!token) {
+      console.error('No auth token available');
+      return [];
+    }
 
-  if (error) {
+    const teams = await fetchQuery(
+      api.teams.getAllTeamsWithMembers,
+      {},
+      { token }
+    );
+
+    return teams;
+  } catch (error) {
     console.error('Failed to fetch teams:', error);
     return [];
   }
-
-  return data;
 }
 
 export async function createTeam(
@@ -20,134 +30,124 @@ export async function createTeam(
   timeZone: string,
   leaderId: string
 ): Promise<{ data: Team | null; error: string | null }> {
-  const supabase = await createSupabaseClient();
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { data: null, error: 'Not authenticated' };
+    }
 
-  // First check if user is already in a team
-  const { data: user, error: userError } = await supabase
-    .from('users')
-    .select('team_id')
-    .eq('user_id', leaderId)
-    .single();
-
-  if (userError) {
-    return {
-      data: null,
-      error: `Failed to check user team status: ${userError.message}`,
-    };
-  }
-
-  if (user.team_id) {
-    return { data: null, error: 'You are already a member of a team' };
-  }
-
-  // Create the team
-  const { data: team, error: createError } = await supabase // TRY CATCH FAIL
-    .from('teams')
-    .insert([
+    const team = await fetchMutation(
+      api.teams.createTeam,
       {
-        team_name: teamName,
-        time_zone: timeZone,
-        leader_id: leaderId,
+        teamName,
+        timeZone,
+        leaderId,
       },
-    ])
-    .select()
-    .single();
+      { token }
+    );
 
-  if (createError) {
+    return { data: team, error: null };
+  } catch (error) {
     return {
       data: null,
-      error: `Failed to create team: ${createError.message}`,
+      error: (error as Error).message,
     };
   }
-
-  // Update the user's team_id
-  const { error: updateError } = await supabase
-    .from('users')
-    .update({ team_id: team.id })
-    .eq('user_id', leaderId);
-
-  if (updateError) {
-    // If updating user fails, clean up by deleting the created team
-    await supabase.from('teams').delete().eq('id', team.id);
-    return {
-      data: null,
-      error: `Failed to join created team: ${updateError.message}`,
-    };
-  }
-
-  return { data: team, error: null };
 }
 
-export async function updateUserTeam(userId: string, teamId: number | null) {
-  const supabase = await createSupabaseClient();
-  return await supabase
-    .from('users')
-    .update({ team_id: teamId })
-    .eq('user_id', userId);
+export async function updateUserTeam(
+  userId: string,
+  teamId: Id<'teams'> | null
+): Promise<{ error: string | null }> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
+
+    await fetchMutation(
+      api.teams.updateUserTeam,
+      {
+        userId,
+        teamId,
+      },
+      { token }
+    );
+
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
 }
 
 export async function disbandTeam(
-  teamId: number,
+  teamId: Id<'teams'>,
   leaderId: string
 ): Promise<{ error: string | null }> {
-  const supabase = await createSupabaseClient();
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
 
-  // First, verify that the user is the team leader
-  const { data: team, error: teamError } = await supabase
-    .from('teams')
-    .select('leader_id')
-    .eq('id', teamId)
-    .single();
+    await fetchMutation(
+      api.teams.disbandTeam,
+      {
+        teamId,
+        leaderId,
+      },
+      { token }
+    );
 
-  if (teamError) {
-    return { error: `Failed to verify team leadership: ${teamError.message}` };
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
   }
-
-  if (team.leader_id !== leaderId) {
-    return { error: 'Only the team leader can disband the team' };
-  }
-
-  // Disband the team via a transaction
-  const { error: deleteError } = await supabase.rpc('disband_team', {
-    team_id_param: teamId,
-    leader_id_param: leaderId,
-  });
-
-  if (deleteError) {
-    return { error: `Failed to disband team: ${deleteError.message}` };
-  }
-
-  return { error: null };
 }
 
 // Statistics data about teams
-export async function getTeamElo(teamId: number): Promise<{ data?: number; error?: string | null }> {
-  const supabase = await createSupabaseClient();
-  const { data: team, error: teamError } = await supabase
-    .from('teams')
-    .select('team_elo')
-    .eq('id', teamId)
-    .single();
+export async function getTeamElo(
+  teamId: Id<'teams'>
+): Promise<{ data?: number; error?: string | null }> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
 
-  if (teamError) {
-    console.error('Failed to fetch team elo:', teamError);
-    return { error: teamError.message };
+    const elo = await fetchQuery(
+      api.teams.getTeamElo,
+      { teamId },
+      { token }
+    );
+
+    if (elo === null) {
+      return { error: 'Team not found' };
+    }
+
+    return { data: elo, error: null };
+  } catch (error) {
+    console.error('Failed to fetch team elo:', error);
+    return { error: (error as Error).message };
   }
-
-  return { data: team.team_elo, error: null };
 }
 
 export async function getAllTeamsScores(): Promise<{ data?: Team[]; error?: string | null }> {
-  const supabase = await createSupabaseClient();
-  const { data: teams, error: teamsError } = await supabase
-    .from('teams')
-    .select('id, team_name, leader_id, team_elo, team_wins, team_losses')
-    .order('team_elo', { ascending: false });
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
 
-  if (teamsError) {
-    console.error('Failed to fetch teams scores:', teamsError);
-    return { error: teamsError.message };
+    const teams = await fetchQuery(
+      api.teams.getAllTeamsScores,
+      {},
+      { token }
+    );
+
+    return { data: teams, error: null };
+  } catch (error) {
+    console.error('Failed to fetch teams scores:', error);
+    return { error: (error as Error).message };
   }
-
-  return { data: teams, error: null };
 }

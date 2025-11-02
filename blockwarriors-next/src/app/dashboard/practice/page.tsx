@@ -9,9 +9,8 @@ import {
   UsersIcon,
   CommandLineIcon,
 } from '@heroicons/react/24/outline';
-import { supabase } from '@/auth/client';
-
-type GameMode = 'bedwars' | 'pvp' | 'ctf';
+import { authClient } from '@/lib/auth-client';
+import { GAME_MODES, type GameMode } from '@/lib/match-constants';
 
 interface ServerStatus {
   activeSessions: number;
@@ -32,120 +31,96 @@ export default function PracticePage() {
   const [tokens, setTokens] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const gameModes = [
-    {
-      id: 'bedwars',
-      name: 'Bed Wars',
-      description: 'Protect your bed and destroy others',
-      players: '4v4',
-      tokens: 8,
-    },
-    {
-      id: 'pvp',
-      name: 'Normal PvP',
-      description: 'Classic player versus player combat',
-      players: '1v1',
-      tokens: 2,
-    },
-    {
-      id: 'ctf',
-      name: 'Capture the Flag',
-      description: 'Strategic team-based gameplay',
-      players: '5v5',
-      tokens: 10,
-    },
-  ];
+  // Use centralized game mode configuration
+  const gameModes = Object.values(GAME_MODES).map((mode) => ({
+    id: mode.id,
+    name: mode.name,
+    description: mode.description,
+    players: mode.players,
+    tokens: mode.tokensPerMatch,
+  }));
 
   const serverAddress = 'play.blockwarriors.ai';
 
   const generateTokens = async () => {
-    console.log("generate tokens called");
     if (!selectedMode) return;
 
     setIsLoading(true);
-    
+
     try {
-      // Simulate token generation - this will eventually be handled by the Express server
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockToken = 'PLACEHOLDER_' + Math.random().toString(36).substring(2, 15);
-      setToken('GAME_' + mockToken);
-      
-      // get jwttoken
-      const session = await supabase.auth.getSession();
-      if (!session) {
-        console.error('No active session found');
+      const response = await fetch('/api/match/generate-tokens', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({ selectedMode }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage =
+          errorData.message || errorData.error || 'Failed to generate tokens';
+        console.error('Failed to generate tokens:', errorMessage);
+        alert(`Error: ${errorMessage}`);
         return;
       }
-      const { access_token } = session.data.session;
-      console.log('Access Token:', access_token);
 
-      const response = await fetch('http://localhost:3001/api/match/generate_tokens', {
-        method: 'POST',
-        // add authorization header
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `${access_token}`,
-      },
-      body: JSON.stringify({ selectedMode }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to start match');
-      }
+      const data = await response.json();
 
-      const prefixedTokens = [];      
-      const data = await response.json(); // a list of tokens
-      data['tokens'].map((token) => {
-        prefixedTokens.push('GAME_' + token);
-      });
+      // Tokens are returned without prefix - add "GAME_" prefix for display
+      // This matches the existing client-side expectation
+      const prefixedTokens = data.tokens.map(
+        (token: string) => `GAME_${token}`
+      );
 
-      setMatchId(data['matchId']);
-
-      if (response.ok) {
-        // response is ok, so display new start match button
-        setTokensGenerated(true);
-      }
-
+      setMatchId(data.matchId);
       setTokens(prefixedTokens);
+      setTokensGenerated(true);
     } catch (error) {
       setTokensGenerated(false);
-      console.error('Failed to start match:', error);
+      const errorMessage =
+        error instanceof Error ? error.message : 'Failed to generate tokens';
+      console.error('Failed to generate tokens:', errorMessage);
+      alert(`Error: ${errorMessage}`);
     } finally {
       setIsLoading(false);
     }
   };
 
   // Invariant, tokens have been generated (within the last 10 minutes <-- IMPLEMENT THIS)
-  const startMatch = async () => { 
+  const startMatch = async () => {
     setIsLoading(true);
 
-    const session = await supabase.auth.getSession();
-    if (!session) {
-      console.error('No active session found');
-      return;
+    try {
+      if (!tokens || tokens.length === 0) {
+        console.error('No tokens available');
+        return;
+      }
+
+      // Get the associated match from any one of the tokens:
+      const token = tokens[0];
+
+      const response = await fetch(
+        'http://localhost:3001/api/match/start_match',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ tokens, matchId }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to start match');
+      }
+    } catch (error) {
+      console.error('Failed to start match:', error);
+    } finally {
+      setIsLoading(false);
     }
-
-    // Get the associated match from any one of the tokens:
-    const token = tokens[0];
-    
-
-
-    const response = await fetch('http://localhost:3001/api/match/start_match', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ tokens, matchId }),
-      });
-
-    if (!response.ok) {
-      throw new Error('Failed to start match');
-    }
-
-    setIsLoading(false);
-  }
-
-
+  };
 
   return (
     <motion.div
@@ -275,29 +250,33 @@ export default function PracticePage() {
           </div>
         </div>
 
-        {!tokensGenerated ? <Button
-          onClick={generateTokens}
-          disabled={!selectedMode || isLoading}
-          className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-        >
-          {isLoading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-          ) : (
-            <PlayIcon className="w-5 h-5" />
-          )}
-          {isLoading ? 'Generating Tokens...' : 'Generate Tokens'}
-        </Button> : <Button
-          onClick={startMatch}
-          disabled={(!selectedMode || isLoading) && false}
-          className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-        >
-          {isLoading ? (
-            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-          ) : (
-            <PlayIcon className="w-5 h-5" />
-          )}
-          {isLoading ? 'Starting Match...' : 'Start Match'}
-        </Button>}
+        {!tokensGenerated ? (
+          <Button
+            onClick={generateTokens}
+            disabled={!selectedMode || isLoading}
+            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
+          >
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+            ) : (
+              <PlayIcon className="w-5 h-5" />
+            )}
+            {isLoading ? 'Generating Tokens...' : 'Generate Tokens'}
+          </Button>
+        ) : (
+          <Button
+            onClick={startMatch}
+            disabled={(!selectedMode || isLoading) && false}
+            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
+          >
+            {isLoading ? (
+              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+            ) : (
+              <PlayIcon className="w-5 h-5" />
+            )}
+            {isLoading ? 'Starting Match...' : 'Start Match'}
+          </Button>
+        )}
       </motion.div>
 
       {tokens && tokens.length > 0 && (
@@ -327,7 +306,9 @@ export default function PracticePage() {
 
             {tokens.map((token, index) => (
               <div key={token}>
-                <h4 className="text-sm text-gray-400 mb-1">Login Token {tokens.length > 1 ? `#${index + 1}` : ''}</h4>
+                <h4 className="text-sm text-gray-400 mb-1">
+                  Login Token {tokens.length > 1 ? `#${index + 1}` : ''}
+                </h4>
                 <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
                   <span>{token}</span>
                   <button
@@ -359,7 +340,6 @@ export default function PracticePage() {
           </div>
         </motion.div>
       )}
-
     </motion.div>
   );
 }

@@ -1,98 +1,66 @@
-import { createSupabaseClient } from '@/auth/server';
 import { UserProfile } from '@/types/user';
+import { fetchQuery, fetchMutation } from 'convex/nextjs';
+import { api } from '@/lib/convex';
+import { getToken } from '@/lib/auth-server';
 
-export async function getUserProfile(userId: string) {
-  const supabase = await createSupabaseClient();
-  const { data: user, error } = (await supabase
-    .from('users')
-    .select(
-      `
-      first_name,
-      last_name,
-      institution,
-      geographic_location,
-      team:teams (
-        id,
-        team_name,
-        leader_id
-      )
-    `
-    )
-    .eq('user_id', userId)
-    .single()) as { data: UserProfile | null; error: any };
-
-  if (error && error.code !== 'PGRST116') {
-    console.error('Failed to fetch user data:', error);
+// Get user profile from Convex only (Supabase removed)
+export async function getUserProfile(
+  userId: string
+): Promise<UserProfile | null> {
+  if (!userId) {
+    console.error('getUserProfile called with undefined userId');
     return null;
   }
 
-  return user;
+  try {
+    const token = await getToken();
+    if (!token) {
+      console.error('No auth token available');
+      return null;
+    }
+
+    const profile = await fetchQuery(
+      api.userProfiles.getUserProfile,
+      { userId },
+      { token }
+    );
+
+    return profile;
+  } catch (error) {
+    console.error('Failed to get user profile from Convex:', error);
+    return null;
+  }
 }
 
-export async function updateUserProfile(newUserProfile: UserProfile) {
-  const supabase = await createSupabaseClient();
-  const { team, ...updateData } = newUserProfile;
-
-  const { data, error } = await supabase
-    .from('users')
-    .update(updateData)
-    .eq('user_id', newUserProfile.user_id)
-    .select();
-
-  if (error) {
-    console.error('Failed to update profile:', error);
-    return { data: null, error: error.message };
+// Update user profile in Convex only (Supabase removed)
+export async function updateUserProfile(
+  newUserProfile: UserProfile
+): Promise<{ data: any; error: string | null }> {
+  if (!newUserProfile.user_id) {
+    return { data: null, error: 'User ID is required' };
   }
 
-  return { data, error: null };
-}
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { data: null, error: 'Not authenticated' };
+    }
 
-// User Authentication Actions
+    await fetchMutation(
+      api.userProfiles.updateUserProfile,
+      {
+        userId: newUserProfile.user_id,
+        firstName: newUserProfile.first_name,
+        lastName: newUserProfile.last_name,
+        institution: newUserProfile.institution,
+        geographicLocation: newUserProfile.geographic_location,
+      },
+      { token }
+    );
 
-export async function signInWithPassword(email: string, password: string) {
-  const supabase = await createSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  });
-  if (error) {
-    console.error('Failed to sign in with password:', error);
-    return { data: null, error: error.message };
+    return { data: { success: true }, error: null };
+  } catch (error) {
+    console.error('Failed to update user profile in Convex:', error);
+    return { data: null, error: (error as Error).message };
   }
-  return { data, error: null };
-}
-
-export async function signUpWithPassword(email: string, password: string) {
-  const supabase = await createSupabaseClient();
-  const { data, error } = await supabase.auth.signUp({ email, password });
-  if (error) {
-    console.error('Failed to sign up with password:', error);
-    return { data: null, error: error.message };
-  }
-  return { data, error: null };
-}
-
-export async function signOut() {
-  const supabase = await createSupabaseClient();
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    console.error('Failed to sign out:', error);
-    return { data: null, error: error.message };
-  }
-  return { error: null };
-}
-
-export async function signInWithGoogle(originUrl?: string) {
-  const supabase = await createSupabaseClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({
-    provider: 'google',
-    options: {
-      redirectTo: `${originUrl}/auth/callback?next=/dashboard`,
-    },
-  });
-  if (error) {
-    console.error('Failed to sign in with Google:', error);
-    return { data: null, error: error.message };
-  }
-  return { data, error: null };
 }

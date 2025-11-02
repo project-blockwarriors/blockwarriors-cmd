@@ -4,11 +4,10 @@ import { UserProfile } from '@/types/user';
 import {
   getUserProfile as getUserProfileDb,
   updateUserProfile as updateUserProfileDb,
-  signInWithPassword,
-  signUpWithPassword,
-  signOut,
-  signInWithGoogle,
 } from '../db/users';
+import { getToken } from '@/lib/auth-server';
+import { fetchMutation } from 'convex/nextjs';
+import { api } from '@/lib/convex';
 
 // Profile Management Actions
 export async function getUserProfile(
@@ -23,35 +22,28 @@ export async function updateUserProfile(
   return await updateUserProfileDb(newUserProfile);
 }
 
-// Authentication Actions
-export async function signinAction(
-  formData: FormData
-): Promise<{ errorMessage: string | null }> {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-
-  const { error } = await signInWithPassword(email, password);
-  return { errorMessage: error };
-}
-
-export async function signupAction(
-  formData: FormData
-): Promise<{ errorMessage: string | null }> {
-  const email = formData.get('email') as string;
-  const password = formData.get('password') as string;
-
-  const { error } = await signUpWithPassword(email, password);
-  return { errorMessage: error };
-}
-
+// Authentication Actions - BetterAuth handles sign-in client-side
+// Sign-out can be done client-side with authClient.signOut()
+// Keeping this for server-side sign-out if needed
 export async function signOutAction(): Promise<{
   errorMessage: string | null;
 }> {
-  const { error } = await signOut();
-  return { errorMessage: error };
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { errorMessage: null };
+    }
+    // BetterAuth handles sign-out client-side
+    // This is kept for compatibility but client-side sign-out is preferred
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: (error as Error).message };
+  }
 }
 
+// Google sign-in is now handled client-side via authClient.signIn.social()
+// This action is no longer needed but kept for backward compatibility
 export async function googleSigninAction(origin?: string) {
-  const { data, error } = await signInWithGoogle(origin);
-  return { errorMessage: error, url: data?.url };
+  // BetterAuth handles this client-side
+  return { errorMessage: null, url: null };
 }

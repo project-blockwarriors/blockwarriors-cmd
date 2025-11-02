@@ -17,7 +17,7 @@
     "convex:codegen": "convex codegen"
   },
   "devDependencies": {
-    "convex": "^1.28.0",
-    "concurrently": "^9.1.0"
+    "concurrently": "^9.1.0",
+    "convex": "^1.28.0"
   }
 }
