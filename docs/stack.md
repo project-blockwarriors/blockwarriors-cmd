@@ -18,11 +18,10 @@ graph TD
     subgraph Backend
         NextAPI[Next.js Server Actions/API Routes]
 
-        subgraph "Supabase"
-            SupabaseEndpoint[Supabase Endpoint]
-            PostgreSQL[(PostgreSQL)]
-            Auth[Supabase Auth]
-            Storage[Supabase Storage]
+        subgraph "Convex"
+            ConvexEndpoint[Convex Deployment]
+            Database[(Convex Database)]
+            Auth[Better Auth]
         end
 
         subgraph ExpressServer[Express Server]
@@ -45,8 +44,8 @@ graph TD
     Next --- NextAPI & Express
 
     %% Backend Connections
-    NextAPI --- SupabaseEndpoint
-    SupabaseEndpoint --- PostgreSQL & Auth & Storage
+    NextAPI --- ConvexEndpoint
+    ConvexEndpoint --- Database & Auth
     Express --- Socket
     Socket --- MC
 
@@ -55,8 +54,8 @@ graph TD
 
     %% Styling
     classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px,color:black;
-    classDef supabase fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
-    class Supabase supabase;
+    classDef convex fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
+    class Convex convex;
 ```
 
 ## Stack Components
@@ -69,10 +68,11 @@ graph TD
 
 ### Backend
 - **Next.js Server Actions/API Routes**: API endpoints and server-side functions
-- **Supabase**: Open source Firebase alternative providing:
-  - **PostgreSQL**: Relational database
-  - **Auth**: Authentication and authorization
-  - **Storage**: File storage
+- **Convex**: Real-time backend as a service providing:
+  - **Database**: Real-time database with automatic reactivity
+  - **Functions**: Serverless functions (queries and mutations)
+- **Better Auth**: Authentication library integrated with Convex
+  - **Email/Password**: Email and password authentication
 - **Express.js**: Web application framework for Node.js
 - **Socket.io**: Real-time bidirectional event-based communication
 - **Minecraft Server (Paper/Spigot API)**: Game server with plugin API

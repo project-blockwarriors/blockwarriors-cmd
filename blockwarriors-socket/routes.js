@@ -52,29 +52,4 @@ router.use("/api/match", (req, res, next) => {
 router.use("/api/match", matchRoutes);
 router.use("/api/stats", statsRoutes);
 
-// Helper function to validate game token and get match ID
-async function validateToken(token) {
-  try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("active_tokens")
-      .select("match_id")
-      .eq("token", token)
-      .single();
-
-    if (tokenError) {
-      console.error("Token validation error:", tokenError);
-      return { valid: false, error: "Invalid token" };
-    }
-
-    if (!tokenData) {
-      return { valid: false, error: "Token not found" };
-    }
-
-    return { valid: true, matchId: tokenData.match_id };
-  } catch (error) {
-    console.error("Token validation error:", error);
-    return { valid: false, error: "Token validation failed" };
-  }
-}
-
 export default router;

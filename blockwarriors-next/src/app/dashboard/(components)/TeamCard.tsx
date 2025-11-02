@@ -1,22 +1,17 @@
-import { Trophy, Users } from "lucide-react";
+import { Users } from "lucide-react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import type { Id } from '../../../../../convex/_generated/dataModel';
 
 interface TeamCardProps {
-  id: number;
+  id: Id<"teams">;
   team_name: string;
   leader_id: string;
   members: { first_name: string; last_name: string; }[];
-  team_elo?: number;
-  team_wins?: number;
-  team_losses?: number;
 }
 
 export function TeamCard({ 
   team_name,
   members,
-  team_elo,
-  team_wins,
-  team_losses 
 }: TeamCardProps) {
   return (
     <Card>
@@ -25,19 +20,7 @@ export function TeamCard({
           <Users className="h-5 w-5" />
           <h3 className="font-semibold">{team_name}</h3>
         </div>
-        {(team_wins !== undefined && team_losses !== undefined && team_elo !== undefined) && (
-          <div className="flex items-center gap-4">
-            <div className="text-sm">
-              <span className="text-green-500">{team_wins}W</span>
-              {" - "}
-              <span className="text-red-500">{team_losses}L</span>
-            </div>
-            <div className="flex items-center gap-1 text-amber-500">
-              <Trophy className="h-4 w-4" />
-              <span className="font-medium">{team_elo}</span>
-            </div>
-          </div>
-        )}
+        {/* TODO: Add elo/wins/losses display when implemented */}
       </CardHeader>
       <CardContent>
         <div className="space-y-2">

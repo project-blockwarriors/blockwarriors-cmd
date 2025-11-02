@@ -8,7 +8,7 @@ Welcome to the BlockWarriors Command Block! This is a monolithic repository for 
 
 A modern web dashboard for BlockWarriors tournament and team management.
 
-**Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Supabase, Socket.io client, Convex
+**Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Convex, Better Auth, Socket.io client
 
 ### BlockWarriors Command Block - Socket.io Server
 
@@ -57,4 +57,3 @@ For detailed information about the project, please refer to our documentation in
 - [Onboarding Guide](./docs/onboarding.md) - Get started with the project
 - [Technology Stack](./docs/stack.md) - Detailed architecture and technology stack
 - [Contributing Guidelines](./docs/contributing.md) - Learn how to contribute
-- [Supabase Guide](./docs/supabase.md) - Working with Supabase

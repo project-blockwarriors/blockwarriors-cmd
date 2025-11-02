@@ -1,17 +1,14 @@
-'use client';
+"use client";
 
-import { useState, useTransition, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import GoogleSignInButton from '@/components/common/GoogleSignInButton';
-import { Button } from '@/components/ui/button';
-import toast from 'react-hot-toast';
-import { signOutAction } from '@/server/actions/users';
-import { supabase } from '@/auth/client';
-import { Loader2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import toast from "react-hot-toast";
+import { authClient } from "@/lib/auth-client";
+import { Loader2 } from "lucide-react";
 
 export default function DebugPage() {
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
   const [session, setSession] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -19,44 +16,32 @@ export default function DebugPage() {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession();
-        setSession(initialSession);
+        const sessionData = await authClient.getSession();
+        if (sessionData?.data) {
+          setSession(sessionData.data);
+        }
       } catch (error) {
-        console.error('Error getting session:', error);
-        toast.error('Failed to get session');
+        console.error("Error getting session:", error);
+        toast.error("Failed to get session");
       } finally {
         setIsLoading(false);
       }
     };
 
     getInitialSession();
-
-    // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
   }, []);
 
-  const handleLogout = () => {
-    startTransition(async () => {
-      try {
-        await signOutAction();
-        setSession(null);
-        toast.success('Logged out successfully');
-        router.push('/');
-      } catch (error) {
-        console.error('Logout error:', error);
-        toast.error('Failed to logout');
-      }
-    });
+  const handleLogout = async () => {
+    try {
+      await authClient.signOut();
+      setSession(null);
+      toast.success("Logged out successfully");
+      router.push("/");
+      router.refresh();
+    } catch (error) {
+      console.error("Logout error:", error);
+      toast.error("Failed to logout");
+    }
   };
 
   if (isLoading) {
@@ -84,10 +69,10 @@ export default function DebugPage() {
                   Authentication Status
                 </h2>
                 <p className="text-sm mb-4 text-gray-300">
-                  Currently: {session ? 'Logged In' : 'Not Logged In'}
+                  Currently: {session?.user ? "Logged In" : "Not Logged In"}
                 </p>
 
-                {session ? (
+                {session?.user ? (
                   <div className="space-y-4">
                     <div className="text-sm text-gray-300">
                       <p>
@@ -97,22 +82,20 @@ export default function DebugPage() {
                         <strong>Email:</strong> {session.user.email}
                       </p>
                       <p>
-                        <strong>Last Sign In:</strong>{' '}
-                        {new Date(
-                          session.user.last_sign_in_at
-                        ).toLocaleString()}
+                        <strong>Name:</strong> {session.user.name || "N/A"}
                       </p>
                     </div>
                     <Button
                       onClick={handleLogout}
                       className="w-full"
-                      disabled={isPending}
                     >
-                      {isPending ? 'Signing Out...' : 'Sign Out'}
+                      Sign Out
                     </Button>
                   </div>
                 ) : (
-                  <GoogleSignInButton />
+                  <div className="text-sm text-gray-300">
+                    <p>Please log in to see your session information.</p>
+                  </div>
                 )}
               </div>
 
@@ -121,10 +104,10 @@ export default function DebugPage() {
                   Debug Information
                 </h2>
                 <p className="text-sm text-gray-300">
-                  Time: {new Date('2024-12-31T21:59:26-05:00').toLocaleString()}
+                  Time: {new Date().toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-300">
-                  Auth Provider: {session?.provider_token ? 'Google' : 'None'}
+                  Auth Provider: Better Auth
                 </p>
               </div>
             </div>

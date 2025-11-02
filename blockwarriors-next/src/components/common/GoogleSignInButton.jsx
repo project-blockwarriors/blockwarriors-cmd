@@ -1,36 +1,50 @@
 'use client';
 
 import React from 'react';
-import { useTransition } from 'react';
+import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { googleSigninAction } from '@/server/actions/users';
+import { authClient } from '@/lib/auth-client';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 
 export default function GoogleSignInButton() {
-  const [isGoogleSigninPending, startGoogleSigninTransition] = useTransition();
+  const router = useRouter();
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
-  const googleSignin = async () => {
-    startGoogleSigninTransition(async () => {
-      const origin = window.location.origin;
-      const { errorMessage, url } = await googleSigninAction(origin);
-
-      if (errorMessage) {
-        console.error(errorMessage);
-        toast.error('An error occurred');
-      } else if (url) {
-        window.location.href = url;
-      }
-    });
+  const handleGoogleSignIn = async () => {
+    setIsGoogleLoading(true);
+    try {
+      await authClient.signIn.social(
+        {
+          provider: "google",
+        },
+        {
+          onSuccess: () => {
+            toast.success("Signed in with Google successfully!");
+            router.push("/dashboard");
+            router.refresh();
+          },
+          onError: (ctx) => {
+            toast.error(ctx.error.message || "Failed to sign in with Google");
+          },
+        }
+      );
+    } catch (error) {
+      toast.error("An error occurred. Please try again.");
+      console.error("Google sign in error:", error);
+    } finally {
+      setIsGoogleLoading(false);
+    }
   };
 
   return (
     <button
-      onClick={googleSignin}
-      disabled={isGoogleSigninPending}
-      className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#4285f4] disabled:opacity-50 disabled:cursor-not-allowed"
+      onClick={handleGoogleSignIn}
+      disabled={isGoogleLoading}
+      className="flex items-center justify-center gap-2 w-full px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
     >
-      {isGoogleSigninPending ? (
+      {isGoogleLoading ? (
         <Loader2 className="w-4 h-4 animate-spin" />
       ) : (
         <>

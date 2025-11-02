@@ -1,19 +1,24 @@
+import { fetchQuery } from 'convex/nextjs';
+import { api } from '@/lib/convex';
+import { getToken } from '@/lib/auth-server';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LeaderboardRow } from "./(components)/LeaderboardRow";
-import { getAllTeamsScores } from "@/server/db/teams";
 
 export default async function LeaderboardPage() {
-  const { data: teams, error } = await getAllTeamsScores();
-  
-  if (error) {
-    return <div>Error loading leaderboard: {error}</div>;
+  const token = await getToken();
+  if (!token) {
+    return <div>Not authenticated</div>;
   }
 
-  // Sort teams by ELO in descending order and add rank
-  const rankedTeams = teams?.map((team, index) => ({
-    ...team,
-    rank: index + 1
-  })).sort((a, b) => b.team_elo - a.team_elo) || [];
+  // Fetch all teams from Convex
+  const teams = await fetchQuery(api.teams.getAllTeams, {}, { token });
+
+  // Transform to leaderboard format
+  const rankedTeams = teams.map((team, index) => ({
+    id: team._id,
+    team_name: team.teamName,
+    rank: index + 1,
+  }));
 
   return (
     <div className="space-y-8">
@@ -30,8 +35,8 @@ export default async function LeaderboardPage() {
                 key={team.id} 
                 rank={team.rank}
                 name={team.team_name}
-                elo={team.team_elo}
-                wins={team.team_wins}
+                elo={0}
+                wins={0}
               />
             ))}
           </div>

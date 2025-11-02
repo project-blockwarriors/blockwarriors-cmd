@@ -1,17 +1,17 @@
-'use server';
-
-import { getSettings } from '@/server/db/home';
+import { fetchQuery } from 'convex/nextjs';
+import { api } from '@/lib/convex';
 import LoginContent from './(components)/LoginContent';
 
 export default async function LoginPage() {
-  const settings = await getSettings();
+  // Fetch settings from Convex (public query, no token needed)
+  const settings = await fetchQuery(api.settings.getSettings, {});
   
   return (
     <LoginContent
-      startTournament={settings?.start_tournament}
-      showTopBanner={settings?.show_banner}
-      bannerTextContent={settings?.banner_text_content}
-      bannerButtonContent={settings?.banner_button_content}
+      startTournament={settings.start_tournament}
+      showTopBanner={settings.show_banner}
+      bannerTextContent={settings.banner_text_content}
+      bannerButtonContent={settings.banner_button_content}
     />
   );
 }

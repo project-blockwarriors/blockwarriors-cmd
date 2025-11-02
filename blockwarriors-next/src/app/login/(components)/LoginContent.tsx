@@ -1,6 +1,5 @@
 'use client';
 
-import GoogleSignInButton from '@/components/common/GoogleSignInButton';
 import LoginForm from '@/app/login/(components)/LoginForm';
 import { PageLayout, PageLayoutProps } from '@/app/components/(pageLayout)/PageLayout';
 import {
@@ -34,12 +33,6 @@ export default function LoginContent(props: LoginContentProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <LoginForm />
-              <div className="relative py-2">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
-                </div>
-              </div>
-              <GoogleSignInButton />
             </CardContent>
           </Card>
         </div>

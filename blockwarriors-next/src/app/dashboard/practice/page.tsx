@@ -9,7 +9,7 @@ import {
   UsersIcon,
   CommandLineIcon,
 } from '@heroicons/react/24/outline';
-import { supabase } from '@/auth/client';
+import { authClient } from '@/lib/auth-client';
 
 type GameMode = 'bedwars' | 'pvp' | 'ctf';
 
@@ -29,7 +29,7 @@ export default function PracticePage() {
   const [tokensGenerated, setTokensGenerated] = useState(false);
 
   const [matchId, setMatchId] = useState<string | null>(null);
-  const [tokens, setTokens] = useState<string[]>([]);
+  const [tokens, setTokens] = useState<{ team1: string[]; team2: string[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const gameModes = [
@@ -67,24 +67,27 @@ export default function PracticePage() {
     try {
       // Simulate token generation - this will eventually be handled by the Express server
       await new Promise((resolve) => setTimeout(resolve, 1000));
-      const mockToken = 'PLACEHOLDER_' + Math.random().toString(36).substring(2, 15);
-      setToken('GAME_' + mockToken);
       
-      // get jwttoken
-      const session = await supabase.auth.getSession();
-      if (!session) {
+      // get session using Better Auth
+      const session = await authClient.getSession();
+      if (!session?.data?.session) {
         console.error('No active session found');
         return;
       }
-      const { access_token } = session.data.session;
-      console.log('Access Token:', access_token);
+      // Use the session token for authentication
+      // This is the secure credential that should be validated by the backend
+      const accessToken = session.data.session.token;
+      if (!accessToken) {
+        console.error('No session token available');
+        return;
+      }
 
       const response = await fetch('http://localhost:3001/api/match/generate_tokens', {
         method: 'POST',
         // add authorization header
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `${access_token}`,
+        Authorization: `${accessToken}`,
       },
       body: JSON.stringify({ selectedMode }),
       });
@@ -93,11 +96,13 @@ export default function PracticePage() {
         throw new Error('Failed to start match');
       }
 
-      const prefixedTokens = [];      
-      const data = await response.json(); // a list of tokens
-      data['tokens'].map((token) => {
-        prefixedTokens.push('GAME_' + token);
-      });
+      const data = await response.json(); // tokens grouped by teams
+      
+      // Process tokens: organize by teams (no prefix needed)
+      const processedTokens = {
+        team1: data.tokens.team1,
+        team2: data.tokens.team2,
+      };
 
       setMatchId(data['matchId']);
 
@@ -106,7 +111,7 @@ export default function PracticePage() {
         setTokensGenerated(true);
       }
 
-      setTokens(prefixedTokens);
+      setTokens(processedTokens);
     } catch (error) {
       setTokensGenerated(false);
       console.error('Failed to start match:', error);
@@ -119,23 +124,21 @@ export default function PracticePage() {
   const startMatch = async () => { 
     setIsLoading(true);
 
-    const session = await supabase.auth.getSession();
-    if (!session) {
+    const session = await authClient.getSession();
+    if (!session?.data?.session) {
       console.error('No active session found');
       return;
     }
 
-    // Get the associated match from any one of the tokens:
-    const token = tokens[0];
-    
-
+    // Flatten tokens for start_match endpoint (combine team1 and team2)
+    const allTokens = [...(tokens?.team1 || []), ...(tokens?.team2 || [])];
 
     const response = await fetch('http://localhost:3001/api/match/start_match', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ tokens, matchId }),
+      body: JSON.stringify({ tokens: allTokens, matchId }),
       });
 
     if (!response.ok) {
@@ -300,7 +303,7 @@ export default function PracticePage() {
         </Button>}
       </motion.div>
 
-      {tokens && tokens.length > 0 && (
+      {tokens && (tokens.team1.length > 0 || tokens.team2.length > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -325,20 +328,51 @@ export default function PracticePage() {
               </div>
             </div>
 
-            {tokens.map((token, index) => (
-              <div key={token}>
-                <h4 className="text-sm text-gray-400 mb-1">Login Token {tokens.length > 1 ? `#${index + 1}` : ''}</h4>
-                <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
-                  <span>{token}</span>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(token)}
-                    className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Copy
-                  </button>
+            {tokens && (
+              <>
+                {/* Team 1 Tokens */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-blue-400 mb-2">Team 1 Tokens</h4>
+                  {tokens.team1.map((token, index) => (
+                    <div key={token}>
+                      <h5 className="text-xs text-gray-500 mb-1">
+                        Token #{index + 1}{index === 0 ? ' (Your Token)' : ''}
+                      </h5>
+                      <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group border-l-2 border-blue-500">
+                        <span>{token}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(token)}
+                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              </div>
-            ))}
+
+                {/* Team 2 Tokens */}
+                <div className="space-y-2">
+                  <h4 className="text-sm font-semibold text-red-400 mb-2">Team 2 Tokens</h4>
+                  {tokens.team2.map((token, index) => (
+                    <div key={token}>
+                      <h5 className="text-xs text-gray-500 mb-1">
+                        Token #{index + 1}
+                      </h5>
+                      <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group border-l-2 border-red-500">
+                        <span>{token}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(token)}
+                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2 pt-2">

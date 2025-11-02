@@ -1,12 +1,14 @@
 // stats.js
 import express from "express";
 const router = express.Router();
-import supabase from "../supabaseClient.js";
+import { convexClient, api } from "../convexClient.js";
 
 // Example route for fetching stats
 router.get("/", async (req, res) => {
-  // Your logic to fetch stats here
-  res.json({ message: "Stats endpoint" });
+  // TODO: Implement stats fetching via Convex
+  // This is a placeholder that needs to be implemented
+  // when stats are integrated with Convex
+  res.json({ message: "Stats endpoint - not yet implemented in Convex schema" });
 });
 
 export default router;

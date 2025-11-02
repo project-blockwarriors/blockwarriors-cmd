@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { createClient } from "@supabase/supabase-js";
+import { convexClient, api } from "./convexClient.js";
 
 // Initialize state
 const state = {
@@ -14,30 +14,24 @@ const state = {
   playerNamespace: null
 };
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 // Helper functions
 async function validateToken(token) {
   try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("active_tokens2")
-      .select("match_id")
-      .eq("token", token)
-      .single();
-
-    if (tokenError) {
-      console.error("Token validation error:", tokenError);
-      return { valid: false, error: "Invalid token" };
-    }
-
-    if (!tokenData) {
-      return { valid: false, error: "Token not found" };
-    }
-
-    return { valid: true, matchId: tokenData.match_id };
+    // TODO: Implement token validation via Convex
+    // For now, this is a placeholder that needs to be implemented
+    // when match/token tables are added to Convex schema
+    
+    // Example placeholder - replace with actual Convex query when schema is ready:
+    // const tokenData = await convexClient.query(api.matches.validateToken, { token });
+    
+    console.warn("Token validation not yet implemented in Convex schema");
+    return { valid: false, error: "Token validation not yet implemented" };
+    
+    // When implemented, it should look like:
+    // if (!tokenData || !tokenData.matchId) {
+    //   return { valid: false, error: "Token not found" };
+    // }
+    // return { valid: true, matchId: tokenData.matchId };
   } catch (error) {
     console.error("Token validation error:", error);
     return { valid: false, error: "Token validation failed" };
@@ -72,8 +66,7 @@ async function handleLogin(socket, { playerId, token }, callback) {
 
     // On login, we need to store who logged in, (token)
     // along with what team they are on.
-    // Do this using local variables and supabase
-    // to get the team ID.
+    // TODO: Get team ID from Convex when match/token schema is implemented.
 
     state.socketToPlayer.set(socket.id, playerId);
     state.playerToSocket.set(playerId, socket.id);
