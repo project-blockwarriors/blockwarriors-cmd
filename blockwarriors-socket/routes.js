@@ -1,6 +1,6 @@
 // routes.js
 import express from "express";
-import { convexClient, api } from "./convexClient.js";
+import { convexClient, api, queryWithAuth } from "./convexClient.js";
 
 const router = express.Router();
 
@@ -55,22 +55,27 @@ router.use("/api/stats", statsRoutes);
 // Helper function to validate game token and get match ID
 async function validateToken(token) {
   try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("active_tokens")
-      .select("match_id")
-      .eq("token", token)
-      .single();
+    const validation = await queryWithAuth(
+      api.tokens.validateToken,
+      { token },
+      null // No auth token needed for token validation
+    );
 
-    if (tokenError) {
-      console.error("Token validation error:", tokenError);
-      return { valid: false, error: "Invalid token" };
+    if (!validation || !validation.valid) {
+      return {
+        valid: false,
+        error: validation?.error || "Token validation failed",
+      };
     }
 
-    if (!tokenData) {
-      return { valid: false, error: "Token not found" };
-    }
+    // Convert Convex ID to string for compatibility
+    const matchIdString = validation.matchId.toString();
 
-    return { valid: true, matchId: tokenData.match_id };
+    return {
+      valid: true,
+      matchId: matchIdString,
+      gameTeamId: validation.gameTeamId?.toString(),
+    };
   } catch (error) {
     console.error("Token validation error:", error);
     return { valid: false, error: "Token validation failed" };

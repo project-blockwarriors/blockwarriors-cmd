@@ -11,16 +11,22 @@ export default async function ProfileSetupPage() {
     redirect('/login');
   }
 
-  const rawProfile = await getUserProfile(authUser.id);
+  const userId = authUser.id || authUser.userId || authUser._id;
+  if (!userId) {
+    console.error('User ID not found in auth user:', authUser);
+    redirect('/login');
+  }
+
+  const rawProfile = await getUserProfile(userId);
 
   // Convert null values to empty strings for the form
   const profile: UserProfile = {
-    user_id: authUser.id,
-    first_name: rawProfile.first_name ?? '',
-    last_name: rawProfile.last_name ?? '',
-    institution: rawProfile.institution ?? '',
-    geographic_location: rawProfile.geographic_location ?? '',
-    team: rawProfile.team ?? null,
+    user_id: userId,
+    first_name: rawProfile?.first_name ?? '',
+    last_name: rawProfile?.last_name ?? '',
+    institution: rawProfile?.institution ?? '',
+    geographic_location: rawProfile?.geographic_location ?? '',
+    team: rawProfile?.team ?? null,
   };
 
   return (

@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { createClient } from "@supabase/supabase-js";
+import { queryWithAuth, api } from "./convexClient.js";
 
 // Initialize state
 const state = {
@@ -14,30 +14,33 @@ const state = {
   playerNamespace: null
 };
 
-// Initialize Supabase client
-const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabase = createClient(supabaseUrl, supabaseKey);
-
 // Helper functions
 async function validateToken(token) {
   try {
-    const { data: tokenData, error: tokenError } = await supabase
-      .from("active_tokens2")
-      .select("match_id")
-      .eq("token", token)
-      .single();
+    // Note: For socket connections, we don't have an auth token from the user
+    // We're validating the game token itself, so we pass null for auth token
+    // The tokens.validateToken query doesn't require authentication
+    const validation = await queryWithAuth(
+      api.tokens.validateToken,
+      { token },
+      null
+    );
 
-    if (tokenError) {
-      console.error("Token validation error:", tokenError);
-      return { valid: false, error: "Invalid token" };
+    if (!validation || !validation.valid) {
+      return { 
+        valid: false, 
+        error: validation?.error || "Token validation failed" 
+      };
     }
 
-    if (!tokenData) {
-      return { valid: false, error: "Token not found" };
-    }
+    // Convert Convex ID to string for compatibility
+    const matchIdString = validation.matchId.toString();
 
-    return { valid: true, matchId: tokenData.match_id };
+    return { 
+      valid: true, 
+      matchId: matchIdString,
+      gameTeamId: validation.gameTeamId?.toString(),
+    };
   } catch (error) {
     console.error("Token validation error:", error);
     return { valid: false, error: "Token validation failed" };
@@ -72,8 +75,7 @@ async function handleLogin(socket, { playerId, token }, callback) {
 
     // On login, we need to store who logged in, (token)
     // along with what team they are on.
-    // Do this using local variables and supabase
-    // to get the team ID.
+    // Team ID is available from the token validation result.
 
     state.socketToPlayer.set(socket.id, playerId);
     state.playerToSocket.set(playerId, socket.id);

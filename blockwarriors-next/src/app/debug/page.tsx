@@ -6,7 +6,7 @@ import GoogleSignInButton from '@/components/common/GoogleSignInButton';
 import { Button } from '@/components/ui/button';
 import toast from 'react-hot-toast';
 import { signOutAction } from '@/server/actions/users';
-import { supabase } from '@/auth/client';
+import { authClient } from '@/lib/auth-client';
 import { Loader2 } from 'lucide-react';
 
 export default function DebugPage() {
@@ -19,10 +19,8 @@ export default function DebugPage() {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const {
-          data: { session: initialSession },
-        } = await supabase.auth.getSession();
-        setSession(initialSession);
+        const session = await authClient.getSession();
+        setSession(session.data?.session || null);
       } catch (error) {
         console.error('Error getting session:', error);
         toast.error('Failed to get session');
@@ -34,14 +32,12 @@ export default function DebugPage() {
     getInitialSession();
 
     // Subscribe to auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const unsubscribe = authClient.$subscribe(({ data }) => {
+      setSession(data?.session || null);
     });
 
     return () => {
-      subscription.unsubscribe();
+      unsubscribe();
     };
   }, []);
 
@@ -87,7 +83,7 @@ export default function DebugPage() {
                   Currently: {session ? 'Logged In' : 'Not Logged In'}
                 </p>
 
-                {session ? (
+                {session?.user ? (
                   <div className="space-y-4">
                     <div className="text-sm text-gray-300">
                       <p>
@@ -96,12 +92,11 @@ export default function DebugPage() {
                       <p>
                         <strong>Email:</strong> {session.user.email}
                       </p>
-                      <p>
-                        <strong>Last Sign In:</strong>{' '}
-                        {new Date(
-                          session.user.last_sign_in_at
-                        ).toLocaleString()}
-                      </p>
+                      {session.user.emailVerified && (
+                        <p>
+                          <strong>Email Verified:</strong> Yes
+                        </p>
+                      )}
                     </div>
                     <Button
                       onClick={handleLogout}
@@ -124,7 +119,7 @@ export default function DebugPage() {
                   Time: {new Date('2024-12-31T21:59:26-05:00').toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-300">
-                  Auth Provider: {session?.provider_token ? 'Google' : 'None'}
+                  Auth Provider: {session?.user?.email ? 'Google' : 'None'}
                 </p>
               </div>
             </div>
