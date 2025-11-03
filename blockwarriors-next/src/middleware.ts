@@ -42,16 +42,11 @@ export async function middleware(request: NextRequest) {
   }
 
   // Handle protected routes - redirect to login if not authenticated (no session cookie)
-  if (isProtectedRoute && !sessionCookie) {
+  if (!sessionCookie && (isProtectedRoute || isSetupRoute)) {
     const loginUrl = new URL('/login', request.url);
     // Preserve the original URL as a query parameter so we can redirect back after login
     loginUrl.searchParams.set('redirect', path);
     return NextResponse.redirect(loginUrl);
-  }
-
-  // Allow setup routes through - they will handle their own auth checks
-  if (isSetupRoute) {
-    return NextResponse.next();
   }
 
   return NextResponse.next();

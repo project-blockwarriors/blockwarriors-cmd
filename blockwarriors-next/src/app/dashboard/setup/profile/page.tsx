@@ -7,21 +7,15 @@ import { ProfileForm } from './profile-form';
 
 export default async function ProfileSetupPage() {
   const authUser = await getUser();
-  if (!authUser) {
-    redirect('/login');
+  if (!authUser || !authUser.id) {
+    console.error('Something went wrong with the authentication');
   }
 
-  const userId = authUser.id || authUser.userId || authUser._id;
-  if (!userId) {
-    console.error('User ID not found in auth user:', authUser);
-    redirect('/login');
-  }
-
-  const rawProfile = await getUserProfile(userId);
+  const rawProfile = await getUserProfile(authUser.id);
 
   // Convert null values to empty strings for the form
   const profile: UserProfile = {
-    user_id: userId,
+    user_id: authUser.id,
     first_name: rawProfile?.first_name ?? '',
     last_name: rawProfile?.last_name ?? '',
     institution: rawProfile?.institution ?? '',
