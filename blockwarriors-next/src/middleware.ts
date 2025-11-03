@@ -1,8 +1,19 @@
+import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export async function middleware(request: NextRequest) {
   const path = new URL(request.url).pathname;
+
+  // Skip middleware for API routes, static files, and Next.js internals
+  if (
+    path.startsWith('/api/') ||
+    path.startsWith('/_next/') ||
+    path.startsWith('/favicon') ||
+    path.match(/\.(ico|png|jpg|jpeg|gif|svg|woff|woff2|ttf|eot)$/)
+  ) {
+    return NextResponse.next();
+  }
 
   const protectedRoutes = [
     '/dashboard',
@@ -11,24 +22,37 @@ export async function middleware(request: NextRequest) {
     '/dashboard/leaderboard',
     '/dashboard/practice',
   ];
+  const setupRoutes = ['/dashboard/setup'];
   const authRoutes = ['/login'];
 
-  const isProtectedRoute = protectedRoutes.some((route) =>
-    path.startsWith(route)
+  const isProtectedRoute = protectedRoutes.some(
+    (route) => path === route || path.startsWith(route + '/')
+  );
+  const isSetupRoute = setupRoutes.some(
+    (route) => path === route || path.startsWith(route + '/')
   );
   const isAuthRoute = authRoutes.includes(path);
 
-  // Check for BetterAuth session cookie
-  const sessionCookie = request.cookies.get('better-auth.session_token');
+  // Check for session cookie (simplest approach from example)
+  const sessionCookie = getSessionCookie(request);
 
+  // Handle auth routes - redirect to dashboard if already logged in (has session cookie)
   if (isAuthRoute && sessionCookie) {
-    // If user is logged in and trying to access login, redirect to dashboard
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // For protected routes, we'll let the page-level checks handle authentication
-  // since middleware can't easily use Convex queries
-  // Pages will use getUser() which works correctly
+  // Handle protected routes - redirect to login if not authenticated (no session cookie)
+  if (isProtectedRoute && !sessionCookie) {
+    const loginUrl = new URL('/login', request.url);
+    // Preserve the original URL as a query parameter so we can redirect back after login
+    loginUrl.searchParams.set('redirect', path);
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // Allow setup routes through - they will handle their own auth checks
+  if (isSetupRoute) {
+    return NextResponse.next();
+  }
 
   return NextResponse.next();
 }

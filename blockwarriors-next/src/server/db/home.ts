@@ -1,6 +1,5 @@
 import { fetchQuery } from 'convex/nextjs';
 import { api } from '@/lib/convex';
-import { getToken } from '@/lib/auth-server';
 
 export type Settings = {
   start_tournament: boolean
@@ -11,16 +10,9 @@ export type Settings = {
 
 export async function getSettings(): Promise<Settings | null> {
   try {
-    const token = await getToken();
-    if (!token) {
-      console.error('No auth token available');
-      return null;
-    }
-
     const settings = await fetchQuery(
       api.settings.getSettings,
-      {},
-      { token }
+      {}
     );
 
     return settings;

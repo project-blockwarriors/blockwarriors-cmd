@@ -13,7 +13,8 @@ export default async function SetupPage() {
     redirect('/login');
   }
 
-  const user: UserProfile = await getUserProfile(authUser.id);
+  // Fetch user profile (should already be initialized on account creation)
+  const user: UserProfile | null = await getUserProfile(authUser.id);
 
   // Check if profile is complete (all required fields are filled)
   const profileComplete = Boolean(

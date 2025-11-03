@@ -1,5 +1,7 @@
+import { Id } from '../../../convex/_generated/dataModel';
+
 export interface Team {
-  id: number;
+  id: Id<'teams'>;
   team_name: string;
   leader_id: string;
   team_elo?: number;

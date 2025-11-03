@@ -1,7 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
-import * as crypto from "crypto";
+import { v4 as uuidv4 } from "uuid";
 
 // Create a single token
 export const createToken = mutation({
@@ -212,7 +212,7 @@ export const generateTokenBatch = mutation({
     
     // Generate tokens until we have enough unique ones
     while (tokens.length < args.count) {
-      const token = crypto.randomUUID();
+      const token = uuidv4();
       if (!tokenSet.has(token)) {
         tokenSet.add(token);
         tokens.push(token);
@@ -241,7 +241,7 @@ export const generateTokenBatch = mutation({
         let isUnique = false;
         let attempts = 0;
         while (!isUnique && attempts < 10) {
-          newToken = crypto.randomUUID();
+          newToken = uuidv4();
           const existing = await ctx.db
             .query("gameTokens")
             .withIndex("by_token", (q) => q.eq("token", newToken))

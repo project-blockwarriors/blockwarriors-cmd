@@ -3,7 +3,6 @@ import { fetchQuery, fetchMutation } from 'convex/nextjs';
 import { api } from '@/lib/convex';
 import { getToken } from '@/lib/auth-server';
 
-// Get user profile from Convex only (Supabase removed)
 export async function getUserProfile(
   userId: string
 ): Promise<UserProfile | null> {
@@ -19,16 +18,56 @@ export async function getUserProfile(
       return null;
     }
 
-    const profile = await fetchQuery(
+    let profile = await fetchQuery(
       api.userProfiles.getUserProfile,
       { userId },
       { token }
     );
 
+    // If profile doesn't exist, automatically initialize it from Google OAuth data
+    if (!profile) {
+      const initResult = await initializeUserProfile(userId);
+      if (!initResult.error) {
+        // Fetch the newly created profile
+        profile = await fetchQuery(
+          api.userProfiles.getUserProfile,
+          { userId },
+          { token }
+        );
+      }
+    }
+
     return profile;
   } catch (error) {
     console.error('Failed to get user profile from Convex:', error);
     return null;
+  }
+}
+
+// Initialize user profile from Google OAuth data
+export async function initializeUserProfile(
+  userId: string
+): Promise<{ error: string | null }> {
+  if (!userId) {
+    return { error: 'User ID is required' };
+  }
+
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
+
+    await fetchMutation(
+      api.userProfiles.initializeUserProfile,
+      { userId },
+      { token }
+    );
+
+    return { error: null };
+  } catch (error) {
+    console.error('Failed to initialize user profile:', error);
+    return { error: (error as Error).message };
   }
 }
 

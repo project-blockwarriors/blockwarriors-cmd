@@ -19,5 +19,8 @@
   "devDependencies": {
     "concurrently": "^9.1.0",
     "convex": "^1.28.0"
+  },
+  "dependencies": {
+    "uuid": "^13.0.0"
   }
 }

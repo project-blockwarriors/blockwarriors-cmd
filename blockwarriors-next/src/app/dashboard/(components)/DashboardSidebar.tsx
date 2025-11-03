@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/tooltip';
 import { getUserProfile } from '@/server/actions/users';
 import { getUser } from '@/auth/server';
+import { SignOutButton } from '@/components/common/SignOutButton';
 
 interface SidebarProps {
   className?: string;
@@ -145,6 +146,11 @@ export async function DashboardSidebar({ className = '' }: SidebarProps) {
                 {setupButton}
               </div>
             )}
+            
+            {/* Sign Out Button */}
+            <div className="pt-4 mt-4 border-t border-border">
+              <SignOutButton variant="ghost" className="w-full justify-start" />
+            </div>
           </div>
         </div>
       </div>

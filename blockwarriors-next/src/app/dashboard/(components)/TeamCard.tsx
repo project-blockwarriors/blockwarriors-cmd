@@ -1,8 +1,9 @@
 import { Trophy, Users } from "lucide-react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Id } from '../../../../../convex/_generated/dataModel';
 
 interface TeamCardProps {
-  id: number;
+  id: Id<'teams'>;
   team_name: string;
   leader_id: string;
   members: { first_name: string; last_name: string; }[];

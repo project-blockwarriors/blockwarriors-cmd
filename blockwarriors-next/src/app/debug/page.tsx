@@ -116,7 +116,7 @@ export default function DebugPage() {
                   Debug Information
                 </h2>
                 <p className="text-sm text-gray-300">
-                  Time: {new Date('2024-12-31T21:59:26-05:00').toLocaleString()}
+                  Time: {new Date().toLocaleString()}
                 </p>
                 <p className="text-sm text-gray-300">
                   Auth Provider: {session?.user?.email ? 'Google' : 'None'}
