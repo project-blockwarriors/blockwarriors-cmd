@@ -11,10 +11,9 @@ export async function getUser() {
     }
     const user = await fetchQuery(api.auth.getCurrentUser, {}, { token });
 
-    // BetterAuth user structure: getAuthUser returns user with userId or _id field
-    // Ensure we always have an id field
+    // BetterAuth user structure: getAuthUser returns user with _id field
     if (user) {
-      const userId = user.userId || user._id;
+      const userId = user._id;
       if (!userId) {
         console.error('User object missing id field:', user);
         return null;

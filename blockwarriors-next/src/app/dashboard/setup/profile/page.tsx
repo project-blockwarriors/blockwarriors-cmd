@@ -1,4 +1,3 @@
-import { redirect } from 'next/navigation';
 import { Card } from '@/components/ui/card';
 import { getUser } from '@/auth/server';
 import { getUserProfile } from '@/server/db/users';

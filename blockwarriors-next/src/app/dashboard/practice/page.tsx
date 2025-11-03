@@ -11,6 +11,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { authClient } from '@/lib/auth-client';
 import { GAME_MODES, type GameMode } from '@/lib/match-constants';
+import { startMatch } from '@/server/actions/matches';
 
 interface ServerStatus {
   activeSessions: number;
@@ -28,7 +29,7 @@ export default function PracticePage() {
   const [tokensGenerated, setTokensGenerated] = useState(false);
 
   const [matchId, setMatchId] = useState<string | null>(null);
-  const [tokens, setTokens] = useState<string[]>([]);
+  const [tokens, setTokens] = useState<{ redTeam: string[]; blueTeam: string[] } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Use centralized game mode configuration
@@ -42,81 +43,31 @@ export default function PracticePage() {
 
   const serverAddress = 'play.blockwarriors.ai';
 
-  const generateTokens = async () => {
+  const handleStartMatch = async () => {
     if (!selectedMode) return;
 
     setIsLoading(true);
 
     try {
-      const response = await fetch('/api/match/generate-tokens', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-        body: JSON.stringify({ selectedMode }),
-      });
+      const result = await startMatch(selectedMode);
 
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        const errorMessage =
-          errorData.message || errorData.error || 'Failed to generate tokens';
-        console.error('Failed to generate tokens:', errorMessage);
-        alert(`Error: ${errorMessage}`);
+      if (result.error) {
+        console.error('Failed to start match:', result.error);
+        alert(`Error: ${result.error}`);
+        setTokensGenerated(false);
         return;
       }
 
-      const data = await response.json();
-
-      // Tokens are returned without prefix - add "GAME_" prefix for display
-      // This matches the existing client-side expectation
-      const prefixedTokens = data.tokens.map(
-        (token: string) => `GAME_${token}`
-      );
-
-      setMatchId(data.matchId);
-      setTokens(prefixedTokens);
+      // Tokens are returned organized by team - use them directly without prefix
+      setMatchId(result.matchId);
+      setTokens(result.tokens);
       setTokensGenerated(true);
     } catch (error) {
       setTokensGenerated(false);
       const errorMessage =
-        error instanceof Error ? error.message : 'Failed to generate tokens';
-      console.error('Failed to generate tokens:', errorMessage);
+        error instanceof Error ? error.message : 'Failed to start match';
+      console.error('Failed to start match:', errorMessage);
       alert(`Error: ${errorMessage}`);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Invariant, tokens have been generated (within the last 10 minutes <-- IMPLEMENT THIS)
-  const startMatch = async () => {
-    setIsLoading(true);
-
-    try {
-      if (!tokens || tokens.length === 0) {
-        console.error('No tokens available');
-        return;
-      }
-
-      // Get the associated match from any one of the tokens:
-      const token = tokens[0];
-
-      const response = await fetch(
-        'http://localhost:3001/api/match/start_match',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ tokens, matchId }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to start match');
-      }
-    } catch (error) {
-      console.error('Failed to start match:', error);
     } finally {
       setIsLoading(false);
     }
@@ -250,36 +201,21 @@ export default function PracticePage() {
           </div>
         </div>
 
-        {!tokensGenerated ? (
-          <Button
-            onClick={generateTokens}
-            disabled={!selectedMode || isLoading}
-            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-            ) : (
-              <PlayIcon className="w-5 h-5" />
-            )}
-            {isLoading ? 'Generating Tokens...' : 'Generate Tokens'}
-          </Button>
-        ) : (
-          <Button
-            onClick={startMatch}
-            disabled={(!selectedMode || isLoading) && false}
-            className="w-full flex items-center justify-center gap-2 py-6 text-lg"
-          >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-            ) : (
-              <PlayIcon className="w-5 h-5" />
-            )}
-            {isLoading ? 'Starting Match...' : 'Start Match'}
-          </Button>
-        )}
+        <Button
+          onClick={handleStartMatch}
+          disabled={!selectedMode || isLoading}
+          className="w-full flex items-center justify-center gap-2 py-6 text-lg"
+        >
+          {isLoading ? (
+            <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+          ) : (
+            <PlayIcon className="w-5 h-5" />
+          )}
+          {isLoading ? 'Starting Match...' : 'Start Match'}
+        </Button>
       </motion.div>
 
-      {tokens && tokens.length > 0 && (
+      {tokens && (tokens.redTeam.length > 0 || tokens.blueTeam.length > 0) && (
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -304,22 +240,60 @@ export default function PracticePage() {
               </div>
             </div>
 
-            {tokens.map((token, index) => (
-              <div key={token}>
-                <h4 className="text-sm text-gray-400 mb-1">
-                  Login Token {tokens.length > 1 ? `#${index + 1}` : ''}
-                </h4>
-                <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
-                  <span>{token}</span>
-                  <button
-                    onClick={() => navigator.clipboard.writeText(token)}
-                    className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    Copy
-                  </button>
+            {/* Tokens organized by teams */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Red Team Tokens */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-red-500/30">
+                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                  <h4 className="text-base font-semibold text-red-400">
+                    Red Team Tokens ({tokens.redTeam.length})
+                  </h4>
                 </div>
+                {tokens.redTeam.map((token, index) => (
+                  <div key={`red-${index}`}>
+                    <h4 className="text-xs text-gray-400 mb-1">
+                      Token {index + 1}
+                    </h4>
+                    <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
+                      <span className="text-sm">{token}</span>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(token)}
+                        className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
+
+              {/* Blue Team Tokens */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 pb-2 border-b border-blue-500/30">
+                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
+                  <h4 className="text-base font-semibold text-blue-400">
+                    Blue Team Tokens ({tokens.blueTeam.length})
+                  </h4>
+                </div>
+                {tokens.blueTeam.map((token, index) => (
+                  <div key={`blue-${index}`}>
+                    <h4 className="text-xs text-gray-400 mb-1">
+                      Token {index + 1}
+                    </h4>
+                    <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
+                      <span className="text-sm">{token}</span>
+                      <button
+                        onClick={() => navigator.clipboard.writeText(token)}
+                        className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        Copy
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2 pt-2">
@@ -335,7 +309,7 @@ export default function PracticePage() {
               </li>
             </ol>
             <p className="text-sm text-gray-400 mt-4">
-              Tokens will expire in 5 minutes
+              Tokens will expire in 15 minutes
             </p>
           </div>
         </motion.div>

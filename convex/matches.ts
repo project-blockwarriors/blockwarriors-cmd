@@ -241,12 +241,12 @@ export const createMatchWithTokens = mutation({
     // Generate tokens for blue team
     const blueTokens = await generateTokensForTeam(blueTeamId, args.tokensPerTeam);
 
-    // Combine all tokens (red team tokens first, then blue team tokens)
-    const allTokens = [...redTokens, ...blueTokens];
-
     return {
       matchId: matchId,
-      tokens: allTokens,
+      tokens: {
+        redTeam: redTokens,
+        blueTeam: blueTokens,
+      },
       redTeamId: redTeamId,
       blueTeamId: blueTeamId,
       expiresAt: expiresAt,

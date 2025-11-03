@@ -47,22 +47,12 @@ export const getCurrentUser = query({
 });
 
 // Validate auth token for Express server
-// Returns user info if token is valid, null otherwise
+// Returns raw user info if token is valid, null otherwise
+// Uses the same structure as getCurrentUser for consistency
 export const validateAuthToken = query({
   args: {},
   handler: async (ctx) => {
-    const user = await authComponent.getAuthUser(ctx);
-    if (!user) {
-      return null;
-    }
-
-    // Return user info in format expected by Express server
-    return {
-      id: user.userId || user._id,
-      userId: user.userId || user._id,
-      email: user.email,
-      name: user.name,
-    };
+    return authComponent.getAuthUser(ctx);
   },
 });
 
