@@ -8,7 +8,7 @@ import {
   disbandTeam as disbandTeamDb,
   getAllTeamsScores,
 } from '../db/teams';
-import { Id } from '../../../../convex/_generated/dataModel';
+import { Id } from '@packages/backend/_generated/dataModel';
 import { fetchMutation } from 'convex/nextjs';
 import { api } from '@/lib/convex';
 import { getToken } from '@/lib/auth-server';

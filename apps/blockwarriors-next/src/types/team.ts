@@ -1,4 +1,4 @@
-import { Id } from '../../../convex/_generated/dataModel';
+import { Id } from '@packages/backend/_generated/dataModel';
 
 export interface Team {
   id: Id<'teams'>;

@@ -8,4 +8,7 @@
 convex/_generated/
 *.log
 
+# Turborepo
+.turbo
+
 node_modules/
