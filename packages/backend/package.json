@@ -1,0 +1,20 @@
+{
+  "name": "@packages/backend",
+  "version": "1.0.0",
+  "description": "Convex backend for BlockWarriors",
+  "private": true,
+  "scripts": {
+    "dev": "convex dev",
+    "setup": "convex dev --until-success",
+    "codegen": "convex codegen",
+    "deploy": "convex deploy"
+  },
+  "dependencies": {
+    "convex": "^1.28.2",
+    "@convex-dev/better-auth": "^0.9.6"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
+

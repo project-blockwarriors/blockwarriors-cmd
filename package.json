@@ -4,21 +4,23 @@
   "private": true,
   "type": "module",
   "description": "BlockWarriors Command Block monorepo",
+  "packageManager": "npm@10.9.3",
+  "engines": {
+    "node": ">=20.9.0"
+  },
   "workspaces": [
-    "blockwarriors-next",
-    "blockwarriors-socket"
+    "apps/*",
+    "packages/*"
   ],
   "scripts": {
-    "dev": "concurrently -n \"convex,socket,next,dashboard\" -c \"cyan,magenta,green,yellow\" \"npm run convex:dev\" \"npm run dev:socket\" \"npm run dev:next\" \"convex dashboard\"",
-    "dev:socket": "cd blockwarriors-socket && npm start",
-    "dev:next": "cd blockwarriors-next && npm run dev",
-    "convex:dev": "convex dev",
-    "convex:deploy": "convex deploy",
-    "convex:codegen": "convex codegen"
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "codegen": "cd packages/backend && convex codegen",
+    "deploy": "cd packages/backend && convex deploy"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0",
-    "convex": "^1.28.0"
+    "turbo": "^2.3.3"
   },
   "dependencies": {
     "uuid": "^13.0.0"

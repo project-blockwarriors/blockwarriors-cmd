@@ -5,58 +5,60 @@ This document provides a visual representation and explanation of the technology
 ## Architecture Diagram
 
 ```mermaid
-graph TD
-    %% Frontend Layer
-    subgraph Frontend
-        Next[Next.js v15]
-        React[React v18]
-        TW[TailwindCSS]
-        RadixUI[Radix UI Components]
-    end
+graph TB
+    %% External Services
+    User[User Browser]
+    Google[Google OAuth]
+    MC[Minecraft Server]
 
-    %% Backend Layer
-    subgraph Backend
-        NextAPI[Next.js Server Actions/API Routes]
-
-        subgraph "Supabase"
-            SupabaseEndpoint[Supabase Endpoint]
-            PostgreSQL[(PostgreSQL)]
-            Auth[Supabase Auth]
-            Storage[Supabase Storage]
+    %% Apps
+    subgraph Apps
+        subgraph NextApp["apps/blockwarriors-next"]
+            NextUI[Next.js 15 UI]
+            NextAPI[Server Actions/API Routes]
         end
 
-        subgraph ExpressServer[Express Server]
+        subgraph SocketApp["apps/blockwarriors-socket"]
             Express[Express.js]
-            Socket[Socket.io Server]
+            SocketIO[Socket.io Server]
         end
-
-        MC["Minecraft Server<br/>(Paper/Spigot API)"]
     end
 
-    %% Auth Providers
-    subgraph Authentication
-        Google[Google OAuth]
-        Email[Email/Password]
+    %% Packages
+    subgraph Packages
+        subgraph Backend["packages/backend"]
+            ConvexFns["Convex Functions<br/>(queries/mutations/actions)"]
+            Auth["Better Auth<br/>(auth.ts)"]
+            Schema[Schema & Types]
+        end
     end
 
-    %% Frontend Connections
-    Next --- React
-    React --- TW & RadixUI
-    Next --- NextAPI & Express
+    %% User Interactions
+    User -->|HTTPS| NextUI
+    User -->|WebSocket| SocketIO
 
-    %% Backend Connections
-    NextAPI --- SupabaseEndpoint
-    SupabaseEndpoint --- PostgreSQL & Auth & Storage
-    Express --- Socket
-    Socket --- MC
+    %% Next.js App Connections
+    NextUI -->|Convex React Hooks| ConvexFns
+    NextAPI -->|Server SDK| ConvexFns
+    NextUI -->|Auth Client| Auth
 
-    %% Auth Connections
-    Auth --- Google & Email
+    %% Socket App Connections
+    Express -->|Server SDK| ConvexFns
+    SocketIO -->|Real-time Events| MC
+    SocketIO -->|Game Updates| User
+
+    %% Auth Flow
+    Auth -->|OAuth| Google
+    ConvexFns -.->|Uses| Auth
 
     %% Styling
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px,color:black;
-    classDef supabase fill:#f5f5f5,stroke:#333,stroke-width:2px,color:black;
-    class Supabase supabase;
+    classDef app fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef pkg fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef external fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    
+    class NextApp,SocketApp app
+    class Backend pkg
+    class User,Google,MC external
 ```
 
 ## Stack Components
@@ -69,14 +71,34 @@ graph TD
 
 ### Backend
 - **Next.js Server Actions/API Routes**: API endpoints and server-side functions
-- **Supabase**: Open source Firebase alternative providing:
-  - **PostgreSQL**: Relational database
-  - **Auth**: Authentication and authorization
-  - **Storage**: File storage
+- **Convex**: Hosted backend for type-safe queries, mutations, and actions; used for data access and auth integration
 - **Express.js**: Web application framework for Node.js
 - **Socket.io**: Real-time bidirectional event-based communication
 - **Minecraft Server (Paper/Spigot API)**: Game server with plugin API
 
-### Authentication
-- **Google OAuth**: Third-party authentication provider
-- **Email/Password**: Traditional authentication method
+### Monorepo Structure (apps/ and packages/)
+
+- `apps/blockwarriors-next`
+  - Next.js web dashboard (frontend UI)
+  - Uses the Convex React client and Better Auth client
+  - Reads client-side envs:
+    - `NEXT_PUBLIC_CONVEX_URL`, `NEXT_PUBLIC_CONVEX_DEPLOYMENT`
+    - `NEXT_PUBLIC_CONVEX_SITE_URL`, `NEXT_PUBLIC_SITE_URL`
+
+- `apps/blockwarriors-socket`
+  - Express + Socket.io server (real-time updates)
+  - Contacts Convex using the server Convex client
+  - Reads server envs:
+    - `CONVEX_URL`, `CONVEX_DEPLOYMENT`
+
+- `packages/backend`
+  - Shared Convex backend used by all apps
+  - Convex functions live in `packages/backend/convex/*.ts` (queries, mutations, actions)
+  - Auth is configured in `packages/backend/convex/auth.ts` (Better Auth + Google OAuth)
+  - Generated API/types in `packages/backend/_generated/*` (via `npx convex dev` or `npm run convex:codegen`)
+  - Reads Convex environment variables:
+    - `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `SITE_URL`
+
+At a glance:
+- Frontend (Next.js) and Socket server both call Convex.
+- Convex hosts data logic and auth; both apps share the same generated API from `packages/backend`.
