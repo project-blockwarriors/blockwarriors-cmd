@@ -5,51 +5,60 @@ This document provides a visual representation and explanation of the technology
 ## Architecture Diagram
 
 ```mermaid
-graph TD
-    %% Frontend Layer
-    subgraph Frontend
-        Next[Next.js v15]
-        React[React v18]
-        TW[TailwindCSS]
-        RadixUI[Radix UI Components]
-    end
+graph TB
+    %% External Services
+    User[User Browser]
+    Google[Google OAuth]
+    MC[Minecraft Server]
 
-    %% Backend Layer
-    subgraph Backend
-        NextAPI[Next.js Server Actions/API Routes]
-        Convex[Convex (Queries/Mutations/Actions)]
-
-        subgraph ExpressServer["Express Server"]
-            Express[Express.js]
-            Socket[Socket.io Server]
+    %% Apps
+    subgraph Apps
+        subgraph NextApp["apps/blockwarriors-next"]
+            NextUI[Next.js 15 UI]
+            NextAPI[Server Actions/API Routes]
         end
 
-        MC["Minecraft Server<br/>(Paper/Spigot API)"]
+        subgraph SocketApp["apps/blockwarriors-socket"]
+            Express[Express.js]
+            SocketIO[Socket.io Server]
+        end
     end
 
-    %% Auth Providers
-    subgraph Authentication
-        BetterAuth[Better Auth]
-        Google[Google OAuth]
+    %% Packages
+    subgraph Packages
+        subgraph Backend["packages/backend"]
+            ConvexFns["Convex Functions<br/>(queries/mutations/actions)"]
+            Auth["Better Auth<br/>(auth.ts)"]
+            Schema[Schema & Types]
+        end
     end
 
-    %% Frontend Connections
-    Next --- React
-    React --- TW & RadixUI
-    Next --- NextAPI & Express & Convex
+    %% User Interactions
+    User -->|HTTPS| NextUI
+    User -->|WebSocket| SocketIO
 
-    %% Backend Connections
-    NextAPI --- Convex
-    Express --- Socket
-    Express --- Convex
-    Socket --- MC
+    %% Next.js App Connections
+    NextUI -->|Convex React Hooks| ConvexFns
+    NextAPI -->|Server SDK| ConvexFns
+    NextUI -->|Auth Client| Auth
 
-    %% Auth Connections
-    BetterAuth --- Google
-    Convex --- BetterAuth
+    %% Socket App Connections
+    Express -->|Server SDK| ConvexFns
+    SocketIO -->|Real-time Events| MC
+    SocketIO -->|Game Updates| User
+
+    %% Auth Flow
+    Auth -->|OAuth| Google
+    ConvexFns -.->|Uses| Auth
 
     %% Styling
-    classDef default fill:#f9f9f9,stroke:#333,stroke-width:2px,color:black;
+    classDef app fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
+    classDef pkg fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
+    classDef external fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    
+    class NextApp,SocketApp app
+    class Backend pkg
+    class User,Google,MC external
 ```
 
 ## Stack Components
