@@ -19,7 +19,7 @@ graph TD
         NextAPI[Next.js Server Actions/API Routes]
         Convex[Convex (Queries/Mutations/Actions)]
 
-        subgraph ExpressServer[Express Server]
+        subgraph ExpressServer["Express Server"]
             Express[Express.js]
             Socket[Socket.io Server]
         end
