@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useTransition, useEffect } from 'react';
+import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import GoogleSignInButton from '@/components/common/GoogleSignInButton';
 import { Button } from '@/components/ui/button';
@@ -12,40 +12,14 @@ import { Loader2 } from 'lucide-react';
 export default function DebugPage() {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
-  const [session, setSession] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    // Get initial session
-    const getInitialSession = async () => {
-      try {
-        const session = await authClient.getSession();
-        setSession(session.data?.session || null);
-      } catch (error) {
-        console.error('Error getting session:', error);
-        toast.error('Failed to get session');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    getInitialSession();
-
-    // Subscribe to auth changes
-    const unsubscribe = authClient.$subscribe(({ data }) => {
-      setSession(data?.session || null);
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  
+  // Use better-auth's useSession hook for real-time updates
+  const { data: session, isPending: isLoading } = authClient.useSession();
 
   const handleLogout = () => {
     startTransition(async () => {
       try {
         await signOutAction();
-        setSession(null);
         toast.success('Logged out successfully');
         router.push('/');
       } catch (error) {

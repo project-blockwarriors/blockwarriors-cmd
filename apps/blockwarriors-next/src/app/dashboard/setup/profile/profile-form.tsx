@@ -16,7 +16,18 @@ import {
 import { Input } from '@/components/ui/input';
 import { updateUserProfile } from '@/server/actions/users';
 import { UserProfile } from '@/types/user';
+import { Team } from '@/types/team';
 import toast from 'react-hot-toast';
+
+// Form input type - guarantees strings (never null)
+export type ProfileFormInput = {
+  user_id: string;
+  first_name: string;
+  last_name: string;
+  institution: string;
+  geographic_location: string;
+  team: Team | null;
+};
 
 const profileSchema = z.object({
   user_id: z.string(),
@@ -27,21 +38,23 @@ const profileSchema = z.object({
   team: z.any().nullable(),
 });
 
+type ProfileFormData = z.infer<typeof profileSchema>;
+
 export interface ProfileFormProps {
-  initialData: UserProfile;
+  initialData: ProfileFormInput;
 }
 
 export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter();
 
-  const form = useForm<UserProfile>({
-    resolver: zodResolver(profileSchema),
+  const form = useForm<ProfileFormData>({
+    resolver: zodResolver(profileSchema as any),
     defaultValues: initialData,
   });
 
-  async function onSubmit(data: UserProfile) {
+  async function onSubmit(data: ProfileFormData) {
     try {
-      await updateUserProfile(data);
+      await updateUserProfile(data as UserProfile);
       router.push('/dashboard/setup');
     } catch (error) {
       console.error('Failed to update profile:', error);

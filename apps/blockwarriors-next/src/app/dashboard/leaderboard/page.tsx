@@ -10,10 +10,12 @@ export default async function LeaderboardPage() {
   }
 
   // Sort teams by ELO in descending order and add rank
-  const rankedTeams = teams?.map((team, index) => ({
-    ...team,
-    rank: index + 1
-  })).sort((a, b) => b.team_elo - a.team_elo) || [];
+  const rankedTeams = teams
+    ?.sort((a, b) => b.team_elo - a.team_elo)
+    .map((team, index) => ({
+      ...team,
+      rank: index + 1
+    })) || [];
 
   return (
     <div className="space-y-8">

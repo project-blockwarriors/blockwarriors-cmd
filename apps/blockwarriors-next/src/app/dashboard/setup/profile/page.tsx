@@ -1,19 +1,19 @@
 import { Card } from '@/components/ui/card';
 import { getUser } from '@/auth/server';
 import { getUserProfile } from '@/server/db/users';
-import { UserProfile } from '@/types/user';
-import { ProfileForm } from './profile-form';
+import { ProfileForm, ProfileFormInput } from './profile-form';
+import { redirect } from 'next/navigation';
 
 export default async function ProfileSetupPage() {
   const authUser = await getUser();
-  if (!authUser || !authUser.id) {
-    console.error('Something went wrong with the authentication');
+  if (!authUser) {
+    redirect('/login');
   }
 
   const rawProfile = await getUserProfile(authUser.id);
 
   // Convert null values to empty strings for the form
-  const profile: UserProfile = {
+  const profile: ProfileFormInput = {
     user_id: authUser.id,
     first_name: rawProfile?.first_name ?? '',
     last_name: rawProfile?.last_name ?? '',

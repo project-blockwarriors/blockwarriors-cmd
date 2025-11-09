@@ -19,14 +19,14 @@ export default async function TeamSetupPage() {
   // Fetch user profile and team information
   const userProfile = await getUserProfile(authUser.id);
 
-  // Convert null values to empty strings for the form
+  // Create profile object with user_id and team info
   const profile: UserProfile = {
     user_id: authUser.id,
-    first_name: userProfile.first_name ?? '',
-    last_name: userProfile.last_name ?? '',
-    institution: userProfile.institution ?? '',
-    geographic_location: userProfile.geographic_location ?? '',
-    team: userProfile.team ?? null,
+    first_name: userProfile?.first_name ?? null,
+    last_name: userProfile?.last_name ?? null,
+    institution: userProfile?.institution ?? null,
+    geographic_location: userProfile?.geographic_location ?? null,
+    team: userProfile?.team ?? null,
   };
 
   const teams = await getAllTeamsWithMembers();
@@ -78,17 +78,23 @@ export default async function TeamSetupPage() {
           {profile.team ? (
             <>
               <TabsContent value="view">
-                <TeamCard
-                  id={profile.team.id}
-                  team_name={profile.team.team_name}
-                  leader_id={profile.team.leader_id}
-                  members={
-                    teams.find((t) => t.id === profile.team.id)?.members ?? []
-                  }
-                  currentUserId={profile.user_id}
-                  currentUserTeamId={profile.team.id}
-                  hideLeaveButton
-                />
+                {(() => {
+                  const teamData = teams.find((t) => t.id === profile.team!.id);
+                  return teamData ? (
+                    <TeamCard
+                      id={teamData.id}
+                      team_name={teamData.team_name}
+                      leader_id={teamData.leader_id}
+                      team_elo={teamData.team_elo}
+                      team_wins={teamData.team_wins}
+                      team_losses={teamData.team_losses}
+                      members={teamData.members}
+                      currentUserId={profile.user_id}
+                      currentUserTeamId={profile.team.id}
+                      hideLeaveButton
+                    />
+                  ) : null;
+                })()}
               </TabsContent>
               {isTeamLeader ? (
                 <TabsContent value="disband">
@@ -103,17 +109,22 @@ export default async function TeamSetupPage() {
                         deleted.
                       </p>
                     </div>
-                    <TeamCard
-                      id={profile.team.id}
-                      team_name={profile.team.team_name}
-                      leader_id={profile.team.leader_id}
-                      members={
-                        teams.find((t) => t.id === profile.team.id)?.members ??
-                        []
-                      }
-                      currentUserId={profile.user_id}
-                      currentUserTeamId={profile.team.id}
-                    />
+                    {(() => {
+                      const teamData = teams.find((t) => t.id === profile.team!.id);
+                      return teamData ? (
+                        <TeamCard
+                          id={teamData.id}
+                          team_name={teamData.team_name}
+                          leader_id={teamData.leader_id}
+                          team_elo={teamData.team_elo}
+                          team_wins={teamData.team_wins}
+                          team_losses={teamData.team_losses}
+                          members={teamData.members}
+                          currentUserId={profile.user_id}
+                          currentUserTeamId={profile.team.id}
+                        />
+                      ) : null;
+                    })()}
                   </div>
                 </TabsContent>
               ) : (
@@ -126,17 +137,22 @@ export default async function TeamSetupPage() {
                         participate in tournaments.
                       </p>
                     </div>
-                    <TeamCard
-                      id={profile.team.id}
-                      team_name={profile.team.team_name}
-                      leader_id={profile.team.leader_id}
-                      members={
-                        teams.find((t) => t.id === profile.team.id)?.members ??
-                        []
-                      }
-                      currentUserId={profile.user_id}
-                      currentUserTeamId={profile.team.id}
-                    />
+                    {(() => {
+                      const teamData = teams.find((t) => t.id === profile.team!.id);
+                      return teamData ? (
+                        <TeamCard
+                          id={teamData.id}
+                          team_name={teamData.team_name}
+                          leader_id={teamData.leader_id}
+                          team_elo={teamData.team_elo}
+                          team_wins={teamData.team_wins}
+                          team_losses={teamData.team_losses}
+                          members={teamData.members}
+                          currentUserId={profile.user_id}
+                          currentUserTeamId={profile.team.id}
+                        />
+                      ) : null;
+                    })()}
                   </div>
                 </TabsContent>
               )}
@@ -161,9 +177,12 @@ export default async function TeamSetupPage() {
                           id={team.id}
                           team_name={team.team_name}
                           leader_id={team.leader_id}
+                          team_elo={team.team_elo}
+                          team_wins={team.team_wins}
+                          team_losses={team.team_losses}
                           members={team.members}
                           currentUserId={profile.user_id}
-                          currentUserTeamId={profile.team?.id}
+                          currentUserTeamId={profile.team?.id ?? null}
                           hideLeaveButton
                         />
                       ))}
