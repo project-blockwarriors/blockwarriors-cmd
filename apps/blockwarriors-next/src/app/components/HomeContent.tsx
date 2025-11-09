@@ -9,11 +9,9 @@ import {
 } from '@heroicons/react/24/outline';
 import Image from 'next/image';
 import Link from 'next/link';
-import { PageLayout, PageLayoutProps } from './(pageLayout)/PageLayout';
+import { PageLayout } from './(pageLayout)/PageLayout';
 
-type HomeContentProps = Omit<PageLayoutProps, 'children'>;
-
-export default function HomeContent(props: HomeContentProps) {
+export default function HomeContent() {
   const fadeInUp = {
     initial: { opacity: 0, y: 20 },
     animate: { opacity: 1, y: 0 },
@@ -45,7 +43,7 @@ export default function HomeContent(props: HomeContentProps) {
   const [expandedCard, setExpandedCard] = useState(-1);
 
   return (
-    <PageLayout {...props}>
+    <PageLayout>
       {/* Hero Section */}
       <section id="home" className="relative">
         <motion.div

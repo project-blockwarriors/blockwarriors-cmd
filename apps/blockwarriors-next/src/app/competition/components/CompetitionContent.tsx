@@ -6,11 +6,12 @@ import {
   UserGroupIcon,
   TrophyIcon,
 } from '@heroicons/react/24/outline';
-import { PageLayout, PageLayoutProps } from '../../components/(pageLayout)/PageLayout';
+import { PageLayout } from '../../components/(pageLayout)/PageLayout';
+import { useQuery } from 'convex/react';
+import { api } from '@/lib/convex';
 
-type CompetitionContentProps = Omit<PageLayoutProps, 'children'>;
-
-export default function CompetitionContent(props: CompetitionContentProps) {
+export default function CompetitionContent() {
+  const startTournament = useQuery(api.settings.getTournamentSettings) ?? false;
   const sectionVariants = {
     initial: { opacity: 0, y: 50 },
     animate: { opacity: 1, y: 0 },
@@ -18,7 +19,7 @@ export default function CompetitionContent(props: CompetitionContentProps) {
   };
 
   return (
-    <PageLayout {...props}>
+    <PageLayout>
       {/* Hero Section */}
       <section className="relative">
         <motion.div
@@ -322,15 +323,15 @@ export default function CompetitionContent(props: CompetitionContentProps) {
               tournament.
             </p>
             <motion.button
-              className={`inline-block px-8 py-3 bg-gradient-to-r from-[#FFA500] to-[#FFB733] rounded-lg text-black font-semibold relative group overflow-hidden ${!props.startTournament && 'opacity-50 cursor-not-allowed'}`}
-              whileHover={props.startTournament ? { scale: 1.05 } : undefined}
-              whileTap={props.startTournament ? { scale: 0.95 } : undefined}
-              disabled={!props.startTournament}
+              className={`inline-block px-8 py-3 bg-gradient-to-r from-[#FFA500] to-[#FFB733] rounded-lg text-black font-semibold relative group overflow-hidden ${!startTournament && 'opacity-50 cursor-not-allowed'}`}
+              whileHover={startTournament ? { scale: 1.05 } : undefined}
+              whileTap={startTournament ? { scale: 0.95 } : undefined}
+              disabled={!startTournament}
             >
               <span className="relative z-10">
-                {props.startTournament ? 'Register Your Team →' : 'Registration Coming Soon'}
+                {startTournament ? 'Register Your Team →' : 'Registration Coming Soon'}
               </span>
-              <div className={`absolute inset-0 bg-gradient-to-r from-[#FFB733] to-[#FFA500] opacity-0 ${props.startTournament ? 'group-hover:opacity-100' : ''} transition-opacity duration-300`} />
+              <div className={`absolute inset-0 bg-gradient-to-r from-[#FFB733] to-[#FFA500] opacity-0 ${startTournament ? 'group-hover:opacity-100' : ''} transition-opacity duration-300`} />
             </motion.button>
           </div>
         </motion.div>

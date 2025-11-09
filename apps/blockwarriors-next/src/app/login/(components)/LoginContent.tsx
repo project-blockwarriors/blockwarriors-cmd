@@ -2,7 +2,7 @@
 
 import GoogleSignInButton from '@/components/common/GoogleSignInButton';
 import LoginForm from '@/app/login/(components)/LoginForm';
-import { PageLayout, PageLayoutProps } from '@/app/components/(pageLayout)/PageLayout';
+import { PageLayout } from '@/app/components/(pageLayout)/PageLayout';
 import {
   Card,
   CardContent,
@@ -11,11 +11,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-type LoginContentProps = Omit<PageLayoutProps, 'children'>;
-
-export default function LoginContent(props: LoginContentProps) {
+export default function LoginContent() {
   return (
-    <PageLayout {...props}>
+    <PageLayout>
       <div className="flex justify-center px-4">
         <div className="w-full max-w-md">
           <Card className="p-6 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">

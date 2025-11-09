@@ -1,8 +1,14 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Gamepad2 } from 'lucide-react';
 import Link from 'next/link';
+import { useQuery } from 'convex/react';
+import { api } from '@/lib/convex';
 
-export function Header({ startTournament }: { startTournament: boolean }) {
+export function Header() {
+  const startTournament = useQuery(api.settings.getTournamentSettings) ?? false;
+
   return (
     <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:gap-0 mb-8">
       <div className="flex items-center gap-3">
