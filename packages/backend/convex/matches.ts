@@ -1,6 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id, Doc } from "../_generated/dataModel";
 import { v4 as uuidv4 } from "uuid";
 
 // Create a new match
@@ -8,8 +8,8 @@ export const createMatch = mutation({
   args: {
     matchType: v.string(),
     matchStatus: v.string(),
-    blueTeamId: v.id("gameTeams"),
-    redTeamId: v.id("gameTeams"),
+    blueTeamId: v.id("game_teams"),
+    redTeamId: v.id("game_teams"),
     mode: v.string(),
   },
   handler: async (ctx, args) => {
@@ -17,15 +17,12 @@ export const createMatch = mutation({
     const expiresAt = now + 15 * 60 * 1000; // 15 minutes from now
 
     const matchId = await ctx.db.insert("matches", {
-      matchType: args.matchType,
-      matchStatus: args.matchStatus,
-      matchElo: null,
-      winnerTeamId: null,
-      blueTeamId: args.blueTeamId,
-      redTeamId: args.redTeamId,
+      match_type: args.matchType,
+      match_status: args.matchStatus,
+      blue_team_id: args.blueTeamId,
+      red_team_id: args.redTeamId,
       mode: args.mode,
-      createdAt: now,
-      expiresAt: expiresAt,
+      expires_at: expiresAt,
     });
 
     return matchId;
@@ -45,15 +42,14 @@ export const getMatchById = query({
 
     return {
       match_id: match._id,
-      match_type: match.matchType,
-      match_status: match.matchStatus,
-      match_elo: match.matchElo,
-      winner_team_id: match.winnerTeamId,
-      blue_team_id: match.blueTeamId,
-      red_team_id: match.redTeamId,
+      match_type: match.match_type,
+      match_status: match.match_status,
+      match_elo: match.match_elo,
+      winner_team_id: match.winner_team_id,
+      blue_team_id: match.blue_team_id,
+      red_team_id: match.red_team_id,
       mode: match.mode,
-      created_at: match.createdAt,
-      expires_at: match.expiresAt,
+      expires_at: match.expires_at,
     };
   },
 });
@@ -65,31 +61,30 @@ export const getMatchByToken = query({
   },
   handler: async (ctx, args) => {
     const tokenDoc = await ctx.db
-      .query("gameTokens")
+      .query("game_tokens")
       .withIndex("by_token", (q) => q.eq("token", args.token))
       .first();
 
-    if (!tokenDoc || !tokenDoc.isActive) {
+    if (!tokenDoc || !tokenDoc.is_active) {
       return null;
     }
 
-    const match = await ctx.db.get(tokenDoc.matchId);
+    const match = await ctx.db.get(tokenDoc.match_id);
     if (!match) {
       return null;
     }
 
     return {
       match_id: match._id,
-      match_type: match.matchType,
-      match_status: match.matchStatus,
-      match_elo: match.matchElo,
-      winner_team_id: match.winnerTeamId,
-      blue_team_id: match.blueTeamId,
-      red_team_id: match.redTeamId,
+      match_type: match.match_type,
+      match_status: match.match_status,
+      match_elo: match.match_elo,
+      winner_team_id: match.winner_team_id,
+      blue_team_id: match.blue_team_id,
+      red_team_id: match.red_team_id,
       mode: match.mode,
-      created_at: match.createdAt,
-      expires_at: match.expiresAt,
-      game_team_id: tokenDoc.gameTeamId,
+      expires_at: match.expires_at,
+      game_team_id: tokenDoc.game_team_id,
     };
   },
 });
@@ -102,7 +97,7 @@ export const updateMatchStatus = mutation({
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.matchId, {
-      matchStatus: args.status,
+      match_status: args.status,
     });
     return { success: true };
   },
@@ -112,14 +107,14 @@ export const updateMatchStatus = mutation({
 export const setMatchWinner = mutation({
   args: {
     matchId: v.id("matches"),
-    winnerTeamId: v.id("gameTeams"),
+    winnerTeamId: v.id("game_teams"),
     matchElo: v.union(v.number(), v.null()),
   },
   handler: async (ctx, args) => {
     await ctx.db.patch(args.matchId, {
-      winnerTeamId: args.winnerTeamId,
-      matchStatus: "completed",
-      matchElo: args.matchElo,
+      winner_team_id: args.winnerTeamId,
+      match_status: "completed",
+      match_elo: args.matchElo ?? undefined,
     });
     return { success: true };
   },
@@ -134,7 +129,7 @@ export const createMatchWithTokens = mutation({
     matchType: v.string(),
     matchStatus: v.string(),
     mode: v.string(),
-    userId: v.union(v.string(), v.null()),
+    userId: v.string(),
     tokensPerTeam: v.number(),
   },
   handler: async (ctx, args) => {
@@ -143,33 +138,28 @@ export const createMatchWithTokens = mutation({
 
     // Step 1: Create game teams (red and blue)
     // Using empty bot arrays for practice matches (can be configured later)
-    const redTeamId = await ctx.db.insert("gameTeams", {
+    const redTeamId = await ctx.db.insert("game_teams", {
       bots: [],
-      createdAt: now,
     });
 
-    const blueTeamId = await ctx.db.insert("gameTeams", {
+    const blueTeamId = await ctx.db.insert("game_teams", {
       bots: [],
-      createdAt: now,
     });
 
     // Step 2: Create match
     const matchId = await ctx.db.insert("matches", {
-      matchType: args.matchType,
-      matchStatus: args.matchStatus,
-      matchElo: null,
-      winnerTeamId: null,
-      blueTeamId: blueTeamId,
-      redTeamId: redTeamId,
+      match_type: args.matchType,
+      match_status: args.matchStatus,
+      blue_team_id: blueTeamId,
+      red_team_id: redTeamId,
       mode: args.mode,
-      createdAt: now,
-      expiresAt: expiresAt,
+      expires_at: expiresAt,
     });
 
     // Step 3: Generate tokens for both teams directly in this mutation
     // This ensures atomicity - all tokens are created in the same transaction
     const generateTokensForTeam = async (
-      teamId: Id<"gameTeams">,
+      teamId: Id<"game_teams">,
       count: number
     ): Promise<string[]> => {
       const tokens: string[] = [];
@@ -188,7 +178,7 @@ export const createMatchWithTokens = mutation({
       const finalTokens: string[] = [];
       for (const token of tokens) {
         const existing = await ctx.db
-          .query("gameTokens")
+          .query("game_tokens")
           .withIndex("by_token", (q) => q.eq("token", token))
           .first();
         
@@ -200,7 +190,7 @@ export const createMatchWithTokens = mutation({
           while (!isUnique && attempts < 10) {
             newToken = uuidv4();
             const existingCheck = await ctx.db
-              .query("gameTokens")
+              .query("game_tokens")
               .withIndex("by_token", (q) => q.eq("token", newToken))
               .first();
             
@@ -220,16 +210,17 @@ export const createMatchWithTokens = mutation({
 
       // Insert all tokens for this team
       for (const token of finalTokens) {
-        await ctx.db.insert("gameTokens", {
+        const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
           token: token,
-          userId: args.userId,
-          matchId: matchId,
-          gameTeamId: teamId,
-          botId: null,
-          createdAt: now,
-          expiresAt: expiresAt,
-          isActive: true,
-        });
+          match_id: matchId,
+          game_team_id: teamId,
+          created_at: now,
+          expires_at: expiresAt,
+          is_active: true,
+          user_id: args.userId,
+        };
+        
+        await ctx.db.insert("game_tokens", tokenData);
       }
 
       return finalTokens;

@@ -15,7 +15,7 @@ import type {
   SystemTableNames,
 } from "convex/server";
 import type { GenericId } from "convex/values";
-import schema from "../schema.js";
+import schema from "../convex/schema.js";
 
 /**
  * The names of all of your Convex tables.

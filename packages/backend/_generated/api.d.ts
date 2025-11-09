@@ -8,15 +8,15 @@
  * @module
  */
 
-import type * as auth from "../auth.js";
-import type * as example from "../example.js";
-import type * as gameTeams from "../gameTeams.js";
-import type * as http from "../http.js";
-import type * as matches from "../matches.js";
+import type * as auth from "../convex/auth.js";
+import type * as example from "../convex/example.js";
+import type * as gameTeams from "../convex/gameTeams.js";
+import type * as http from "../convex/http.js";
+import type * as matches from "../convex/matches.js";
 import type * as settings from "../settings.js";
-import type * as teams from "../teams.js";
-import type * as tokens from "../tokens.js";
-import type * as userProfiles from "../userProfiles.js";
+import type * as teams from "../convex/teams.js";
+import type * as tokens from "../convex/tokens.js";
+import type * as userProfiles from "../convex/userProfiles.js";
 
 import type {
   ApiFromModules,

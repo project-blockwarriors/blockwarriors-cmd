@@ -1,6 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id } from "../_generated/dataModel";
 
 // Get all teams with their members
 export const getAllTeamsWithMembers = query({
@@ -12,23 +12,21 @@ export const getAllTeamsWithMembers = query({
       teams.map(async (team) => {
         // Get all users in this team
         const members = await ctx.db
-          .query("userProfiles")
-          .withIndex("by_teamId", (q) => q.eq("teamId", team._id))
+          .query("user_profiles")
+          .withIndex("by_team_id", (q) => q.eq("team_id", team._id))
           .collect();
 
         return {
           id: team._id,
-          team_name: team.teamName,
-          leader_id: team.leaderId,
-          team_elo: team.teamElo,
-          team_wins: team.teamWins,
-          team_losses: team.teamLosses,
-          time_zone: team.timeZone,
-          description: team.description,
+          team_name: team.team_name,
+          leader_id: team.leader_id,
+          team_elo: team.team_elo,
+          team_wins: team.team_wins,
+          team_losses: team.team_losses,
           members: members.map((member) => ({
-            user_id: member.userId,
-            first_name: member.firstName,
-            last_name: member.lastName,
+            user_id: member.user_id,
+            first_name: member.first_name,
+            last_name: member.last_name,
           })),
         };
       })
@@ -50,23 +48,21 @@ export const getTeamById = query({
     }
 
     const members = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_teamId", (q) => q.eq("teamId", args.teamId))
+      .query("user_profiles")
+      .withIndex("by_team_id", (q) => q.eq("team_id", args.teamId))
       .collect();
 
     return {
       id: team._id,
-      team_name: team.teamName,
-      leader_id: team.leaderId,
-      team_elo: team.teamElo,
-      team_wins: team.teamWins,
-      team_losses: team.teamLosses,
-      time_zone: team.timeZone,
-      description: team.description,
+      team_name: team.team_name,
+      leader_id: team.leader_id,
+      team_elo: team.team_elo,
+      team_wins: team.team_wins,
+      team_losses: team.team_losses,
       members: members.map((member) => ({
-        user_id: member.userId,
-        first_name: member.firstName,
-        last_name: member.lastName,
+        user_id: member.user_id,
+        first_name: member.first_name,
+        last_name: member.last_name,
       })),
     };
   },
@@ -84,11 +80,11 @@ export const getTeamLeaderboard = query({
 
     return teams.map((team) => ({
       id: team._id,
-      team_name: team.teamName,
-      leader_id: team.leaderId,
-      team_elo: team.teamElo,
-      team_wins: team.teamWins,
-      team_losses: team.teamLosses,
+      team_name: team.team_name,
+      leader_id: team.leader_id,
+      team_elo: team.team_elo,
+      team_wins: team.team_wins,
+      team_losses: team.team_losses,
     }));
   },
 });
@@ -97,53 +93,48 @@ export const getTeamLeaderboard = query({
 export const createTeam = mutation({
   args: {
     teamName: v.string(),
-    timeZone: v.string(),
     leaderId: v.string(),
   },
   handler: async (ctx, args) => {
     // Check if user is already in a team
     const userProfile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.leaderId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.leaderId))
       .first();
 
     if (!userProfile) {
       throw new Error("User profile not found");
     }
 
-    if (userProfile.teamId) {
+    if (userProfile.team_id) {
       throw new Error("You are already a member of a team");
     }
 
     // Check if team name already exists
     const existingTeam = await ctx.db
       .query("teams")
-      .filter((q) => q.eq(q.field("teamName"), args.teamName))
+      .filter((q) => q.eq(q.field("team_name"), args.teamName))
       .first();
 
     if (existingTeam) {
       throw new Error("Team name already exists");
     }
 
-    const now = Date.now();
-
     // Create the team
     const teamId = await ctx.db.insert("teams", {
-      teamName: args.teamName,
-      description: null,
-      leaderId: args.leaderId,
-      timeZone: args.timeZone,
-      teamElo: 0,
-      teamWins: 0,
-      teamLosses: 0,
-      createdAt: now,
-      updatedAt: now,
+      team_name: args.teamName,
+      leader_id: args.leaderId,
+      team_elo: 0,
+      team_wins: 0,
+      team_losses: 0,
     });
 
-    // Update user's teamId
+    const now = Date.now();
+
+    // Update user's team_id
     await ctx.db.patch(userProfile._id, {
-      teamId: teamId,
-      updatedAt: now,
+      team_id: teamId,
+      updated_at: now,
     });
 
     const team = await ctx.db.get(teamId);
@@ -153,12 +144,11 @@ export const createTeam = mutation({
 
     return {
       id: team._id,
-      team_name: team.teamName,
-      leader_id: team.leaderId,
-      team_elo: team.teamElo,
-      team_wins: team.teamWins,
-      team_losses: team.teamLosses,
-      time_zone: team.timeZone,
+      team_name: team.team_name,
+      leader_id: team.leader_id,
+      team_elo: team.team_elo,
+      team_wins: team.team_wins,
+      team_losses: team.team_losses,
     };
   },
 });
@@ -171,8 +161,8 @@ export const updateUserTeam = mutation({
   },
   handler: async (ctx, args) => {
     const userProfile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (!userProfile) {
@@ -181,8 +171,8 @@ export const updateUserTeam = mutation({
 
     const now = Date.now();
     await ctx.db.patch(userProfile._id, {
-      teamId: args.teamId,
-      updatedAt: now,
+      team_id: args.teamId ?? undefined,
+      updated_at: now,
     });
 
     return { success: true };
@@ -204,22 +194,22 @@ export const joinTeam = mutation({
 
     // Check if user is already in a team
     const userProfile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (!userProfile) {
       throw new Error("User profile not found");
     }
 
-    if (userProfile.teamId) {
+    if (userProfile.team_id) {
       throw new Error("You are already a member of a team");
     }
 
     const now = Date.now();
     await ctx.db.patch(userProfile._id, {
-      teamId: args.teamId,
-      updatedAt: now,
+      team_id: args.teamId,
+      updated_at: now,
     });
 
     return { success: true };
@@ -233,22 +223,22 @@ export const leaveTeam = mutation({
   },
   handler: async (ctx, args) => {
     const userProfile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (!userProfile) {
       throw new Error("User profile not found");
     }
 
-    if (!userProfile.teamId) {
+    if (!userProfile.team_id) {
       throw new Error("You are not a member of any team");
     }
 
     const now = Date.now();
     await ctx.db.patch(userProfile._id, {
-      teamId: null,
-      updatedAt: now,
+      team_id: undefined,
+      updated_at: now,
     });
 
     return { success: true };
@@ -268,14 +258,14 @@ export const disbandTeam = mutation({
       throw new Error("Team not found");
     }
 
-    if (team.leaderId !== args.leaderId) {
+    if (team.leader_id !== args.leaderId) {
       throw new Error("Only the team leader can disband the team");
     }
 
     // Get all team members
     const members = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_teamId", (q) => q.eq("teamId", args.teamId))
+      .query("user_profiles")
+      .withIndex("by_team_id", (q) => q.eq("team_id", args.teamId))
       .collect();
 
     const now = Date.now();
@@ -284,8 +274,8 @@ export const disbandTeam = mutation({
     await Promise.all(
       members.map((member) =>
         ctx.db.patch(member._id, {
-          teamId: null,
-          updatedAt: now,
+          team_id: undefined,
+          updated_at: now,
         })
       )
     );
@@ -307,7 +297,7 @@ export const getTeamElo = query({
     if (!team) {
       return null;
     }
-    return team.teamElo;
+    return team.team_elo;
   },
 });
 
@@ -323,11 +313,11 @@ export const getAllTeamsScores = query({
 
     return teams.map((team) => ({
       id: team._id,
-      team_name: team.teamName,
-      leader_id: team.leaderId,
-      team_elo: team.teamElo,
-      team_wins: team.teamWins,
-      team_losses: team.teamLosses,
+      team_name: team.team_name,
+      leader_id: team.leader_id,
+      team_elo: team.team_elo,
+      team_wins: team.team_wins,
+      team_losses: team.team_losses,
     }));
   },
 });

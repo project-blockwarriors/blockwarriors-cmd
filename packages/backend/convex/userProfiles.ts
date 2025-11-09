@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
 import { authComponent } from "./auth";
 
@@ -31,37 +31,36 @@ export const getUserProfile = query({
   },
   handler: async (ctx, args) => {
     const profile = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (!profile) {
       return null;
     }
 
-    // Get team data from Convex if teamId exists
+    // Get team data from Convex if team_id exists
     let team = null;
-    if (profile.teamId) {
-      const teamData = await ctx.db.get(profile.teamId);
+    if (profile.team_id) {
+      const teamData = await ctx.db.get(profile.team_id);
       if (teamData) {
         team = {
           id: teamData._id,
-          team_name: teamData.teamName,
-          leader_id: teamData.leaderId,
-          team_elo: teamData.teamElo,
-          team_wins: teamData.teamWins,
-          team_losses: teamData.teamLosses,
-          time_zone: teamData.timeZone,
+          team_name: teamData.team_name,
+          leader_id: teamData.leader_id,
+          team_elo: teamData.team_elo,
+          team_wins: teamData.team_wins,
+          team_losses: teamData.team_losses,
         };
       }
     }
 
     return {
-      user_id: profile.userId,
-      first_name: profile.firstName,
-      last_name: profile.lastName,
+      user_id: profile.user_id,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
       institution: profile.institution,
-      geographic_location: profile.geographicLocation,
+      geographic_location: profile.geographic_location,
       team: team,
     };
   },
@@ -69,6 +68,8 @@ export const getUserProfile = query({
 
 // Initialize user profile from Google OAuth data (name, email, etc.)
 // This should be called when a user first signs up to prefill their profile
+// Note: Since all fields are now required, this creates a profile with placeholder values
+// that must be filled in by the user during setup
 export const initializeUserProfile = mutation({
   args: {
     userId: v.string(),
@@ -76,8 +77,8 @@ export const initializeUserProfile = mutation({
   handler: async (ctx, args) => {
     // Check if profile already exists
     const existing = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     if (existing) {
@@ -91,25 +92,24 @@ export const initializeUserProfile = mutation({
     const now = Date.now();
     
     // Extract name from BetterAuth user data
-    let firstName: string | null = null;
-    let lastName: string | null = null;
+    let firstName = "";
+    let lastName = "";
     
     if (authUser?.name) {
       const nameParts = splitName(authUser.name);
-      firstName = nameParts.firstName;
-      lastName = nameParts.lastName;
+      firstName = nameParts.firstName || "";
+      lastName = nameParts.lastName || "";
     }
 
-    // Create new profile with prefilled name data from Google OAuth
-    await ctx.db.insert("userProfiles", {
-      userId: args.userId,
-      firstName: firstName,
-      lastName: lastName,
-      institution: null,
-      geographicLocation: null,
-      teamId: null,
-      createdAt: now,
-      updatedAt: now,
+    // Create new profile with all required fields
+    // Use empty strings as placeholders for fields that must be filled during setup
+    await ctx.db.insert("user_profiles", {
+      user_id: args.userId,
+      first_name: firstName,
+      last_name: lastName,
+      institution: "", // Must be filled during setup
+      geographic_location: "", // Must be filled during setup
+      updated_at: now,
     });
 
     return { success: true, alreadyExists: false };
@@ -120,40 +120,48 @@ export const initializeUserProfile = mutation({
 export const updateUserProfile = mutation({
   args: {
     userId: v.string(),
-    firstName: v.union(v.string(), v.null()),
-    lastName: v.union(v.string(), v.null()),
-    institution: v.union(v.string(), v.null()),
-    geographicLocation: v.union(v.string(), v.null()),
+    firstName: v.string(),
+    lastName: v.string(),
+    institution: v.string(),
+    geographicLocation: v.string(),
   },
   handler: async (ctx, args) => {
+    // Validate that all required fields are non-empty
+    if (
+      !args.firstName?.trim() ||
+      !args.lastName?.trim() ||
+      !args.institution?.trim() ||
+      !args.geographicLocation?.trim()
+    ) {
+      throw new Error("All profile fields are required and cannot be empty");
+    }
+
     const existing = await ctx.db
-      .query("userProfiles")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
       .first();
 
     const now = Date.now();
 
     if (existing) {
-      // Update existing profile
+      // Update existing profile with all required fields
       await ctx.db.patch(existing._id, {
-        firstName: args.firstName,
-        lastName: args.lastName,
-        institution: args.institution,
-        geographicLocation: args.geographicLocation,
-        updatedAt: now,
+        first_name: args.firstName.trim(),
+        last_name: args.lastName.trim(),
+        institution: args.institution.trim(),
+        geographic_location: args.geographicLocation.trim(),
+        updated_at: now,
       });
       return { success: true };
     } else {
-      // Create new profile
-      await ctx.db.insert("userProfiles", {
-        userId: args.userId,
-        firstName: args.firstName,
-        lastName: args.lastName,
-        institution: args.institution,
-        geographicLocation: args.geographicLocation,
-        teamId: null,
-        createdAt: now,
-        updatedAt: now,
+      // Create new profile with all required fields
+      await ctx.db.insert("user_profiles", {
+        user_id: args.userId,
+        first_name: args.firstName.trim(),
+        last_name: args.lastName.trim(),
+        institution: args.institution.trim(),
+        geographic_location: args.geographicLocation.trim(),
+        updated_at: now,
       });
       return { success: true };
     }

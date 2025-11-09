@@ -21,14 +21,11 @@ export async function middleware(request: NextRequest) {
     '/dashboard/teams',
     '/dashboard/leaderboard',
     '/dashboard/practice',
+    '/dashboard/setup',
   ];
-  const setupRoutes = ['/dashboard/setup'];
   const authRoutes = ['/login'];
 
   const isProtectedRoute = protectedRoutes.some(
-    (route) => path === route || path.startsWith(route + '/')
-  );
-  const isSetupRoute = setupRoutes.some(
     (route) => path === route || path.startsWith(route + '/')
   );
   const isAuthRoute = authRoutes.includes(path);
@@ -42,14 +39,17 @@ export async function middleware(request: NextRequest) {
   }
 
   // Handle protected routes - redirect to login if not authenticated (no session cookie)
-  if (!sessionCookie && (isProtectedRoute || isSetupRoute)) {
+  if (!sessionCookie && isProtectedRoute) {
     const loginUrl = new URL('/login', request.url);
     // Preserve the original URL as a query parameter so we can redirect back after login
     loginUrl.searchParams.set('redirect', path);
     return NextResponse.redirect(loginUrl);
   }
 
-  return NextResponse.next();
+  // Add pathname to headers for use in server components
+  const response = NextResponse.next();
+  response.headers.set('x-pathname', path);
+  return response;
 }
 
 export const config = {

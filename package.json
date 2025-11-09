@@ -13,12 +13,10 @@
     "dev": "turbo dev",
     "build": "turbo build",
     "lint": "turbo lint",
-    "setup": "turbo setup",
-    "codegen": "turbo codegen"
+    "codegen": "cd packages/backend && convex codegen",
+    "deploy": "cd packages/backend && convex deploy"
   },
   "devDependencies": {
-    "concurrently": "^9.1.0",
-    "convex": "^1.28.0",
     "turbo": "^2.3.3"
   },
   "dependencies": {

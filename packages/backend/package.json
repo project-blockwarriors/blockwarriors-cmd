@@ -10,7 +10,7 @@
     "deploy": "convex deploy"
   },
   "dependencies": {
-    "convex": "^1.28.0",
+    "convex": "^1.28.2",
     "@convex-dev/better-auth": "^0.9.6"
   },
   "devDependencies": {

@@ -57,9 +57,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="first_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>First Name</FormLabel>
+              <FormLabel>First Name *</FormLabel>
               <FormControl>
-                <Input placeholder="John" {...field} />
+                <Input 
+                  placeholder="John" 
+                  {...field} 
+                  value={field.value || ''} 
+                  required
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -71,9 +76,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="last_name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Last Name</FormLabel>
+              <FormLabel>Last Name *</FormLabel>
               <FormControl>
-                <Input placeholder="Doe" {...field} />
+                <Input 
+                  placeholder="Doe" 
+                  {...field} 
+                  value={field.value || ''} 
+                  required
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -85,9 +95,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="institution"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Institution</FormLabel>
+              <FormLabel>Institution *</FormLabel>
               <FormControl>
-                <Input placeholder="Princeton University" {...field} />
+                <Input 
+                  placeholder="Princeton University" 
+                  {...field} 
+                  value={field.value || ''} 
+                  required
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -99,9 +114,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="geographic_location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Geographic Location</FormLabel>
+              <FormLabel>Geographic Location *</FormLabel>
               <FormControl>
-                <Input placeholder="Princeton, NJ" {...field} />
+                <Input 
+                  placeholder="Princeton, NJ" 
+                  {...field} 
+                  value={field.value || ''} 
+                  required
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

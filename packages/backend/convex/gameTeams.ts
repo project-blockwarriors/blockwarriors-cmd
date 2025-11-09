@@ -1,6 +1,6 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation } from "../_generated/server";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import { Id } from "../_generated/dataModel";
 
 // Create a game team
 export const createGameTeam = mutation({
@@ -10,9 +10,8 @@ export const createGameTeam = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    const gameTeamId = await ctx.db.insert("gameTeams", {
+    const gameTeamId = await ctx.db.insert("game_teams", {
       bots: args.bots,
-      createdAt: now,
     });
 
     return gameTeamId;
@@ -28,14 +27,12 @@ export const createGameTeamsForMatch = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
-    const redTeamId = await ctx.db.insert("gameTeams", {
+    const redTeamId = await ctx.db.insert("game_teams", {
       bots: args.redTeamBots,
-      createdAt: now,
     });
 
-    const blueTeamId = await ctx.db.insert("gameTeams", {
+    const blueTeamId = await ctx.db.insert("game_teams", {
       bots: args.blueTeamBots,
-      createdAt: now,
     });
 
     return {
@@ -48,7 +45,7 @@ export const createGameTeamsForMatch = mutation({
 // Get game team by ID
 export const getGameTeamById = query({
   args: {
-    gameTeamId: v.id("gameTeams"),
+    gameTeamId: v.id("game_teams"),
   },
   handler: async (ctx, args) => {
     const gameTeam = await ctx.db.get(args.gameTeamId);
@@ -59,7 +56,6 @@ export const getGameTeamById = query({
     return {
       game_team_id: gameTeam._id,
       bots: gameTeam.bots,
-      created_at: gameTeam.createdAt,
     };
   },
 });

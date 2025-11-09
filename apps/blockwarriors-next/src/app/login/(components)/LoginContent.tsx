@@ -11,12 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 
-type LoginContentProps = Omit<PageLayoutProps, 'children'> & {
-  startTournament: boolean;
-  showTopBanner: boolean;
-  bannerTextContent: string;
-  bannerButtonContent: string;
-};
+type LoginContentProps = Omit<PageLayoutProps, 'children'>;
 
 export default function LoginContent(props: LoginContentProps) {
   return (

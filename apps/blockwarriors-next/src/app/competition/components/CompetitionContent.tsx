@@ -8,12 +8,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { PageLayout, PageLayoutProps } from '../../components/(pageLayout)/PageLayout';
 
-type CompetitionContentProps = Omit<PageLayoutProps, 'children'> & {
-  startTournament: boolean;
-  showTopBanner: boolean;
-  bannerTextContent: string;
-  bannerButtonContent: string;
-};
+type CompetitionContentProps = Omit<PageLayoutProps, 'children'>;
 
 export default function CompetitionContent(props: CompetitionContentProps) {
   const sectionVariants = {

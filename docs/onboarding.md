@@ -21,7 +21,6 @@ The project uses the following technologies:
 
 ### Backend
 - Next.js Server Actions/API Routes
-- Supabase (PostgreSQL, Auth, Storage)
 - Express.js with Socket.io
 - Minecraft Server (Paper/Spigot API)
 
@@ -49,59 +48,60 @@ cd blockwarriors-next
 #### Prerequisites
 
 - Node.js (Latest LTS version recommended)
-- Docker (for Supabase local development)
-- Supabase CLI
 - npm or yarn
 
-#### Install Dependencies
+#### Install Dependencies (Turborepo)
+
+Run this once at the repository root.
 
 ```bash
+# from repo root
 npm install
-# or
-yarn
 ```
 
-#### Set Up Google OAuth Environment Variables
+### 3. Set Up Convex (Auth + Data)
 
-Before setting up Supabase, you need to configure Google OAuth credentials. Create a `.env.local` file in the `blockwarriors-next` directory with the following variables:
+Convex powers auth and backend queries/mutations. Set it up once and share across apps.
 
-```
-# Google OAuth (Required BEFORE launching Supabase)
-SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID=your_google_client_id
-SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET=your_google_client_secret
-```
+1. Initialize Convex (if not already):
+   ```bash
+   # First-time setup must be run from the backend package
+   cd packages/backend
+   npx convex dev
+   ```
+   When it prints the Convex onboarding link, open it and complete the setup.
+   After the initial setup completes, stop the process (Ctrl+C). You can then
+   run `npx convex dev` again whenever developing.
 
-### 3. Set Up Supabase
+2. Configure Convex Environment Variables (Convex Cloud dashboard → Settings → Environment Variables):
+   Set them using the CLI (recommended):
+   ```bash
+   npx convex env set GOOGLE_CLIENT_ID your_google_client_id
+   npx convex env set GOOGLE_CLIENT_SECRET your_google_client_secret
+   npx convex env set SITE_URL http://localhost:3000
+   # For production, set SITE_URL to your public site URL
+   ```
 
-Follow these steps to set up your local Supabase instance:
+   These are required because Convex auth (in `packages/backend/convex/auth.ts`) reads from `process.env` inside the Convex runtime.
 
-1. Navigate to `blockwarriors-next` directory
-2. Install the Supabase CLI if it does not exist
-3. Log in to Supabase: `npx supabase login`
-4. Start Supabase: `npx supabase start`
-5. Update your `.env` file with the Supabase URL and anonymous key
+3. Configure app environment variables that point to your Convex deployment:
+   - Next.js app (`apps/blockwarriors-next/.env.local`):
+     ```
+     NEXT_PUBLIC_CONVEX_DEPLOYMENT=your-convex-deployment-name
+     NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud   
+     NEXT_PUBLIC_CONVEX_SITE_URL=http://your-deployment.convex.site
+     NEXT_PUBLIC_SITE_URL=http://localhost:3000
+     ```
+   - Socket app (`apps/blockwarriors-socket/.env`):
+     ```
+     CONVEX_DEPLOYMENT=your-convex-deployment-name
+     CONVEX_URL=https://your-deployment.convex.cloud
+     ```
 
-For detailed instructions on working with Supabase, see [Supabase Guide](./supabase.md).
-
-#### Update Environment Variables with Supabase Credentials
-
-After starting Supabase, you need to add the Supabase credentials to your environment files.
-
-**For the Next.js application**, add these variables to your `.env.local` file in the `blockwarriors-next` directory:
-
-```
-# Supabase (Add these AFTER launching Supabase)
-NEXT_PUBLIC_SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_SUPABASE_ANON_KEY
-```
-
-**For the Socket.io server**, create a `.env` file in the `blockwarriors-socket` directory with the following variables:
-
-```
-# Supabase credentials (obtain these from running 'npx supabase status')
-SUPABASE_DATABASE_URL=your_SUPABASE_DATABASE_URL
-SUPABASE_SERVICE_ROLE_KEY=your_SUPABASE_SERVICE_ROLE_KEY
-```
+4. Generate Convex types:
+   ```bash
+   npm run convex:codegen
+   ```
 
 ### 4. Set Up Socket.io Server
 
@@ -115,8 +115,6 @@ Install dependencies:
 
 ```bash
 npm install
-# or
-yarn
 ```
 
 ### 5. Run the Applications
@@ -126,8 +124,6 @@ yarn
 ```bash
 cd blockwarriors-next
 npm run dev
-# or
-yarn dev
 ```
 
 #### Socket.io Server
@@ -135,8 +131,6 @@ yarn dev
 ```bash
 cd blockwarriors-socket
 npm run start
-# or
-yarn start
 ```
 
 ## Development Workflow
@@ -153,7 +147,6 @@ yarn start
 
 ## Additional Resources
 
-- [Supabase Documentation](https://supabase.com/docs)
 - [Next.js Documentation](https://nextjs.org/docs)
 - [Socket.io Documentation](https://socket.io/docs)
 - [Project Contributing Guide](./contributing.md)

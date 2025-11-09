@@ -6,8 +6,6 @@ import {
   updateUserProfile as updateUserProfileDb,
 } from '../db/users';
 import { getToken } from '@/lib/auth-server';
-import { fetchMutation } from 'convex/nextjs';
-import { api } from '@/lib/convex';
 
 // Profile Management Actions
 export async function getUserProfile(

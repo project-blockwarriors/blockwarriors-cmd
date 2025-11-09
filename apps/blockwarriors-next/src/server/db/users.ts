@@ -2,6 +2,7 @@ import { UserProfile } from '@/types/user';
 import { fetchQuery, fetchMutation } from 'convex/nextjs';
 import { api } from '@/lib/convex';
 import { getToken } from '@/lib/auth-server';
+import { revalidatePath } from 'next/cache';
 
 export async function getUserProfile(
   userId: string
@@ -85,6 +86,16 @@ export async function updateUserProfile(
       return { data: null, error: 'Not authenticated' };
     }
 
+    // Validate that required fields are not null before sending to Convex
+    if (
+      !newUserProfile.first_name?.trim() ||
+      !newUserProfile.last_name?.trim() ||
+      !newUserProfile.institution?.trim() ||
+      !newUserProfile.geographic_location?.trim()
+    ) {
+      return { data: null, error: 'All profile fields are required and cannot be empty' };
+    }
+
     await fetchMutation(
       api.userProfiles.updateUserProfile,
       {
@@ -96,6 +107,9 @@ export async function updateUserProfile(
       },
       { token }
     );
+
+    // Revalidate all dashboard pages to reflect the updated profile
+    revalidatePath('/dashboard', 'layout');
 
     return { data: { success: true }, error: null };
   } catch (error) {

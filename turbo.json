@@ -11,12 +11,6 @@
     },
     "lint": {
       "dependsOn": ["^lint"]
-    },
-    "setup": {
-      "cache": false
-    },
-    "codegen": {
-      "cache": false
     }
   }
 }

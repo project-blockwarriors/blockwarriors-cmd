@@ -3,6 +3,7 @@ import { api } from '@/lib/convex';
 import { getToken } from '@/lib/auth-server';
 import { TeamWithUsers, Team } from '@/types/team';
 import { Id } from '@packages/backend/_generated/dataModel';
+import { revalidatePath } from 'next/cache';
 
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
   try {
@@ -27,7 +28,6 @@ export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {
 
 export async function createTeam(
   teamName: string,
-  timeZone: string,
   leaderId: string
 ): Promise<{ data: Team | null; error: string | null }> {
   try {
@@ -40,11 +40,13 @@ export async function createTeam(
       api.teams.createTeam,
       {
         teamName,
-        timeZone,
         leaderId,
       },
       { token }
     );
+
+    // Revalidate dashboard layout to update sidebar with new team
+    revalidatePath('/dashboard', 'layout');
 
     return { data: team, error: null };
   } catch (error) {
@@ -74,6 +76,9 @@ export async function updateUserTeam(
       { token }
     );
 
+    // Revalidate dashboard layout to update sidebar with team changes
+    revalidatePath('/dashboard', 'layout');
+
     return { error: null };
   } catch (error) {
     return { error: (error as Error).message };
@@ -98,6 +103,9 @@ export async function disbandTeam(
       },
       { token }
     );
+
+    // Revalidate dashboard layout to update sidebar after team disband
+    revalidatePath('/dashboard', 'layout');
 
     return { error: null };
   } catch (error) {
