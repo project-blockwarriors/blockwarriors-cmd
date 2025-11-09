@@ -21,11 +21,16 @@ import { Users } from 'lucide-react';
 const createTeamSchema = z.object({
   teamName: z
     .string()
-    .min(3, 'Team name must be at least 3 characters')
-    .max(50, 'Team name cannot exceed 50 characters')
-    .regex(
-      /^[a-zA-Z0-9\s-]+$/,
-      'Only letters, numbers, spaces, and hyphens are allowed'
+    .transform((val) => val.trim())
+    .pipe(
+      z
+        .string()
+        .min(3, 'Team name must be at least 3 characters')
+        .max(50, 'Team name cannot exceed 50 characters')
+        .regex(
+          /^[a-zA-Z0-9\s-]+$/,
+          'Only letters, numbers, spaces, and hyphens are allowed'
+        )
     ),
 });
 
@@ -46,7 +51,7 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
   });
 
   async function onSubmit(data: CreateTeamFormData) {
-    const {error} = await createTeam(data.teamName.trim(), userId);
+    const {error} = await createTeam(data.teamName, userId);
     if (error) {
       console.error('Failed to create team:', error);
       form.setError('teamName', {

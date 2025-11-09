@@ -46,10 +46,16 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Add pathname to headers for use in server components
-  const response = NextResponse.next();
-  response.headers.set('x-pathname', path);
-  return response;
+  // Add pathname to request headers for use in server components
+  // Set it on request headers so it can be read by server components via headers()
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set('x-pathname', path);
+
+  return NextResponse.next({
+    request: {
+      headers: requestHeaders,
+    },
+  });
 }
 
 export const config = {
