@@ -12,7 +12,7 @@ import {
 import { joinTeam, leaveTeam, disbandTeam } from '@/server/actions/teams';
 import { useRouter } from 'next/navigation';
 import { TeamMember, TeamWithUsers } from '@/types/team';
-import { Id } from '@packages/backend/_generated/dataModel';
+import { Id } from '@packages/backend/convex/_generated/dataModel';
 import { Users, Crown, UserPlus, LogOut, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {

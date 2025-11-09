@@ -1,6 +1,5 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "../_generated/dataModel";
 
 // Create a game team
 export const createGameTeam = mutation({

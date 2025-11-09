@@ -1,6 +1,6 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id, Doc } from "../_generated/dataModel";
+import { Id, Doc } from "./_generated/dataModel";
 import { v4 as uuidv4 } from "uuid";
 
 // Create a single token

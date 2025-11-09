@@ -24,8 +24,9 @@ export default defineSchema({
     team_losses: v.number(),
     game_team_id: v.optional(v.string()),
   })
-    .index("by_leaderId", ["leader_id"])
-    .index("by_teamElo", ["team_elo"]),
+    .index("by_leader_id", ["leader_id"])
+    .index("by_team_elo", ["team_elo"])
+    .index("by_team_name", ["team_name"]),
 
   // Matches table
   matches: defineTable({

@@ -2,7 +2,7 @@ import { fetchQuery, fetchMutation } from 'convex/nextjs';
 import { api } from '@/lib/convex';
 import { getToken } from '@/lib/auth-server';
 import { TeamWithUsers, Team } from '@/types/team';
-import { Id } from '@packages/backend/_generated/dataModel';
+import { Id } from '@packages/backend/convex/_generated/dataModel';
 import { revalidatePath } from 'next/cache';
 
 export async function getAllTeamsWithMembers(): Promise<TeamWithUsers[]> {

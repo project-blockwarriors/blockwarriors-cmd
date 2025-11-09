@@ -1,10 +1,27 @@
-import { query, mutation } from "../_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id } from "../_generated/dataModel";
+import { Id } from "./_generated/dataModel";
 
 // Get all teams with their members
 export const getAllTeamsWithMembers = query({
   args: {},
+  returns: v.array(
+    v.object({
+      id: v.id("teams"),
+      team_name: v.string(),
+      leader_id: v.string(),
+      team_elo: v.number(),
+      team_wins: v.number(),
+      team_losses: v.number(),
+      members: v.array(
+        v.object({
+          user_id: v.string(),
+          first_name: v.string(),
+          last_name: v.string(),
+        })
+      ),
+    })
+  ),
   handler: async (ctx) => {
     const teams = await ctx.db.query("teams").collect();
     
@@ -41,6 +58,24 @@ export const getTeamById = query({
   args: {
     teamId: v.id("teams"),
   },
+  returns: v.union(
+    v.object({
+      id: v.id("teams"),
+      team_name: v.string(),
+      leader_id: v.string(),
+      team_elo: v.number(),
+      team_wins: v.number(),
+      team_losses: v.number(),
+      members: v.array(
+        v.object({
+          user_id: v.string(),
+          first_name: v.string(),
+          last_name: v.string(),
+        })
+      ),
+    }),
+    v.null()
+  ),
   handler: async (ctx, args) => {
     const team = await ctx.db.get(args.teamId);
     if (!team) {
@@ -71,10 +106,20 @@ export const getTeamById = query({
 // Get team leaderboard (sorted by ELO)
 export const getTeamLeaderboard = query({
   args: {},
+  returns: v.array(
+    v.object({
+      id: v.id("teams"),
+      team_name: v.string(),
+      leader_id: v.string(),
+      team_elo: v.number(),
+      team_wins: v.number(),
+      team_losses: v.number(),
+    })
+  ),
   handler: async (ctx) => {
     const teams = await ctx.db
       .query("teams")
-      .withIndex("by_teamElo")
+      .withIndex("by_team_elo")
       .order("desc")
       .collect();
 
@@ -95,6 +140,14 @@ export const createTeam = mutation({
     teamName: v.string(),
     leaderId: v.string(),
   },
+  returns: v.object({
+    id: v.id("teams"),
+    team_name: v.string(),
+    leader_id: v.string(),
+    team_elo: v.number(),
+    team_wins: v.number(),
+    team_losses: v.number(),
+  }),
   handler: async (ctx, args) => {
     // Check if user is already in a team
     const userProfile = await ctx.db
@@ -113,7 +166,7 @@ export const createTeam = mutation({
     // Check if team name already exists
     const existingTeam = await ctx.db
       .query("teams")
-      .filter((q) => q.eq(q.field("team_name"), args.teamName))
+      .withIndex("by_team_name", (q) => q.eq("team_name", args.teamName))
       .first();
 
     if (existingTeam) {
@@ -159,6 +212,9 @@ export const updateUserTeam = mutation({
     userId: v.string(),
     teamId: v.union(v.id("teams"), v.null()),
   },
+  returns: v.object({
+    success: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const userProfile = await ctx.db
       .query("user_profiles")
@@ -185,6 +241,9 @@ export const joinTeam = mutation({
     teamId: v.id("teams"),
     userId: v.string(),
   },
+  returns: v.object({
+    success: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // Verify team exists
     const team = await ctx.db.get(args.teamId);
@@ -221,6 +280,9 @@ export const leaveTeam = mutation({
   args: {
     userId: v.string(),
   },
+  returns: v.object({
+    success: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     const userProfile = await ctx.db
       .query("user_profiles")
@@ -251,6 +313,9 @@ export const disbandTeam = mutation({
     teamId: v.id("teams"),
     leaderId: v.string(),
   },
+  returns: v.object({
+    success: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // Verify team exists and user is the leader
     const team = await ctx.db.get(args.teamId);
@@ -292,6 +357,7 @@ export const getTeamElo = query({
   args: {
     teamId: v.id("teams"),
   },
+  returns: v.union(v.number(), v.null()),
   handler: async (ctx, args) => {
     const team = await ctx.db.get(args.teamId);
     if (!team) {
@@ -304,10 +370,20 @@ export const getTeamElo = query({
 // Get all teams scores
 export const getAllTeamsScores = query({
   args: {},
+  returns: v.array(
+    v.object({
+      id: v.id("teams"),
+      team_name: v.string(),
+      leader_id: v.string(),
+      team_elo: v.number(),
+      team_wins: v.number(),
+      team_losses: v.number(),
+    })
+  ),
   handler: async (ctx) => {
     const teams = await ctx.db
       .query("teams")
-      .withIndex("by_teamElo")
+      .withIndex("by_team_elo")
       .order("desc")
       .collect();
 
