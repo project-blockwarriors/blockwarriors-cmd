@@ -11,6 +11,9 @@ export const dynamic = 'force-dynamic';
  *
  * The route reads the BetterAuth session cookie and converts it to a
  * Convex authentication token that can be used with Convex HTTP client.
+ *
+ * Returns 204 No Content when no session exists (expected for unauthenticated users).
+ * This prevents browser console errors and is handled gracefully by ConvexBetterAuthProvider.
  */
 export async function GET() {
   try {
@@ -23,10 +26,9 @@ export async function GET() {
     const token = await getToken();
 
     if (!token) {
-      return NextResponse.json(
-        { error: 'Not authenticated', message: 'No active session found' },
-        { status: 401 }
-      );
+      // Return 204 No Content for unauthenticated users - this is expected and won't log as an error
+      // ConvexBetterAuthProvider handles this gracefully with expectAuth: false
+      return new NextResponse(null, { status: 204 });
     }
 
     return NextResponse.json({ token });

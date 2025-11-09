@@ -57,4 +57,11 @@ export default defineSchema({
   game_teams: defineTable({
     bots: v.array(v.number()),
   }),
+
+  // Settings table - stores application-wide configuration
+  settings: defineTable({
+    key: v.string(),
+    value: v.any(),
+    updated_at: v.number(),
+  }).index("by_key", ["key"]),
 });
