@@ -1,0 +1,9 @@
+.env.local
+
+# Convex
+.convex/
+*.log
+
+# turbo
+.turbo/
+
