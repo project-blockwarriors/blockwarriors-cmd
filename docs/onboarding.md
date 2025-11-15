@@ -70,6 +70,16 @@ Convex powers auth and backend queries/mutations. Set it up once and share acros
    After the initial setup completes, stop the process (Ctrl+C). You can then
    run `npx convex dev` again whenever developing.
 
+If it fails again here run the following two commands
+
+```bash
+npm i convex
+npm i @convex-dev/better-auth
+npm i uuid
+
+npx convex dev
+```
+
 2. Configure Convex Environment Variables (Convex Cloud dashboard → Settings → Environment Variables):
    Set them using the CLI (recommended):
 
