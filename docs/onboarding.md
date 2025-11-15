@@ -37,14 +37,6 @@ git clone https://github.com/project-blockwarriors/blockwarriors-cmd.git
 cd blockwarriors-cmd
 ```
 
-### 2. Set Up Next.js Application
-
-Navigate to the Next.js application directory:
-
-```bash
-cd blockwarriors-next
-```
-
 #### Prerequisites
 
 - Node.js (Latest LTS version recommended)
@@ -59,7 +51,7 @@ Run this once at the repository root.
 npm install
 ```
 
-### 3. Set Up Convex (Auth + Data)
+### 2. Set Up Convex (Auth + Data)
 
 Convex powers auth and backend queries/mutations. Set it up once and share across apps.
 
@@ -103,34 +95,13 @@ Convex powers auth and backend queries/mutations. Set it up once and share acros
    npm run convex:codegen
    ```
 
-### 4. Set Up Socket.io Server
-
-Navigate to the Socket.io server directory:
-
-```bash
-cd ../blockwarriors-socket
-```
-
-Install dependencies:
-
-```bash
-npm install
-```
-
-### 5. Run the Applications
+### 3. Run the Applications
 
 #### Next.js Application
 
 ```bash
-cd blockwarriors-next
+# from root repo
 npm run dev
-```
-
-#### Socket.io Server
-
-```bash
-cd blockwarriors-socket
-npm run start
 ```
 
 ## Development Workflow
