@@ -14,17 +14,20 @@ BlockWarriors Command Block is a monolithic repository for managing BlockWarrior
 The project uses the following technologies:
 
 ### Frontend
+
 - Next.js v15
 - React v18
 - TailwindCSS
 - Radix UI Components
 
 ### Backend
+
 - Next.js Server Actions/API Routes
 - Express.js with Socket.io
 - Minecraft Server (Paper/Spigot API)
 
 ### Authentication
+
 - Google OAuth
 - Email/Password
 
@@ -56,17 +59,20 @@ npm install
 Convex powers auth and backend queries/mutations. Set it up once and share across apps.
 
 1. Initialize Convex (if not already):
+
    ```bash
    # First-time setup must be run from the backend package
    cd packages/backend
    npx convex dev
    ```
+
    When it prints the Convex onboarding link, open it and complete the setup.
    After the initial setup completes, stop the process (Ctrl+C). You can then
    run `npx convex dev` again whenever developing.
 
 2. Configure Convex Environment Variables (Convex Cloud dashboard → Settings → Environment Variables):
    Set them using the CLI (recommended):
+
    ```bash
    npx convex env set GOOGLE_CLIENT_ID your_google_client_id
    npx convex env set GOOGLE_CLIENT_SECRET your_google_client_secret
@@ -80,7 +86,7 @@ Convex powers auth and backend queries/mutations. Set it up once and share acros
    - Next.js app (`apps/blockwarriors-next/.env.local`):
      ```
      NEXT_PUBLIC_CONVEX_DEPLOYMENT=your-convex-deployment-name
-     NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud   
+     NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
      NEXT_PUBLIC_CONVEX_SITE_URL=http://your-deployment.convex.site
      NEXT_PUBLIC_SITE_URL=http://localhost:3000
      ```
@@ -89,11 +95,6 @@ Convex powers auth and backend queries/mutations. Set it up once and share acros
      CONVEX_DEPLOYMENT=your-convex-deployment-name
      CONVEX_URL=https://your-deployment.convex.cloud
      ```
-
-4. Generate Convex types:
-   ```bash
-   npm run convex:codegen
-   ```
 
 ### 3. Run the Applications
 
@@ -107,9 +108,11 @@ npm run dev
 ## Development Workflow
 
 1. Create a feature branch following the naming convention:
+
    ```
    {first name initial}{lastname}-{feature}
    ```
+
    Example: `jdoe-login-page`
 
 2. Make your changes and test them locally
