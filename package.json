@@ -17,7 +17,8 @@
     "build": "turbo build",
     "lint": "turbo lint",
     "codegen": "cd packages/backend && convex codegen",
-    "deploy": "cd packages/backend && convex deploy"
+    "deploy": "cd packages/backend && convex deploy",
+    "convex:dashboard": "cd packages/backend && convex dashboard"
   },
   "devDependencies": {
     "turbo": "^2.3.3"

@@ -86,6 +86,7 @@ npx convex dev
    ```bash
    npx convex env set GOOGLE_CLIENT_ID your_google_client_id
    npx convex env set GOOGLE_CLIENT_SECRET your_google_client_secret
+   npx convex env set BETTER_AUTH_SECRET your_better_auth_secret
    npx convex env set SITE_URL http://localhost:3000
    # For production, set SITE_URL to your public site URL
    ```
