@@ -1,0 +1,110 @@
+package ai.blockwarriors.events;
+
+import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.*;
+
+import ai.blockwarriors.commands.LoginCommand;
+import io.socket.client.Socket;
+
+import java.util.logging.Logger;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+
+public class PlayerEventListener implements Listener {
+    private final Set<UUID> loggedInPlayers;
+    private Logger LOGGER = Logger.getLogger("beacon");
+    private LoginCommand loginCommand;
+
+    public PlayerEventListener(Set<UUID> loggedInPlayers, LoginCommand loginCommand) {
+        this.loggedInPlayers = loggedInPlayers;
+        this.loginCommand = loginCommand;
+    }
+
+    @EventHandler
+    public void onPlayerMove(PlayerMoveEvent event) {
+        if (!loggedInPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.getPlayer().sendMessage("Please do /login <token> to login first.");
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerInteract(PlayerInteractEvent event) {
+        if (!loggedInPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.getPlayer().sendMessage("Please do /login <token> to login first.");
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerChat(AsyncPlayerChatEvent event) {
+
+
+        if (!loggedInPlayers.contains(event.getPlayer().getUniqueId())) {
+            if (event.getMessage().startsWith("/login") || event.getMessage().startsWith("/re")) {
+                LOGGER.info("Logging in...");
+                event.getPlayer().sendMessage("Logging in...");
+                return;
+            }
+            event.getPlayer().sendMessage("Please do /login <token> to login first.");
+            LOGGER.info("Cancel chat event");
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
+        if (!loggedInPlayers.contains(event.getPlayer().getUniqueId())) {
+            if (event.getMessage().startsWith("/login") || event.getMessage().startsWith("/re")) {
+                LOGGER.info("Logging in...");
+                event.getPlayer().sendMessage("Logging in...");
+                return;
+            }
+            event.getPlayer().sendMessage("Please do /login <token> to login first.");
+            LOGGER.info("Cancel chat event");
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerDropItem(PlayerDropItemEvent event) {
+        if (!loggedInPlayers.contains(event.getPlayer().getUniqueId())) {
+            event.getPlayer().sendMessage("Please do /login <token> to login first.");
+            event.setCancelled(true);
+        }
+    }
+
+    @EventHandler
+    public void onPlayerPickupItem(EntityPickupItemEvent event) {
+        if (event.getEntity() instanceof Player) {
+            Player player = (Player) event.getEntity();
+            if (!loggedInPlayers.contains(player.getUniqueId())) {
+                player.sendMessage("Please do /login <token> to login first.");
+                event.setCancelled(true);
+            }
+        }
+    }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+
+        // Remove the player from the logged-in set
+        loggedInPlayers.remove(playerId);
+
+        // Close and remove the player's socket
+        Socket playerSocket = loginCommand.getPlayerSockets().remove(playerId);
+        if (playerSocket != null) {
+            playerSocket.disconnect();
+            playerSocket.close();
+            LOGGER.info("Closed socket for player " + player.getName());
+        }
+    }
+
+    // Add more event handlers as needed to cover all relevant player events
+}

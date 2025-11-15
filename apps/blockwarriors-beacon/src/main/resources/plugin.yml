@@ -1,0 +1,15 @@
+name: beacon
+main: ai.blockwarriors.beacon.Plugin
+version: 0.0.1
+api-version: 1.20
+description: blockwarriors beacon
+commands:
+  login:
+    description: Player Authentication Command
+    usage: /login
+  creatematch:
+    description: Create a new match
+    usage: /creatematch <player1> <player2>
+  listloggedin:
+    description: Lists all logged-in players
+    usage: /listloggedin
