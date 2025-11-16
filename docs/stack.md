@@ -22,6 +22,10 @@ graph TB
             Express[Express.js]
             SocketIO[Socket.io Server]
         end
+
+        subgraph BeaconApp["apps/blockwarriors-beacon"]
+            BeaconPlugin["Beacon Plugin<br/>(Minecraft Plugin)"]
+        end
     end
 
     %% Packages
@@ -47,6 +51,11 @@ graph TB
     SocketIO -->|Real-time Events| MC
     SocketIO -->|Game Updates| User
 
+    %% Minecraft Plugin Connections
+    MC -->|Runs| BeaconPlugin
+    BeaconPlugin -->|Socket.io Client| SocketIO
+    BeaconPlugin -->|Game Events| MC
+
     %% Auth Flow
     Auth -->|OAuth| Google
     ConvexFns -.->|Uses| Auth
@@ -56,7 +65,7 @@ graph TB
     classDef pkg fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px
     classDef external fill:#fff3e0,stroke:#f57c00,stroke-width:2px
     
-    class NextApp,SocketApp app
+    class NextApp,SocketApp,BeaconApp app
     class Backend pkg
     class User,Google,MC external
 ```
@@ -75,6 +84,7 @@ graph TB
 - **Express.js**: Web application framework for Node.js
 - **Socket.io**: Real-time bidirectional event-based communication
 - **Minecraft Server (Paper/Spigot API)**: Game server with plugin API
+- **BlockWarriors Beacon Plugin**: Minecraft plugin (Java/Spigot) that connects to the Socket.io server for real-time game coordination, handles player authentication, match creation, and game events
 
 ### Monorepo Structure (apps/ and packages/)
 
@@ -91,6 +101,16 @@ graph TB
   - Reads server envs:
     - `CONVEX_URL`, `CONVEX_DEPLOYMENT`
 
+- `apps/blockwarriors-beacon`
+  - Minecraft plugin (Java/Spigot API 1.20.6)
+  - Connects to Socket.io server via Socket.io client
+  - Handles player authentication, match creation, and game events
+  - Commands: `/login`, `/creatematch`, `/listloggedin`
+  - Listens to Socket.io events: `startMatch`, `startGame`
+  - Built with Maven, uses Multiverse Core for world management
+  - Reads server envs:
+    - `SOCKET_URL` (defaults to configured socket server URL)
+
 - `packages/backend`
   - Shared Convex backend used by all apps
   - Convex functions live in `packages/backend/convex/*.ts` (queries, mutations, actions)
@@ -102,3 +122,5 @@ graph TB
 At a glance:
 - Frontend (Next.js) and Socket server both call Convex.
 - Convex hosts data logic and auth; both apps share the same generated API from `packages/backend`.
+- Minecraft plugin (Beacon) connects to Socket.io server for real-time game coordination.
+- Socket.io server acts as the bridge between the web dashboard, Convex backend, and Minecraft server.
