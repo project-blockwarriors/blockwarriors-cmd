@@ -1,6 +1,7 @@
 import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from '@/lib/auth-server';
 
 export async function middleware(request: NextRequest) {
   const path = new URL(request.url).pathname;
@@ -30,16 +31,29 @@ export async function middleware(request: NextRequest) {
   );
   const isAuthRoute = authRoutes.includes(path);
 
-  // Check for session cookie (simplest approach from example)
+  // Check for session cookie first (quick check)
   const sessionCookie = getSessionCookie(request);
+  
+  // If there's a session cookie, verify the token is actually valid
+  // This prevents redirect loops when cookie exists but token is invalid
+  let isAuthenticated = false;
+  if (sessionCookie) {
+    try {
+      const token = await getToken();
+      isAuthenticated = !!token;
+    } catch (error) {
+      // If token verification fails, treat as unauthenticated
+      isAuthenticated = false;
+    }
+  }
 
-  // Handle auth routes - redirect to dashboard if already logged in (has session cookie)
-  if (isAuthRoute && sessionCookie) {
+  // Handle auth routes - redirect to dashboard if already logged in (has valid token)
+  if (isAuthRoute && isAuthenticated) {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // Handle protected routes - redirect to login if not authenticated (no session cookie)
-  if (!sessionCookie && isProtectedRoute) {
+  // Handle protected routes - redirect to login if not authenticated (no valid token)
+  if (!isAuthenticated && isProtectedRoute) {
     const loginUrl = new URL('/login', request.url);
     // Preserve the original URL as a query parameter so we can redirect back after login
     loginUrl.searchParams.set('redirect', path);
