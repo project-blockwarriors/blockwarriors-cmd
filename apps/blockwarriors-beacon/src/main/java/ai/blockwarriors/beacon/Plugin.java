@@ -56,6 +56,12 @@ public class Plugin extends JavaPlugin {
         // Initialize match manager
         matchManager = new MatchManager(this, convexUrl);
         
+        // Initialize match telemetry service
+        matchTelemetryService = new MatchTelemetryService(this, convexUrl);
+        
+        // Link telemetry service to match manager
+        matchManager.setTelemetryService(matchTelemetryService);
+        
         // Initialize login command with Convex URL
         loginCommand = new LoginCommand(loggedInPlayers, convexUrl);
         
@@ -76,8 +82,7 @@ public class Plugin extends JavaPlugin {
         matchPollingService.start();
         LOGGER.info("MatchPollingService started with Convex URL: " + convexUrl);
         
-        // Initialize and start match telemetry service
-        matchTelemetryService = new MatchTelemetryService(this, convexUrl);
+        // Start match telemetry service (already initialized above)
         matchTelemetryService.start();
         LOGGER.info("MatchTelemetryService started");
     }

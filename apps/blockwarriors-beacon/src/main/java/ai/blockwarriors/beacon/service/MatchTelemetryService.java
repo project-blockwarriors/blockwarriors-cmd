@@ -109,9 +109,32 @@ public class MatchTelemetryService {
      */
     private void updateMatchStates() {
         try {
-            for (Map.Entry<String, Set<UUID>> entry : activeMatches.entrySet()) {
+            // Create a copy of entries to avoid concurrent modification
+            List<Map.Entry<String, Set<UUID>>> entries = new ArrayList<>(activeMatches.entrySet());
+            
+            for (Map.Entry<String, Set<UUID>> entry : entries) {
                 String matchId = entry.getKey();
                 Set<UUID> playerIds = entry.getValue();
+
+                // Check if match is finished - skip updates for finished matches
+                String matchStatus = getMatchStatus(matchId);
+                if (matchStatus == null) {
+                    // Match not found or error - remove from active matches
+                    LOGGER.warning("Match " + matchId + " not found, removing from active matches");
+                    activeMatches.remove(matchId);
+                    continue;
+                }
+                
+                if ("Finished".equals(matchStatus) || "Terminated".equals(matchStatus)) {
+                    // Match is finished - stop updating and remove from active matches
+                    LOGGER.info("Match " + matchId + " is " + matchStatus + ", stopping telemetry updates");
+                    activeMatches.remove(matchId);
+                    // Unregister all players from this match
+                    for (UUID playerId : new HashSet<>(playerIds)) {
+                        unregisterPlayer(playerId);
+                    }
+                    continue;
+                }
 
                 // Collect telemetry data for all players in this match
                 JSONObject matchState = collectMatchTelemetry(matchId, playerIds);
@@ -122,6 +145,41 @@ public class MatchTelemetryService {
         } catch (Exception e) {
             LOGGER.severe("Error updating match states: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Get match status from Convex
+     * Returns null if match not found or error occurred
+     */
+    private String getMatchStatus(String matchId) {
+        try {
+            String urlString = convexSiteUrl + "/matches?id=" + matchId;
+            URL url = new URL(urlString);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("GET");
+            conn.setRequestProperty("Content-Type", "application/json");
+
+            int responseCode = conn.getResponseCode();
+            if (responseCode != 200) {
+                return null;
+            }
+
+            BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
+            );
+            StringBuilder response = new StringBuilder();
+            String line;
+            while ((line = reader.readLine()) != null) {
+                response.append(line);
+            }
+            reader.close();
+
+            JSONObject matchData = new JSONObject(response.toString());
+            return matchData.optString("match_status", null);
+        } catch (Exception e) {
+            LOGGER.warning("Error getting match status for " + matchId + ": " + e.getMessage());
+            return null;
         }
     }
 
