@@ -105,6 +105,39 @@ public class MatchTelemetryService {
     }
 
     /**
+     * Send final match state update before match ends
+     * This should be called right before marking match as Finished
+     * @param deadPlayerId UUID of the player who died (to set health to 0)
+     */
+    public void sendFinalMatchState(String matchId, String winnerPlayerId, UUID deadPlayerId) {
+        Set<UUID> playerIds = activeMatches.get(matchId);
+        if (playerIds == null || playerIds.isEmpty()) {
+            LOGGER.warning("Cannot send final state for match " + matchId + " - no players registered");
+            return;
+        }
+
+        try {
+            // Collect final telemetry data
+            JSONObject finalMatchState = collectMatchTelemetry(matchId, playerIds, deadPlayerId);
+            
+            // Add winner information to final state
+            if (winnerPlayerId != null) {
+                finalMatchState.put("winner", winnerPlayerId);
+            }
+            finalMatchState.put("matchEnded", true);
+            finalMatchState.put("finalState", true);
+
+            LOGGER.info("Sending final match state for match " + matchId + " (dead player: " + (deadPlayerId != null ? deadPlayerId.toString() : "none") + ")");
+            
+            // Send final state update
+            updateMatchState(matchId, finalMatchState);
+        } catch (Exception e) {
+            LOGGER.severe("Error sending final match state for " + matchId + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
      * Update match states for all active matches
      */
     private void updateMatchStates() {
@@ -185,8 +218,9 @@ public class MatchTelemetryService {
 
     /**
      * Collect telemetry data for all players in a match
+     * @param deadPlayerId If provided, this player's health will be set to 0 (for final state)
      */
-    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds) {
+    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds, UUID deadPlayerId) {
         try {
             JSONObject matchState = new JSONObject();
             matchState.put("timestamp", System.currentTimeMillis());
@@ -198,6 +232,13 @@ public class MatchTelemetryService {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player != null && player.isOnline()) {
                     JSONObject playerData = collectPlayerTelemetry(player);
+                    
+                    // If this is the dead player, explicitly set health to 0
+                    if (deadPlayerId != null && playerId.equals(deadPlayerId)) {
+                        playerData.put("health", 0.0);
+                        LOGGER.info("Setting health to 0 for dead player " + player.getName() + " in final state");
+                    }
+                    
                     players.put(playerData);
                 }
             }
@@ -209,6 +250,13 @@ public class MatchTelemetryService {
             e.printStackTrace();
             return new JSONObject();
         }
+    }
+    
+    /**
+     * Collect telemetry data for all players in a match (overload without dead player)
+     */
+    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds) {
+        return collectMatchTelemetry(matchId, playerIds, null);
     }
 
     /**
