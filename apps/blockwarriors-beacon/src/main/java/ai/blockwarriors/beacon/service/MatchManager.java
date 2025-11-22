@@ -76,8 +76,9 @@ public class MatchManager {
 
     /**
      * End a match - update status, delete world, kick players
+     * @param deadPlayerId UUID of the player who died (to set health to 0 in final state)
      */
-    public void endMatch(String matchId, String winnerPlayerId) {
+    public void endMatch(String matchId, String winnerPlayerId, UUID deadPlayerId) {
         String worldName = matchWorlds.get(matchId);
         Set<UUID> playerIds = matchPlayers.get(matchId);
         
@@ -86,10 +87,14 @@ public class MatchManager {
             return;
         }
 
-        LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ")");
+        LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ", dead player: " + (deadPlayerId != null ? deadPlayerId.toString() : "none") + ")");
+
+        // Send final match state before marking as finished
+        if (telemetryService != null) {
+            telemetryService.sendFinalMatchState(matchId, winnerPlayerId, deadPlayerId);
+        }
 
         // Update match status to Finished
-        // Note: We could also update match_state with winner info, but for now just update status
         updateMatchStatus(matchId, "Finished");
 
         // Kick players and delete world after a short delay

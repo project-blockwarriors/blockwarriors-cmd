@@ -54,11 +54,11 @@ public class MatchEventListener implements Listener {
 
         // End the match
         if (winnerId != null) {
-            matchManager.endMatch(matchId, winnerId.toString());
+            matchManager.endMatch(matchId, winnerId.toString(), deadPlayerId);
             deadPlayer.sendMessage("§cYou lost the match. Returning to lobby...");
         } else {
             // No winner found (both players might have died simultaneously or other player left)
-            matchManager.endMatch(matchId, null);
+            matchManager.endMatch(matchId, null, deadPlayerId);
         }
     }
 }
