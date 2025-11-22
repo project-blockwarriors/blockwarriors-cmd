@@ -6,10 +6,14 @@ description: blockwarriors beacon
 commands:
   login:
     description: Player Authentication Command
-    usage: /login
+    usage: /login <token>
   creatematch:
     description: Create a new match
     usage: /creatematch <player1> <player2>
   listloggedin:
     description: Lists all logged-in players
     usage: /listloggedin
+  bypass:
+    description: Bypass login requirement (operators only)
+    usage: /bypass [player]
+    permission: beacon.bypass

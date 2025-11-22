@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
@@ -40,13 +42,39 @@ public class CreateMatchCommand implements CommandExecutor {
                 return null;
             }
 
-            // Set spawn location to center
+            // Configure world settings
             world.setSpawnLocation(0, 64, 0);
-
-            // Teleport player1 to specific coordinates (5 blocks east of spawn)
-            player1.teleport(world.getSpawnLocation().add(5, 0, 0));
-            // Teleport player2 to specific coordinates (5 blocks west of spawn)
-            player2.teleport(world.getSpawnLocation().add(-5, 0, 0));
+            
+            // Disable mob spawning - only allow players
+            world.setSpawnFlags(false, false); // No monsters, no animals
+            
+            // Set world difficulty to peaceful to prevent hostile mobs
+            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+            
+            // Note: Additional mob prevention is handled by WorldEventListener
+            // which cancels all creature and entity spawns in match worlds
+            
+            // Set both players to survival mode
+            player1.setGameMode(GameMode.SURVIVAL);
+            player2.setGameMode(GameMode.SURVIVAL);
+            
+            // Teleport player1 to specific coordinates (5 blocks east of spawn, Y = -61)
+            Location player1Loc = new Location(world, 5, -61, 0);
+            player1.teleport(player1Loc);
+            
+            // Teleport player2 to specific coordinates (5 blocks west of spawn, Y = -61)
+            Location player2Loc = new Location(world, -5, -61, 0);
+            player2.teleport(player2Loc);
+            
+            // Clear inventories and reset health/hunger for fair start
+            player1.getInventory().clear();
+            player2.getInventory().clear();
+            player1.setHealth(20.0);
+            player2.setHealth(20.0);
+            player1.setFoodLevel(20);
+            player2.setFoodLevel(20);
+            player1.setSaturation(20.0f);
+            player2.setSaturation(20.0f);
 
             logger.info("Created match world: " + worldName + " for players " + 
                        player1.getName() + " and " + player2.getName());
