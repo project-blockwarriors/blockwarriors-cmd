@@ -19,6 +19,7 @@ import ai.blockwarriors.commands.debug.ListLoggedInCommand;
 import ai.blockwarriors.events.PlayerEventListener;
 import ai.blockwarriors.beacon.service.MatchPollingService;
 import ai.blockwarriors.beacon.service.MatchTelemetryService;
+import ai.blockwarriors.beacon.service.MatchManager;
 
 /*
  * beacon java plugin
@@ -29,10 +30,15 @@ public class Plugin extends JavaPlugin {
     private Set<UUID> loggedInPlayers = new HashSet<>();
     private MatchPollingService matchPollingService;
     private MatchTelemetryService matchTelemetryService;
+    private MatchManager matchManager;
     private String convexSiteUrl = "https://abundant-ferret-667.convex.site";
 
     public MatchTelemetryService getMatchTelemetryService() {
         return matchTelemetryService;
+    }
+
+    public MatchManager getMatchManager() {
+        return matchManager;
     }
 
     @Override
@@ -41,6 +47,9 @@ public class Plugin extends JavaPlugin {
         
         // Initialize Convex URL
         String convexUrl = System.getenv().getOrDefault("CONVEX_SITE_URL", convexSiteUrl);
+        
+        // Initialize match manager
+        matchManager = new MatchManager(this, convexUrl);
         
         // Initialize login command with Convex URL
         loginCommand = new LoginCommand(loggedInPlayers, convexUrl);
@@ -52,9 +61,11 @@ public class Plugin extends JavaPlugin {
         
         // Register the player event listener
         getServer().getPluginManager().registerEvents(new PlayerEventListener(loggedInPlayers, loginCommand), this);
+        getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.MatchEventListener(matchManager), this);
         
         // Initialize and start match polling service
         matchPollingService = new MatchPollingService(this, convexUrl);
+        matchPollingService.setMatchManager(matchManager);
         matchPollingService.start();
         LOGGER.info("MatchPollingService started with Convex URL: " + convexUrl);
         
