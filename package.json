@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "description": "BlockWarriors Command Block monorepo",
-  "packageManager": "npm@10.9.3",
+  "packageManager": "npm@11.6.3",
   "engines": {
     "node": ">=20.9.0"
   },
