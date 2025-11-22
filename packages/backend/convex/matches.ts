@@ -1,4 +1,4 @@
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { v4 as uuidv4 } from "uuid";
@@ -427,5 +427,50 @@ export const createMatchWithTokens = mutation({
       blueTeamId: blueTeamId,
       expiresAt: expiresAt,
     };
+  },
+});
+
+/**
+ * Archive matches that have been queued for more than 10 minutes
+ * This prevents the Minecraft server from waiting on games that will never start
+ * Internal mutation - called by cron job
+ */
+export const archiveOldQueuedMatches = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const tenMinutesAgo = now - 10 * 60 * 1000; // 10 minutes in milliseconds
+
+    // Find all matches with status "Queuing"
+    const queuedMatches = await ctx.db
+      .query("matches")
+      .withIndex("by_match_status", (q) => q.eq("match_status", "Queuing"))
+      .collect();
+
+    let archivedCount = 0;
+
+    for (const match of queuedMatches) {
+      // Check if match was created more than 10 minutes ago
+      if (match._creationTime < tenMinutesAgo) {
+        // Archive by setting status to "Terminated"
+        // This is a valid status transition from "Queuing"
+        await ctx.db.patch(match._id, {
+          match_status: "Terminated",
+        });
+        archivedCount++;
+
+        console.log(
+          `Archived match ${match._id} (created ${Math.round(
+            (now - match._creationTime) / 1000 / 60
+          )} minutes ago)`
+        );
+      }
+    }
+
+    if (archivedCount > 0) {
+      console.log(`Archived ${archivedCount} old queued match(es)`);
+    }
+
+    return { archivedCount };
   },
 });
