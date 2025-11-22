@@ -67,6 +67,7 @@ public class LoginCommand implements CommandExecutor {
             JSONObject playerValidationObject = new JSONObject();
             playerValidationObject.put("playerId", player.getUniqueId());
             playerValidationObject.put("token", token.substring(5));
+            playerValidationObject.put("ign", player.getName()); // In-Game Name
 
             playerSocket.emit("login", playerValidationObject, (Ack) returned -> {
                 JSONObject response = (JSONObject) returned[0];

@@ -298,4 +298,86 @@ http.route({
   }),
 });
 
+// GET /matches/{_id}/readiness - Check if match is ready (all tokens used)
+http.route({
+  path: "/matches/readiness",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const matchId = url.searchParams.get("match_id");
+
+      if (!matchId) {
+        return new Response(
+          JSON.stringify({ error: "Missing match_id parameter" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const readiness = await ctx.runQuery(api.tokens.checkMatchReadiness, {
+        matchId: matchId as Id<"matches">,
+      });
+
+      return new Response(JSON.stringify(readiness), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          error: `Failed to check match readiness: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
+// GET /matches/{_id}/tokens - Get all tokens for a match
+http.route({
+  path: "/matches/tokens",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const url = new URL(request.url);
+      const matchId = url.searchParams.get("match_id");
+
+      if (!matchId) {
+        return new Response(
+          JSON.stringify({ error: "Missing match_id parameter" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const tokens = await ctx.runQuery(api.tokens.getTokensByMatchId, {
+        matchId: matchId as Id<"matches">,
+      });
+
+      return new Response(JSON.stringify(tokens), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          error: `Failed to get tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
 export default http;

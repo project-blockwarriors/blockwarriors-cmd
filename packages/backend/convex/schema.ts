@@ -47,6 +47,7 @@ export default defineSchema({
     match_id: v.id("matches"),
     game_team_id: v.id("game_teams"),
     user_id: v.optional(v.string()),
+    ign: v.optional(v.string()), // In-Game Name (Minecraft username)
     bot_id: v.optional(v.number()),
     created_at: v.number(),
     expires_at: v.number(),
