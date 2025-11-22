@@ -491,6 +491,13 @@ http.route({
         );
       }
 
+      // Log token for debugging (first 8 chars only for security)
+      const tokenPreview =
+        token.length > 8 ? token.substring(0, 8) + "..." : token;
+      console.log(
+        `[Login] Validating token: ${tokenPreview} (length: ${token.length})`
+      );
+
       // Validate token
       const validation = await ctx.runQuery(api.tokens.validateToken, {
         token: token,

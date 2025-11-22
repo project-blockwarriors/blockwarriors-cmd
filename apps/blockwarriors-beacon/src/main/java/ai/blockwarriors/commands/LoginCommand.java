@@ -53,7 +53,7 @@ public class LoginCommand implements CommandExecutor {
         }
 
         String token = args[0];
-        LOGGER.info("Player " + player.getName() + " attempting login with token");
+        LOGGER.info("Player " + player.getName() + " attempting login with token (length: " + token.length() + ")");
         
         // Run login asynchronously to avoid blocking the main thread
         new BukkitRunnable() {
@@ -69,7 +69,11 @@ public class LoginCommand implements CommandExecutor {
                     conn.setDoOutput(true);
 
                     JSONObject requestBody = new JSONObject();
-                    requestBody.put("token", token.substring(5)); // Remove "token" prefix if present
+                    // Tokens are pure UUIDs without prefix - use as-is
+                    // If token starts with "token", remove that prefix (for backwards compatibility)
+                    String tokenToSend = token.startsWith("token") ? token.substring(5) : token;
+                    LOGGER.info("Sending token to Convex (length: " + tokenToSend.length() + ", starts with 'token': " + token.startsWith("token") + ")");
+                    requestBody.put("token", tokenToSend);
                     requestBody.put("playerId", player.getUniqueId().toString());
                     requestBody.put("ign", player.getName());
 
