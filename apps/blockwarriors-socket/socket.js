@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { queryWithAuth, api } from "./convexClient.js";
+import { queryWithAuth, mutateWithAuth, api } from "./convexClient.js";
 
 // Initialize state
 const state = {
@@ -8,10 +8,10 @@ const state = {
   gameSessions: new Map(),
   // Key: match_id, Value: { players: Set, playerData: Map }
   // gameSessions.get(matchId).players is a set of player (minecraft uuids)
-  
+
   socketToPlayer: new Map(),
   playerToSocket: new Map(),
-  playerNamespace: null
+  playerNamespace: null,
 };
 
 // Helper functions
@@ -27,17 +27,17 @@ async function validateToken(token) {
     );
 
     if (!validation || !validation.valid) {
-      return { 
-        valid: false, 
-        error: validation?.error || "Token validation failed" 
+      return {
+        valid: false,
+        error: validation?.error || "Token validation failed",
       };
     }
 
     // Convert Convex ID to string for compatibility
     const matchIdString = validation.matchId.toString();
 
-    return { 
-      valid: true, 
+    return {
+      valid: true,
       matchId: matchIdString,
       gameTeamId: validation.gameTeamId?.toString(),
     };
@@ -51,8 +51,8 @@ async function validateToken(token) {
 function handleDisconnecting(socket) {
   socket.rooms.forEach((room) => {
     if (typeof room === "number") {
-      socket.to(room).emit("playerLeft", { 
-        playerId: state.socketToPlayer.get(socket.id) 
+      socket.to(room).emit("playerLeft", {
+        playerId: state.socketToPlayer.get(socket.id),
       });
     }
   });
@@ -64,13 +64,30 @@ function handleDisconnect(socket) {
   state.socketToPlayer.delete(socket.id);
 }
 
-async function handleLogin(socket, { playerId, token }, callback) {
+async function handleLogin(socket, { playerId, token, ign }, callback) {
   try {
     const validation = await validateToken(token);
     if (!validation.valid) {
       socket.emit("error", { message: validation.error });
       callback({ status: "bad" });
       return;
+    }
+
+    // Mark token as used by this player (Minecraft UUID and IGN)
+    // This allows the Minecraft server to track which tokens have been used
+    try {
+      await mutateWithAuth(
+        api.tokens.markTokenAsUsed,
+        {
+          token: token,
+          playerId: playerId,
+          ign: ign, // In-Game Name (Minecraft username)
+        },
+        null // No auth token needed for token operations
+      );
+    } catch (error) {
+      console.error("Failed to mark token as used:", error);
+      // Continue even if marking fails - token might already be marked
     }
 
     // On login, we need to store who logged in, (token)
@@ -80,7 +97,7 @@ async function handleLogin(socket, { playerId, token }, callback) {
     state.socketToPlayer.set(socket.id, playerId);
     state.playerToSocket.set(playerId, socket.id);
     const matchId = validation.matchId;
-    
+
     socket.join(matchId);
     if (!state.gameSessions.has(matchId)) {
       state.gameSessions.set(matchId, {
@@ -88,7 +105,7 @@ async function handleLogin(socket, { playerId, token }, callback) {
         playerData: new Map(),
       });
     }
-    
+
     const matchSession = state.gameSessions.get(matchId);
     matchSession.players.add(playerId);
     socket.to(matchId).emit("playerJoined", { playerId });
@@ -104,7 +121,7 @@ function setupPlayerNamespace() {
   state.playerNamespace = state.io.of("/player");
   state.playerNamespace.on("connection", (socket) => {
     console.log(`Client connected to player namespace: ${socket.id}`);
-    
+
     socket.on("disconnecting", () => handleDisconnecting(socket));
     socket.on("disconnect", () => handleDisconnect(socket));
     socket.on("login", (data, callback) => handleLogin(socket, data, callback));
@@ -129,7 +146,6 @@ function setupMainNamespace() {
 function initializeSocket(server) {
   if (state.io) return state.io;
 
-
   state.io = new Server(server, {
     cors: {
       origin: "*", // In production, replace with specific origins
@@ -147,23 +163,21 @@ function initializeSocket(server) {
 // Get socket instance
 function getIO() {
   if (!state.io) {
-    throw new Error('Socket.io has not been initialized. Call initializeSocket first.');
+    throw new Error(
+      "Socket.io has not been initialized. Call initializeSocket first."
+    );
   }
   return state.io;
 }
 
-function getSocketState() { 
-  if (!state) { 
-    throw new Error('Socket state has not been initialized. Call initializeSocket first.');
-    
+function getSocketState() {
+  if (!state) {
+    throw new Error(
+      "Socket state has not been initialized. Call initializeSocket first."
+    );
   }
   return state;
 }
 
 // Export functions and state getters
-export {
-  initializeSocket,
-  getIO,
-  getSocketState,
-  state
-};
+export { initializeSocket, getIO, getSocketState, state };

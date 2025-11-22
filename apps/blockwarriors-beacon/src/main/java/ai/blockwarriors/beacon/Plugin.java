@@ -26,6 +26,7 @@ import ai.blockwarriors.commands.LoginCommand;
 import ai.blockwarriors.commands.debug.CreateMatchCommand;
 import ai.blockwarriors.commands.debug.ListLoggedInCommand;
 import ai.blockwarriors.events.PlayerEventListener;
+import ai.blockwarriors.beacon.service.MatchPollingService;
 import io.socket.client.IO;
 import io.socket.client.Socket;
 import io.socket.emitter.Emitter;
@@ -42,6 +43,8 @@ public class Plugin extends JavaPlugin {
     private Set<UUID> loggedInPlayers = new HashSet<>();
     private Socket serverSocket;
     private String socketUri = "http://100.112.84.22:3001";
+    private MatchPollingService matchPollingService;
+    private String convexSiteUrl = "https://abundant-ferret-667.convex.site";
 
     @Override
     public void onEnable() {
@@ -66,6 +69,12 @@ public class Plugin extends JavaPlugin {
         registerCommand("listloggedin", new ListLoggedInCommand(loggedInPlayers));
         // Register the player event listener
         getServer().getPluginManager().registerEvents(new PlayerEventListener(loggedInPlayers, loginCommand), this);
+        
+        // Initialize and start match polling service
+        String convexUrl = System.getenv().getOrDefault("CONVEX_SITE_URL", convexSiteUrl);
+        matchPollingService = new MatchPollingService(this, convexUrl, serverSocket);
+        matchPollingService.start();
+        LOGGER.info("MatchPollingService started with Convex URL: " + convexUrl);
     }
     
     private void registerServerSocketListeners(Socket serverSocket) {
@@ -238,6 +247,11 @@ public class Plugin extends JavaPlugin {
         if (serverSocket != null && serverSocket.connected()) {
             serverSocket.disconnect();
             serverSocket.close();
+        }
+
+        // Stop match polling service
+        if (matchPollingService != null) {
+            matchPollingService.stop();
         }
 
         LOGGER.info("closed main server socket ");
