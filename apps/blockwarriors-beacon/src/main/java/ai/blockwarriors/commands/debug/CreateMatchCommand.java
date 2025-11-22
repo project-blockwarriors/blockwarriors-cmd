@@ -1,49 +1,117 @@
 package ai.blockwarriors.commands.debug;
 
+import java.io.File;
 import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.World;
+import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
-import com.onarandombox.MultiverseCore.MultiverseCore;
-import com.onarandombox.MultiverseCore.api.MVWorldManager;
-
 public class CreateMatchCommand implements CommandExecutor {
 
-    private MVWorldManager worldManager;
-
-
     // Invariant: player1 and player2 are valid online player objects
-    public static void createMatch(Player player1, Player player2) {
-        // create a new world called "world#" where # is the lowest non used world number
+    // Returns the world name created, or null if creation failed
+    public static String createMatch(Player player1, Player player2) {
+        Logger logger = Bukkit.getLogger();
+        
+        // Find the lowest unused world number
         int worldNumber = 1;
-        while (Bukkit.getWorld("world" + worldNumber) != null) {
+        String worldName = "match_" + worldNumber;
+        while (Bukkit.getWorld(worldName) != null) {
             worldNumber++;
+            worldName = "match_" + worldNumber;
         }
 
-        // Create a new world using multiverse-core and send both players to that world
-        MultiverseCore core = (MultiverseCore) Bukkit.getServer().getPluginManager().getPlugin("Multiverse-Core");
-        MVWorldManager worldManager = core.getMVWorldManager();
-        worldManager.addWorld(
-                "world" + worldNumber, // The worldname
-                World.Environment.NORMAL, // The overworld environment type.
-                null, // The world seed. Any seed is fine for me, so we just pass null.
-                WorldType.FLAT, // Nothing special. If you want something like a flat world, change this.
-                false, // This means we want to structures like villages to generator, Change to false
-                       // if you don't want this.
-                null // Specifies a custom generator. We are not using any so we just pass null.
-        );
+        try {
+            // Create a new flat world using Bukkit's WorldCreator
+            WorldCreator creator = new WorldCreator(worldName);
+            creator.type(WorldType.FLAT);
+            creator.generateStructures(false); // No structures like villages
+            
+            World world = creator.createWorld();
+            
+            if (world == null) {
+                logger.severe("Failed to create world: " + worldName);
+                return null;
+            }
 
-        // Teleport player1 to specific coordinates in the new world
-        player1.teleport(Bukkit.getWorld("world" + worldNumber).getSpawnLocation().add(5, 0, 0));
-        // Teleport player2 to specific coordinates in the new world
-        player2.teleport(Bukkit.getWorld("world" + worldNumber).getSpawnLocation().add(-5, 0, 0));
+            // Set spawn location to center
+            world.setSpawnLocation(0, 64, 0);
 
+            // Teleport player1 to specific coordinates (5 blocks east of spawn)
+            player1.teleport(world.getSpawnLocation().add(5, 0, 0));
+            // Teleport player2 to specific coordinates (5 blocks west of spawn)
+            player2.teleport(world.getSpawnLocation().add(-5, 0, 0));
+
+            logger.info("Created match world: " + worldName + " for players " + 
+                       player1.getName() + " and " + player2.getName());
+            
+            return worldName;
+        } catch (Exception e) {
+            logger.severe("Error creating match world: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Delete a match world and unload it from memory
+     */
+    public static void deleteMatchWorld(String worldName) {
+        Logger logger = Bukkit.getLogger();
+        
+        try {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                // Kick all players from the world first
+                world.getPlayers().forEach(player -> {
+                    // Teleport to main world or kick
+                    World mainWorld = Bukkit.getWorlds().get(0);
+                    if (mainWorld != null && !mainWorld.equals(world)) {
+                        player.teleport(mainWorld.getSpawnLocation());
+                    } else {
+                        player.kickPlayer("Match ended. World is being deleted.");
+                    }
+                });
+
+                // Unload the world
+                Bukkit.unloadWorld(world, false);
+
+                // Delete the world folder
+                File worldFolder = world.getWorldFolder();
+                if (worldFolder.exists()) {
+                    deleteDirectory(worldFolder);
+                    logger.info("Deleted match world: " + worldName);
+                }
+            }
+        } catch (Exception e) {
+            logger.severe("Error deleting match world " + worldName + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Recursively delete a directory
+     */
+    private static void deleteDirectory(File directory) {
+        if (directory.exists()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDirectory(file);
+                    } else {
+                        file.delete();
+                    }
+                }
+            }
+            directory.delete();
+        }
     }
 
     @Override

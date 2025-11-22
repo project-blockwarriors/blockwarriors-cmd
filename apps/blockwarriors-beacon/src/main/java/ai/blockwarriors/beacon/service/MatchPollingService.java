@@ -28,12 +28,17 @@ public class MatchPollingService {
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
     private final Set<String> processedMatches = new HashSet<>();
+    private MatchManager matchManager;
     private int taskId = -1;
     private static final int POLL_INTERVAL_SECONDS = 2; // Poll every 2 seconds
 
     public MatchPollingService(JavaPlugin plugin, String convexSiteUrl) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
+    }
+
+    public void setMatchManager(MatchManager matchManager) {
+        this.matchManager = matchManager;
     }
 
     public void start() {
@@ -533,8 +538,22 @@ public class MatchPollingService {
                 Player redPlayer = redTeamPlayers.get(0);
                 
                 // Create match world and teleport players
-                CreateMatchCommand.createMatch(bluePlayer, redPlayer);
-                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName());
+                String worldName = CreateMatchCommand.createMatch(bluePlayer, redPlayer);
+                if (worldName == null) {
+                    LOGGER.severe("Failed to create match world for match " + matchId);
+                    return;
+                }
+                
+                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName() + 
+                           " in world " + worldName);
+                
+                // Register match with match manager
+                if (matchManager != null) {
+                    List<Player> allPlayers = new ArrayList<>();
+                    allPlayers.add(bluePlayer);
+                    allPlayers.add(redPlayer);
+                    matchManager.registerMatch(matchId, worldName, allPlayers);
+                }
                 
                 // Register players in telemetry service
                 if (plugin instanceof ai.blockwarriors.beacon.Plugin) {
