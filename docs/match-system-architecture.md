@@ -9,7 +9,7 @@ graph TB
     subgraph "Frontend/UI"
         UI[Dashboard/Practice UI]
     end
-    
+
     subgraph "Minecraft Server"
         BEACON[BlockWarriors-Beacon Plugin]
         LOGIN[LoginCommand]
@@ -17,42 +17,42 @@ graph TB
         TELEMETRY[MatchTelemetryService]
         PLAYER_EVENTS[PlayerEventListener]
     end
-    
+
     subgraph "Socket Server"
         SOCKET[Socket.IO Server]
         LOGIN_HANDLER[Login Handler]
         TOKEN_VALIDATOR[Token Validator]
     end
-    
+
     subgraph "Convex Backend"
         HTTP[HTTP Routes]
         MATCHES[Matches Mutations/Queries]
         TOKENS[Tokens Mutations/Queries]
         DB[(Convex Database)]
     end
-    
+
     UI -->|POST /matches/new| HTTP
     HTTP -->|createMatch| MATCHES
     MATCHES -->|Store| DB
-    
+
     BEACON -->|Poll GET /matches?status=Queuing| HTTP
     HTTP -->|listMatchesByStatus| MATCHES
     MATCHES -->|Query| DB
-    
+
     BEACON -->|Poll GET /matches/readiness| HTTP
     HTTP -->|checkMatchReadiness| TOKENS
     TOKENS -->|Query| DB
-    
+
     BEACON -->|POST /matches/update| HTTP
     HTTP -->|updateMatch| MATCHES
     MATCHES -->|Update| DB
-    
+
     BEACON -->|POST /matches/update match_state| HTTP
     HTTP -->|updateMatch| MATCHES
     MATCHES -->|Update| DB
-    
+
     PLAYER_EVENTS -->|Player Quit| TELEMETRY
-    
+
     LOGIN -->|Socket.IO login| SOCKET
     SOCKET -->|handleLogin| LOGIN_HANDLER
     LOGIN_HANDLER -->|validateToken| TOKEN_VALIDATOR
@@ -60,7 +60,7 @@ graph TB
     TOKENS -->|Query| DB
     LOGIN_HANDLER -->|markTokenAsUsed| TOKENS
     TOKENS -->|Update| DB
-    
+
     POLLING -->|Emit startMatch| SOCKET
     SOCKET -->|Receive startMatch| BEACON
     BEACON -->|Register Players| TELEMETRY
@@ -93,7 +93,7 @@ sequenceDiagram
         HTTP->>DB: Query queued matches
         DB-->>HTTP: List of queued matches
         HTTP-->>POLLING: Matches list
-        
+
         POLLING->>HTTP: GET /matches/readiness?match_id=X
         HTTP->>DB: Check if all tokens used
         DB-->>HTTP: Readiness status
@@ -121,7 +121,7 @@ sequenceDiagram
     HTTP->>DB: Update match status
     POLLING->>HTTP: POST /matches/update<br/>{matchId, match_status: "Playing"}
     HTTP->>DB: Update match status
-    
+
     POLLING->>SOCKET: Emit startMatch<br/>{matchId, teams, matchType}
     SOCKET->>BEACON: Receive startMatch event
     BEACON->>BEACON: Create match world
@@ -145,6 +145,7 @@ sequenceDiagram
 ## Component Details
 
 ### MatchPollingService
+
 - **Purpose**: Polls Convex for queued matches and starts them when ready
 - **Frequency**: Every 2 seconds
 - **Key Operations**:
@@ -154,6 +155,7 @@ sequenceDiagram
   - Emit startMatch event via Socket.IO
 
 ### MatchTelemetryService
+
 - **Purpose**: Collects and stores player telemetry data during matches
 - **Frequency**: Every 1 second
 - **Key Operations**:
@@ -163,6 +165,7 @@ sequenceDiagram
   - Unregister players when they quit
 
 ### Socket Server (Login Handler)
+
 - **Purpose**: Validates tokens and marks them as used
 - **Key Operations**:
   - Validate token via Convex
@@ -170,6 +173,7 @@ sequenceDiagram
   - Track player sessions
 
 ### Convex HTTP Routes
+
 - **POST /matches/new**: Create new match with "Queuing" status
 - **GET /matches**: List matches (optionally filtered by status)
 - **GET /matches?id={id}**: Get single match by ID
@@ -178,6 +182,7 @@ sequenceDiagram
 - **POST /matches/update**: Update match status and/or match_state
 
 ### Convex Mutations/Queries
+
 - **matches.createMatch**: Create a new match
 - **matches.updateMatch**: Update match status and/or state
 - **matches.getMatchById**: Get match by ID
@@ -190,6 +195,7 @@ sequenceDiagram
 ## Data Flow
 
 ### Match State Structure
+
 ```json
 {
   "timestamp": 1234567890,
@@ -223,6 +229,7 @@ sequenceDiagram
 ```
 
 ### Match Status Transitions
+
 ```
 Queuing → Waiting → Playing → Finished/Terminated
 ```
@@ -240,4 +247,3 @@ Queuing → Waiting → Playing → Finished/Terminated
 3. **Match Detection**: Polling service checks readiness → When all tokens used, match starts
 4. **Telemetry Collection**: Service collects player stats → Updates match_state in Convex
 5. **Match State Rendering**: Website can query match_state → Render player telemetry data
-
