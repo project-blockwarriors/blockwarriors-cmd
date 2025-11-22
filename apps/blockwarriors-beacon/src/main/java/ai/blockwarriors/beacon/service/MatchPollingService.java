@@ -3,11 +3,12 @@ package ai.blockwarriors.beacon.service;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitRunnable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import io.socket.client.Socket;
+import ai.blockwarriors.commands.debug.CreateMatchCommand;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -26,15 +27,13 @@ public class MatchPollingService {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
-    private final Socket serverSocket;
     private final Set<String> processedMatches = new HashSet<>();
     private int taskId = -1;
     private static final int POLL_INTERVAL_SECONDS = 2; // Poll every 2 seconds
 
-    public MatchPollingService(JavaPlugin plugin, String convexSiteUrl, Socket serverSocket) {
+    public MatchPollingService(JavaPlugin plugin, String convexSiteUrl) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
-        this.serverSocket = serverSocket;
     }
 
     public void start() {
@@ -86,15 +85,43 @@ public class MatchPollingService {
                 int totalTokens = readiness.getInt("totalTokens");
                 int usedTokens = readiness.getInt("usedTokens");
 
+                // Check for error in readiness response
+                if (readiness.has("error")) {
+                    String error = readiness.optString("error", "Unknown error");
+                    LOGGER.warning(String.format(
+                        "Match %s readiness check error: %s",
+                        matchId, error
+                    ));
+                    continue; // Skip this match
+                }
+
                 LOGGER.info(String.format(
                     "Match %s: %d/%d tokens used (ready: %s)",
                     matchId, usedTokens, totalTokens, ready
                 ));
 
-                if (ready) {
+                // Only start match if:
+                // 1. Match is ready (all tokens used)
+                // 2. There are tokens (totalTokens > 0)
+                // 3. All tokens have been used (usedTokens == totalTokens)
+                if (ready && totalTokens > 0 && usedTokens == totalTokens) {
+                    LOGGER.info(String.format(
+                        "Match %s is ready! Starting match with %d/%d tokens used.",
+                        matchId, usedTokens, totalTokens
+                    ));
                     // All tokens have been used - start the match
                     processReadyMatch(match, readiness);
                     processedMatches.add(matchId);
+                } else if (ready && totalTokens == 0) {
+                    LOGGER.warning(String.format(
+                        "Match %s marked as ready but has no tokens! Skipping.",
+                        matchId
+                    ));
+                } else {
+                    LOGGER.info(String.format(
+                        "Match %s not ready yet. Waiting for %d more tokens to be used.",
+                        matchId, totalTokens - usedTokens
+                    ));
                 }
             }
         } catch (Exception e) {
@@ -356,40 +383,10 @@ public class MatchPollingService {
                               " out of " + players.size());
             }
 
-            int playersPerTeam = Math.max(blueTeamPlayers.size(), redTeamPlayers.size());
-
-            // Create JSON arrays for teams (format expected by socket listener)
-            JSONArray blueTeamArray = new JSONArray();
-            for (Player player : blueTeamPlayers) {
-                JSONObject playerObj = new JSONObject();
-                playerObj.put("playerId", player.getUniqueId().toString());
-                blueTeamArray.put(playerObj);
-            }
-
-            JSONArray redTeamArray = new JSONArray();
-            for (Player player : redTeamPlayers) {
-                JSONObject playerObj = new JSONObject();
-                playerObj.put("playerId", player.getUniqueId().toString());
-                redTeamArray.put(playerObj);
-            }
-
-            // Create the startMatch event payload
-            JSONObject startMatchData = new JSONObject();
-            startMatchData.put("matchType", matchType);
-            startMatchData.put("matchId", matchId); // Include matchId for telemetry registration
-            startMatchData.put("playersPerTeam", playersPerTeam);
-            startMatchData.put("blue_team", blueTeamArray);
-            startMatchData.put("red_team", redTeamArray);
-
-            // Emit startMatch event to socket (this will be handled by existing listener)
-            if (serverSocket != null && serverSocket.connected()) {
-                serverSocket.emit("startMatch", startMatchData);
-                LOGGER.info("Emitted startMatch event for match " + matchId + 
-                           " with " + blueTeamPlayers.size() + " blue players and " + 
-                           redTeamPlayers.size() + " red players");
-            } else {
-                LOGGER.warning("Cannot emit startMatch event - socket not connected");
-            }
+            // Start match directly on main thread
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                startMatchDirectly(matchId, matchType, blueTeamPlayers, redTeamPlayers);
+            });
         } catch (Exception e) {
             LOGGER.severe("Error starting match: " + e.getMessage());
             e.printStackTrace();
@@ -519,6 +516,44 @@ public class MatchPollingService {
         }
         
         return tokenToPlayerId;
+    }
+
+    /**
+     * Start match directly without Socket.IO
+     */
+    private void startMatchDirectly(String matchId, String matchType, List<Player> blueTeamPlayers, List<Player> redTeamPlayers) {
+        try {
+            LOGGER.info("Starting match " + matchId + " directly with " + 
+                       blueTeamPlayers.size() + " blue players and " + 
+                       redTeamPlayers.size() + " red players");
+
+            // For now, support 1v1 matches (can be extended later)
+            if (blueTeamPlayers.size() == 1 && redTeamPlayers.size() == 1) {
+                Player bluePlayer = blueTeamPlayers.get(0);
+                Player redPlayer = redTeamPlayers.get(0);
+                
+                // Create match world and teleport players
+                CreateMatchCommand.createMatch(bluePlayer, redPlayer);
+                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName());
+                
+                // Register players in telemetry service
+                if (plugin instanceof ai.blockwarriors.beacon.Plugin) {
+                    ai.blockwarriors.beacon.Plugin pluginInstance = (ai.blockwarriors.beacon.Plugin) plugin;
+                    if (pluginInstance.getMatchTelemetryService() != null) {
+                        pluginInstance.getMatchTelemetryService().registerPlayerInMatch(bluePlayer.getUniqueId(), matchId);
+                        pluginInstance.getMatchTelemetryService().registerPlayerInMatch(redPlayer.getUniqueId(), matchId);
+                        LOGGER.info("Registered players in match " + matchId + " for telemetry");
+                    }
+                }
+            } else {
+                LOGGER.warning("Match type " + matchType + " with " + 
+                              blueTeamPlayers.size() + " vs " + redTeamPlayers.size() + 
+                              " players not yet supported. Only 1v1 is supported.");
+            }
+        } catch (Exception e) {
+            LOGGER.severe("Error starting match directly: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
 

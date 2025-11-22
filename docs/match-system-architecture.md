@@ -18,12 +18,6 @@ graph TB
         PLAYER_EVENTS[PlayerEventListener]
     end
 
-    subgraph "Socket Server"
-        SOCKET[Socket.IO Server]
-        LOGIN_HANDLER[Login Handler]
-        TOKEN_VALIDATOR[Token Validator]
-    end
-
     subgraph "Convex Backend"
         HTTP[HTTP Routes]
         MATCHES[Matches Mutations/Queries]
@@ -53,16 +47,13 @@ graph TB
 
     PLAYER_EVENTS -->|Player Quit| TELEMETRY
 
-    LOGIN -->|Socket.IO login| SOCKET
-    SOCKET -->|handleLogin| LOGIN_HANDLER
-    LOGIN_HANDLER -->|validateToken| TOKEN_VALIDATOR
-    TOKEN_VALIDATOR -->|Query| TOKENS
+    LOGIN -->|POST /login| HTTP
+    HTTP -->|validateToken| TOKENS
     TOKENS -->|Query| DB
-    LOGIN_HANDLER -->|markTokenAsUsed| TOKENS
+    HTTP -->|markTokenAsUsed| TOKENS
     TOKENS -->|Update| DB
 
-    POLLING -->|Emit startMatch| SOCKET
-    SOCKET -->|Receive startMatch| BEACON
+    POLLING -->|Start Match Directly| BEACON
     BEACON -->|Register Players| TELEMETRY
     TELEMETRY -->|Collect Data| BEACON
     TELEMETRY -->|POST /matches/update| HTTP
@@ -100,14 +91,14 @@ sequenceDiagram
         HTTP-->>POLLING: {ready: false, usedTokens: 2/4}
     end
 
-    Note over PLAYER,SOCKET: Player Login Phase
+    Note over PLAYER,HTTP: Player Login Phase
     PLAYER->>BEACON: /login <token>
-    BEACON->>SOCKET: Socket.IO login<br/>{playerId, token, ign}
-    SOCKET->>DB: validateToken(token)
-    DB-->>SOCKET: Token valid, match_id
-    SOCKET->>DB: markTokenAsUsed(token, playerId, ign)
-    DB-->>SOCKET: Token marked
-    SOCKET-->>BEACON: Login success
+    BEACON->>HTTP: POST /login<br/>{token, playerId, ign}
+    HTTP->>DB: validateToken(token)
+    DB-->>HTTP: Token valid, match_id
+    HTTP->>DB: markTokenAsUsed(token, playerId, ign)
+    DB-->>HTTP: Token marked
+    HTTP-->>BEACON: {status: "ok", matchId}
     BEACON-->>PLAYER: Logged in
 
     Note over POLLING,DB: Match Ready Detection
@@ -122,8 +113,7 @@ sequenceDiagram
     POLLING->>HTTP: POST /matches/update<br/>{matchId, match_status: "Playing"}
     HTTP->>DB: Update match status
 
-    POLLING->>SOCKET: Emit startMatch<br/>{matchId, teams, matchType}
-    SOCKET->>BEACON: Receive startMatch event
+    POLLING->>BEACON: Start match directly<br/>{matchId, teams, matchType}
     BEACON->>BEACON: Create match world
     BEACON->>TELEMETRY: Register players in match
     TELEMETRY->>TELEMETRY: Start tracking players
@@ -164,13 +154,13 @@ sequenceDiagram
   - Update match_state via HTTP routes
   - Unregister players when they quit
 
-### Socket Server (Login Handler)
+### LoginCommand
 
-- **Purpose**: Validates tokens and marks them as used
+- **Purpose**: Handles player login via HTTP routes
 - **Key Operations**:
-  - Validate token via Convex
-  - Mark token as used with playerId and IGN
-  - Track player sessions
+  - Sends login request to Convex HTTP route
+  - Validates token and marks it as used
+  - Tracks logged-in players locally
 
 ### Convex HTTP Routes
 
@@ -180,6 +170,7 @@ sequenceDiagram
 - **GET /matches/readiness?match_id={id}**: Check if match is ready (all tokens used)
 - **GET /matches/tokens?match_id={id}**: Get all tokens for a match
 - **POST /matches/update**: Update match status and/or match_state
+- **POST /login**: Validate token and mark as used (replaces Socket.IO login)
 
 ### Convex Mutations/Queries
 
@@ -243,7 +234,15 @@ Queuing → Waiting → Playing → Finished/Terminated
 ## Key Interactions
 
 1. **Match Creation**: UI creates match → Convex stores it with "Queuing" status
-2. **Player Login**: Player logs in → Socket validates token → Token marked as used in Convex
-3. **Match Detection**: Polling service checks readiness → When all tokens used, match starts
+2. **Player Login**: Player logs in → HTTP route validates token → Token marked as used in Convex
+3. **Match Detection**: Polling service checks readiness → When all tokens used, match starts directly
 4. **Telemetry Collection**: Service collects player stats → Updates match_state in Convex
 5. **Match State Rendering**: Website can query match_state → Render player telemetry data
+
+## Architecture Changes
+
+**Removed Socket.IO Dependency**: All communication now happens via Convex HTTP routes:
+
+- Login is handled via `POST /login` HTTP route instead of Socket.IO
+- Match starting happens directly in the Minecraft server instead of via Socket.IO events
+- No real-time socket connections needed - polling and HTTP requests handle everything

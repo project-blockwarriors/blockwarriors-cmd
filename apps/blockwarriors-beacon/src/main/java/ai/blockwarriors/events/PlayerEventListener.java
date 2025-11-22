@@ -8,10 +8,8 @@ import org.bukkit.event.player.*;
 
 import ai.blockwarriors.commands.LoginCommand;
 import ai.blockwarriors.beacon.Plugin;
-import io.socket.client.Socket;
 
 import java.util.logging.Logger;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -98,13 +96,8 @@ public class PlayerEventListener implements Listener {
         // Remove the player from the logged-in set
         loggedInPlayers.remove(playerId);
 
-        // Close and remove the player's socket
-        Socket playerSocket = loginCommand.getPlayerSockets().remove(playerId);
-        if (playerSocket != null) {
-            playerSocket.disconnect();
-            playerSocket.close();
-            LOGGER.info("Closed socket for player " + player.getName());
-        }
+        // Remove player from login command
+        loginCommand.closeSocketandRemoveLoggedIn(playerId);
 
         // Unregister player from match telemetry if they're in a match
         Plugin plugin = (Plugin) org.bukkit.Bukkit.getPluginManager().getPlugin("beacon");
