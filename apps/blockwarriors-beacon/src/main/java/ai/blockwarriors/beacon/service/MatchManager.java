@@ -16,6 +16,7 @@ public class MatchManager {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
+    private MatchTelemetryService telemetryService;
     
     // Map match ID to world name
     private final Map<String, String> matchWorlds = new HashMap<>();
@@ -29,6 +30,10 @@ public class MatchManager {
     public MatchManager(JavaPlugin plugin, String convexSiteUrl) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
+    }
+
+    public void setTelemetryService(MatchTelemetryService telemetryService) {
+        this.telemetryService = telemetryService;
     }
 
     /**
@@ -109,6 +114,13 @@ public class MatchManager {
 
                 // Delete the world
                 ai.blockwarriors.commands.debug.CreateMatchCommand.deleteMatchWorld(worldName);
+
+                // Unregister players from telemetry service
+                if (telemetryService != null) {
+                    for (UUID playerId : playerIds) {
+                        telemetryService.unregisterPlayer(playerId);
+                    }
+                }
 
                 // Clean up registry
                 matchWorlds.remove(matchId);
