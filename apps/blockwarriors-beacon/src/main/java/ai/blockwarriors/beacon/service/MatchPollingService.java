@@ -243,7 +243,7 @@ public class MatchPollingService {
             conn.setDoOutput(true);
 
             JSONObject requestBody = new JSONObject();
-            requestBody.put("matchId", matchId);
+            requestBody.put("match_id", matchId); // Use match_id (with underscore) as expected by HTTP route
             requestBody.put("match_status", status);
 
             try (OutputStream os = conn.getOutputStream()) {

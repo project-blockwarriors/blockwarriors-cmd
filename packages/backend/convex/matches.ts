@@ -57,6 +57,63 @@ export const getMatchById = query({
   },
 });
 
+// Get match with tokens and their IGNs for UI display
+export const getMatchWithTokens = query({
+  args: {
+    matchId: v.id("matches"),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      return null;
+    }
+
+    // Get all tokens for this match
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
+
+    // Group tokens by team
+    const blueTeamTokens = tokens
+      .filter((token) => token.game_team_id === match.blue_team_id)
+      .map((token) => ({
+        token: token.token,
+        user_id: token.user_id,
+        ign: token.ign,
+        is_used: token.user_id !== undefined && token.user_id !== null,
+      }));
+
+    const redTeamTokens = tokens
+      .filter((token) => token.game_team_id === match.red_team_id)
+      .map((token) => ({
+        token: token.token,
+        user_id: token.user_id,
+        ign: token.ign,
+        is_used: token.user_id !== undefined && token.user_id !== null,
+      }));
+
+    return {
+      match_id: match._id.toString(),
+      match_type: match.match_type,
+      match_status: match.match_status,
+      blue_team_id: match.blue_team_id.toString(),
+      red_team_id: match.red_team_id.toString(),
+      mode: match.mode,
+      expires_at: match.expires_at,
+      match_state: match.match_state,
+      tokens: {
+        blueTeam: blueTeamTokens,
+        redTeam: redTeamTokens,
+      },
+      totalTokens: tokens.length,
+      usedTokens: tokens.filter(
+        (t) => t.user_id !== undefined && t.user_id !== null
+      ).length,
+    };
+  },
+});
+
 // Get match by token (finds match associated with a token)
 export const getMatchByToken = query({
   args: {

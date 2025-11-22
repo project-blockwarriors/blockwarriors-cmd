@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useQuery } from 'convex/react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +14,8 @@ import {
 import { authClient } from '@/lib/auth-client';
 import { GAME_MODES, type GameMode } from '@/lib/match-constants';
 import { startMatch } from '@/server/actions/matches';
+import { api } from '@/lib/convex';
+import { Id } from '@packages/backend/convex/_generated/dataModel';
 
 interface ServerStatus {
   activeSessions: number;
@@ -20,6 +24,7 @@ interface ServerStatus {
 }
 
 export default function PracticePage() {
+  const router = useRouter();
   const [selectedMode, setSelectedMode] = useState<GameMode | null>(null);
   const [serverStatus, setServerStatus] = useState<ServerStatus>({
     activeSessions: 0,
@@ -29,8 +34,24 @@ export default function PracticePage() {
   const [tokensGenerated, setTokensGenerated] = useState(false);
 
   const [matchId, setMatchId] = useState<string | null>(null);
-  const [tokens, setTokens] = useState<{ redTeam: string[]; blueTeam: string[] } | null>(null);
+  const [tokens, setTokens] = useState<{
+    redTeam: string[];
+    blueTeam: string[];
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Subscribe to match updates with tokens and IGNs
+  const matchData = useQuery(
+    api.matches.getMatchWithTokens,
+    matchId ? { matchId: matchId as Id<'matches'> } : 'skip'
+  );
+
+  // Redirect to match detail page when match starts
+  useEffect(() => {
+    if (matchData?.match_status === 'Playing' && matchId) {
+      router.push(`/dashboard/matches/${matchId}`);
+    }
+  }, [matchData?.match_status, matchId, router]);
 
   // Use centralized game mode configuration
   const gameModes = Object.values(GAME_MODES).map((mode) => ({
@@ -240,6 +261,26 @@ export default function PracticePage() {
               </div>
             </div>
 
+            {/* Match Status */}
+            {matchData && (
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-400">Match Status</p>
+                    <p className="text-lg font-semibold text-blue-400 capitalize">
+                      {matchData.match_status}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-400">Players Joined</p>
+                    <p className="text-lg font-semibold text-white">
+                      {matchData.usedTokens} / {matchData.totalTokens}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Tokens organized by teams */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* Red Team Tokens */}
@@ -247,25 +288,64 @@ export default function PracticePage() {
                 <div className="flex items-center gap-2 pb-2 border-b border-red-500/30">
                   <div className="w-3 h-3 rounded-full bg-red-500"></div>
                   <h4 className="text-base font-semibold text-red-400">
-                    Red Team Tokens ({tokens.redTeam.length})
+                    Red Team Tokens (
+                    {matchData?.tokens?.redTeam?.length ||
+                      tokens?.redTeam.length ||
+                      0}
+                    )
                   </h4>
                 </div>
-                {tokens.redTeam.map((token, index) => (
-                  <div key={`red-${index}`}>
-                    <h4 className="text-xs text-gray-400 mb-1">
-                      Token {index + 1}
-                    </h4>
-                    <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
-                      <span className="text-sm">{token}</span>
-                      <button
-                        onClick={() => navigator.clipboard.writeText(token)}
-                        className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                {(
+                  matchData?.tokens?.redTeam ||
+                  tokens?.redTeam.map((t) => ({
+                    token: t,
+                    ign: null,
+                    is_used: false,
+                  })) ||
+                  []
+                ).map((tokenData, index) => {
+                  const token =
+                    typeof tokenData === 'string' ? tokenData : tokenData.token;
+                  const ign =
+                    typeof tokenData === 'string' ? null : tokenData.ign;
+                  const isUsed =
+                    typeof tokenData === 'string' ? false : tokenData.is_used;
+
+                  return (
+                    <div key={`red-${index}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-xs text-gray-400">
+                          Token {index + 1}
+                        </h4>
+                        {isUsed && ign && (
+                          <span className="text-xs text-green-400 font-medium">
+                            ✓ {ign}
+                          </span>
+                        )}
+                        {isUsed && !ign && (
+                          <span className="text-xs text-green-400 font-medium">
+                            ✓ Used
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`font-mono bg-black/20 p-2 rounded select-all flex items-center justify-between group ${
+                          isUsed
+                            ? 'text-green-400 border border-green-500/30'
+                            : 'text-green-400'
+                        }`}
                       >
-                        Copy
-                      </button>
+                        <span className="text-sm">{token}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(token)}
+                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Copy
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Blue Team Tokens */}
@@ -273,25 +353,64 @@ export default function PracticePage() {
                 <div className="flex items-center gap-2 pb-2 border-b border-blue-500/30">
                   <div className="w-3 h-3 rounded-full bg-blue-500"></div>
                   <h4 className="text-base font-semibold text-blue-400">
-                    Blue Team Tokens ({tokens.blueTeam.length})
+                    Blue Team Tokens (
+                    {matchData?.tokens?.blueTeam?.length ||
+                      tokens?.blueTeam.length ||
+                      0}
+                    )
                   </h4>
                 </div>
-                {tokens.blueTeam.map((token, index) => (
-                  <div key={`blue-${index}`}>
-                    <h4 className="text-xs text-gray-400 mb-1">
-                      Token {index + 1}
-                    </h4>
-                    <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
-                      <span className="text-sm">{token}</span>
-                      <button
-                        onClick={() => navigator.clipboard.writeText(token)}
-                        className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                {(
+                  matchData?.tokens?.blueTeam ||
+                  tokens?.blueTeam.map((t) => ({
+                    token: t,
+                    ign: null,
+                    is_used: false,
+                  })) ||
+                  []
+                ).map((tokenData, index) => {
+                  const token =
+                    typeof tokenData === 'string' ? tokenData : tokenData.token;
+                  const ign =
+                    typeof tokenData === 'string' ? null : tokenData.ign;
+                  const isUsed =
+                    typeof tokenData === 'string' ? false : tokenData.is_used;
+
+                  return (
+                    <div key={`blue-${index}`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <h4 className="text-xs text-gray-400">
+                          Token {index + 1}
+                        </h4>
+                        {isUsed && ign && (
+                          <span className="text-xs text-green-400 font-medium">
+                            ✓ {ign}
+                          </span>
+                        )}
+                        {isUsed && !ign && (
+                          <span className="text-xs text-green-400 font-medium">
+                            ✓ Used
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`font-mono bg-black/20 p-2 rounded select-all flex items-center justify-between group ${
+                          isUsed
+                            ? 'text-green-400 border border-green-500/30'
+                            : 'text-green-400'
+                        }`}
                       >
-                        Copy
-                      </button>
+                        <span className="text-sm">{token}</span>
+                        <button
+                          onClick={() => navigator.clipboard.writeText(token)}
+                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Copy
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
