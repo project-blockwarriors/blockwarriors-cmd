@@ -28,10 +28,15 @@ public class Plugin extends JavaPlugin {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private LoginCommand loginCommand;
     private Set<UUID> loggedInPlayers = new HashSet<>();
+    private Set<UUID> bypassedPlayers = new HashSet<>(); // Operators who bypass login
     private MatchPollingService matchPollingService;
     private MatchTelemetryService matchTelemetryService;
     private MatchManager matchManager;
     private String convexSiteUrl = "https://abundant-ferret-667.convex.site";
+
+    public Set<UUID> getBypassedPlayers() {
+        return bypassedPlayers;
+    }
 
     public MatchTelemetryService getMatchTelemetryService() {
         return matchTelemetryService;
@@ -58,10 +63,12 @@ public class Plugin extends JavaPlugin {
         registerCommand("login", loginCommand);
         registerCommand("creatematch", new CreateMatchCommand());
         registerCommand("listloggedin", new ListLoggedInCommand(loggedInPlayers));
+        registerCommand("bypass", new ai.blockwarriors.commands.BypassCommand(bypassedPlayers));
         
-        // Register the player event listener
-        getServer().getPluginManager().registerEvents(new PlayerEventListener(loggedInPlayers, loginCommand), this);
+        // Register event listeners
+        getServer().getPluginManager().registerEvents(new PlayerEventListener(loggedInPlayers, bypassedPlayers, loginCommand), this);
         getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.MatchEventListener(matchManager), this);
+        getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.WorldEventListener(), this);
         
         // Initialize and start match polling service
         matchPollingService = new MatchPollingService(this, convexUrl);
