@@ -1,0 +1,7 @@
+# Warrior Telemetry Configuration
+
+# Update interval for scoreboard refresh (in ticks)
+# 20 ticks = 1 second
+# Default: 20 ticks (1 second)
+# Recommended: 20-200 ticks depending on server load and API rate limits
+update-interval: 20
