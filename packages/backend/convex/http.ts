@@ -101,44 +101,108 @@ http.route({
   }),
 });
 
-// GET /matches/{_id} - Get match by ID
+// GET /matches - List matches or get match by ID
+// Since Convex doesn't support path parameters, we handle both cases:
+// - GET /matches?status=Queuing - List matches filtered by status
+// - GET /matches?id={matchId} - Get single match by ID
 http.route({
-  path: "/matches/:id",
+  path: "/matches",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
     try {
       const url = new URL(request.url);
-      const pathParts = url.pathname.split("/");
-      const matchId = pathParts[pathParts.length - 1] as
-        | Id<"matches">
-        | undefined;
+      const matchId = url.searchParams.get("id");
+      const status = url.searchParams.get("status") || undefined;
 
-      if (!matchId) {
-        return new Response(JSON.stringify({ error: "Missing match ID" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+      // If id parameter is provided, get single match
+      // Check for id first, before checking status
+      if (matchId && matchId.trim() !== "") {
+        try {
+          const match = await ctx.runQuery(api.matches.getMatchById, {
+            matchId: matchId as Id<"matches">,
+          });
+
+          if (!match) {
+            return new Response(JSON.stringify({ error: "Match not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+
+          return new Response(JSON.stringify(match), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (error) {
+          // Handle invalid ID format - return 404 instead of 500
+          // Convex validation errors can come in different formats
+          const errorMessage =
+            error instanceof Error ? error.message : String(error);
+          const errorString =
+            error instanceof Error
+              ? JSON.stringify({
+                  message: error.message,
+                  name: error.name,
+                  stack: error.stack,
+                })
+              : JSON.stringify(error);
+
+          // Check for validation errors in various formats
+          if (
+            errorMessage.includes("ArgumentValidationError") ||
+            errorMessage.includes("does not match validator") ||
+            errorMessage.includes("Value does not match validator") ||
+            errorString.includes("ArgumentValidationError") ||
+            errorString.includes("does not match validator") ||
+            errorString.includes("Value does not match validator") ||
+            (error instanceof Error && error.name === "ArgumentValidationError")
+          ) {
+            return new Response(JSON.stringify({ error: "Match not found" }), {
+              status: 404,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          // Re-throw if it's not a validation error
+          throw error;
+        }
       }
 
-      const match = await ctx.runQuery(api.matches.getMatchById, {
-        matchId: matchId,
+      // Otherwise, list matches filtered by status
+      const matches = await ctx.runQuery(api.matches.listMatchesByStatus, {
+        status: status || undefined,
       });
 
-      if (!match) {
+      return new Response(JSON.stringify(matches), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (error) {
+      // Check if it's a validation error for invalid match ID
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      const errorString =
+        error instanceof Error
+          ? JSON.stringify({ message: error.message, name: error.name })
+          : JSON.stringify(error);
+
+      if (
+        errorMessage.includes("ArgumentValidationError") ||
+        errorMessage.includes("does not match validator") ||
+        errorMessage.includes("Value does not match validator") ||
+        errorString.includes("ArgumentValidationError") ||
+        errorString.includes("does not match validator") ||
+        (error instanceof Error && error.name === "ArgumentValidationError")
+      ) {
+        // For invalid ID format, return 404
         return new Response(JSON.stringify({ error: "Match not found" }), {
           status: 404,
           headers: { "Content-Type": "application/json" },
         });
       }
 
-      return new Response(JSON.stringify(match), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
       return new Response(
         JSON.stringify({
-          error: `Failed to get match: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error: `Failed to process request: ${errorMessage}`,
         }),
         {
           status: 500,
@@ -149,27 +213,26 @@ http.route({
   }),
 });
 
-// POST /matches/{_id} - Update match status and/or state
+// POST /matches/update - Update match status and/or state
+// Since Convex doesn't support path parameters, we use a different path
+// and include the match ID in the request body
 http.route({
-  path: "/matches/:id",
+  path: "/matches/update",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {
-      const url = new URL(request.url);
-      const pathParts = url.pathname.split("/");
-      const matchId = pathParts[pathParts.length - 1] as
-        | Id<"matches">
-        | undefined;
-
-      if (!matchId) {
-        return new Response(JSON.stringify({ error: "Missing match ID" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
-
       const body = await request.json();
-      const { match_status, match_state } = body;
+      const { match_id, match_status, match_state } = body;
+
+      if (!match_id) {
+        return new Response(
+          JSON.stringify({ error: "Missing match_id in request body" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
 
       // At least one field must be provided
       if (match_status === undefined && match_state === undefined) {
@@ -186,14 +249,14 @@ http.route({
 
       // Update match
       await ctx.runMutation(api.matches.updateMatch, {
-        matchId: matchId,
+        matchId: match_id as Id<"matches">,
         matchStatus: match_status,
         matchState: match_state,
       });
 
       // Get updated match to return
       const match = await ctx.runQuery(api.matches.getMatchById, {
-        matchId: matchId,
+        matchId: match_id as Id<"matches">,
       });
 
       if (!match) {
@@ -223,37 +286,8 @@ http.route({
       }
 
       return new Response(
-        JSON.stringify({ error: `Failed to update match: ${errorMessage}` }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-  }),
-});
-
-// GET /matches - List matches, optionally filtered by status
-http.route({
-  path: "/matches",
-  method: "GET",
-  handler: httpAction(async (ctx, request) => {
-    try {
-      const url = new URL(request.url);
-      const status = url.searchParams.get("status") || undefined;
-
-      const matches = await ctx.runQuery(api.matches.listMatchesByStatus, {
-        status: status || undefined,
-      });
-
-      return new Response(JSON.stringify(matches), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } catch (error) {
-      return new Response(
         JSON.stringify({
-          error: `Failed to list matches: ${error instanceof Error ? error.message : "Unknown error"}`,
+          error: `Failed to update match: ${errorMessage}`,
         }),
         {
           status: 500,
