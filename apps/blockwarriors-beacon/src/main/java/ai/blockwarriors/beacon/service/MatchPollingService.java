@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import io.socket.client.Socket;
@@ -126,7 +127,13 @@ public class MatchPollingService {
             }
             reader.close();
 
-            JSONArray matchesArray = new JSONArray(response.toString());
+            JSONArray matchesArray;
+            try {
+                matchesArray = new JSONArray(response.toString());
+            } catch (JSONException e) {
+                LOGGER.warning("Failed to parse matches JSON: " + e.getMessage());
+                return new ArrayList<>();
+            }
             List<JSONObject> matches = new ArrayList<>();
             for (int i = 0; i < matchesArray.length(); i++) {
                 matches.add(matchesArray.getJSONObject(i));
@@ -173,7 +180,14 @@ public class MatchPollingService {
     }
 
     private void processReadyMatch(JSONObject match, JSONObject readiness) {
-        String matchId = match.getString("match_id");
+        String matchId;
+        try {
+            matchId = match.getString("match_id");
+        } catch (JSONException e) {
+            LOGGER.severe("Error getting match ID: " + e.getMessage());
+            e.printStackTrace();
+            return;
+        }
         LOGGER.info("Match " + matchId + " is ready! All players have logged in. Starting match...");
 
         // Update match status to "Waiting" first
@@ -362,6 +376,7 @@ public class MatchPollingService {
             // Create the startMatch event payload
             JSONObject startMatchData = new JSONObject();
             startMatchData.put("matchType", matchType);
+            startMatchData.put("matchId", matchId); // Include matchId for telemetry registration
             startMatchData.put("playersPerTeam", playersPerTeam);
             startMatchData.put("blue_team", blueTeamArray);
             startMatchData.put("red_team", redTeamArray);

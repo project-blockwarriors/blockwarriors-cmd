@@ -7,6 +7,7 @@ import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.player.*;
 
 import ai.blockwarriors.commands.LoginCommand;
+import ai.blockwarriors.beacon.Plugin;
 import io.socket.client.Socket;
 
 import java.util.logging.Logger;
@@ -103,6 +104,12 @@ public class PlayerEventListener implements Listener {
             playerSocket.disconnect();
             playerSocket.close();
             LOGGER.info("Closed socket for player " + player.getName());
+        }
+
+        // Unregister player from match telemetry if they're in a match
+        Plugin plugin = (Plugin) org.bukkit.Bukkit.getPluginManager().getPlugin("beacon");
+        if (plugin != null && plugin.getMatchTelemetryService() != null) {
+            plugin.getMatchTelemetryService().unregisterPlayer(playerId);
         }
     }
 
