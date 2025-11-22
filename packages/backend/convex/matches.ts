@@ -11,6 +11,7 @@ export const createMatch = mutation({
     blueTeamId: v.id("game_teams"),
     redTeamId: v.id("game_teams"),
     mode: v.string(),
+    matchState: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -23,6 +24,7 @@ export const createMatch = mutation({
       red_team_id: args.redTeamId,
       mode: args.mode,
       expires_at: expiresAt,
+      match_state: args.matchState ?? undefined,
     });
 
     return matchId;
@@ -50,6 +52,7 @@ export const getMatchById = query({
       red_team_id: match.red_team_id,
       mode: match.mode,
       expires_at: match.expires_at,
+      match_state: match.match_state,
     };
   },
 });
@@ -84,10 +87,32 @@ export const getMatchByToken = query({
       red_team_id: match.red_team_id,
       mode: match.mode,
       expires_at: match.expires_at,
+      match_state: match.match_state,
       game_team_id: tokenDoc.game_team_id,
     };
   },
 });
+
+// Valid match status values
+const VALID_STATUSES = [
+  "Queuing",
+  "Waiting",
+  "Playing",
+  "Finished",
+  "Terminated",
+] as const;
+
+// Validate status transition
+function isValidStatusTransition(
+  currentStatus: string,
+  newStatus: string
+): boolean {
+  // Can't go backwards from terminal states
+  if (currentStatus === "Finished" || currentStatus === "Terminated") {
+    return false;
+  }
+  return VALID_STATUSES.includes(newStatus as any);
+}
 
 // Update match status
 export const updateMatchStatus = mutation({
@@ -96,10 +121,103 @@ export const updateMatchStatus = mutation({
     status: v.string(),
   },
   handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      throw new Error("Match not found");
+    }
+
+    if (!isValidStatusTransition(match.match_status, args.status)) {
+      throw new Error(
+        `Invalid status transition from ${match.match_status} to ${args.status}`
+      );
+    }
+
     await ctx.db.patch(args.matchId, {
       match_status: args.status,
     });
     return { success: true };
+  },
+});
+
+// Update match state
+export const updateMatchState = mutation({
+  args: {
+    matchId: v.id("matches"),
+    matchState: v.any(),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      throw new Error("Match not found");
+    }
+
+    await ctx.db.patch(args.matchId, {
+      match_state: args.matchState,
+    });
+    return { success: true };
+  },
+});
+
+// Update match status and/or state
+export const updateMatch = mutation({
+  args: {
+    matchId: v.id("matches"),
+    matchStatus: v.optional(v.string()),
+    matchState: v.optional(v.any()),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      throw new Error("Match not found");
+    }
+
+    const updates: { match_status?: string; match_state?: any } = {};
+
+    if (args.matchStatus !== undefined) {
+      if (!isValidStatusTransition(match.match_status, args.matchStatus)) {
+        throw new Error(
+          `Invalid status transition from ${match.match_status} to ${args.matchStatus}`
+        );
+      }
+      updates.match_status = args.matchStatus;
+    }
+
+    if (args.matchState !== undefined) {
+      updates.match_state = args.matchState;
+    }
+
+    await ctx.db.patch(args.matchId, updates);
+    return { success: true };
+  },
+});
+
+// List matches by status
+export const listMatchesByStatus = query({
+  args: {
+    status: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const matches = args.status
+      ? await ctx.db
+          .query("matches")
+          .withIndex("by_match_status", (q) =>
+            q.eq("match_status", args.status!)
+          )
+          .collect()
+      : await ctx.db.query("matches").collect();
+
+    return matches.map((match) => ({
+      match_id: match._id,
+      match_type: match.match_type,
+      match_status: match.match_status,
+      match_elo: match.match_elo,
+      winner_team_id: match.winner_team_id,
+      blue_team_id: match.blue_team_id,
+      red_team_id: match.red_team_id,
+      mode: match.mode,
+      expires_at: match.expires_at,
+      match_state: match.match_state,
+    }));
   },
 });
 
@@ -164,7 +282,7 @@ export const createMatchWithTokens = mutation({
     ): Promise<string[]> => {
       const tokens: string[] = [];
       const tokenSet = new Set<string>();
-      
+
       // Generate unique tokens upfront
       while (tokens.length < count) {
         const token = uuidv4();
@@ -181,7 +299,7 @@ export const createMatchWithTokens = mutation({
           .query("game_tokens")
           .withIndex("by_token", (q) => q.eq("token", token))
           .first();
-        
+
         if (existing) {
           // Regenerate if collision (extremely rare with UUIDs)
           let newToken: string;
@@ -193,7 +311,7 @@ export const createMatchWithTokens = mutation({
               .query("game_tokens")
               .withIndex("by_token", (q) => q.eq("token", newToken))
               .first();
-            
+
             if (!existingCheck && !finalTokens.includes(newToken)) {
               finalTokens.push(newToken);
               isUnique = true;
@@ -201,7 +319,9 @@ export const createMatchWithTokens = mutation({
             attempts++;
           }
           if (!isUnique) {
-            throw new Error(`Failed to generate unique token after ${attempts} attempts`);
+            throw new Error(
+              `Failed to generate unique token after ${attempts} attempts`
+            );
           }
         } else {
           finalTokens.push(token);
@@ -219,7 +339,7 @@ export const createMatchWithTokens = mutation({
           is_active: true,
           user_id: args.userId,
         };
-        
+
         await ctx.db.insert("game_tokens", tokenData);
       }
 
@@ -227,10 +347,16 @@ export const createMatchWithTokens = mutation({
     };
 
     // Generate tokens for red team
-    const redTokens = await generateTokensForTeam(redTeamId, args.tokensPerTeam);
+    const redTokens = await generateTokensForTeam(
+      redTeamId,
+      args.tokensPerTeam
+    );
 
     // Generate tokens for blue team
-    const blueTokens = await generateTokensForTeam(blueTeamId, args.tokensPerTeam);
+    const blueTokens = await generateTokensForTeam(
+      blueTeamId,
+      args.tokensPerTeam
+    );
 
     return {
       matchId: matchId,
@@ -244,4 +370,3 @@ export const createMatchWithTokens = mutation({
     };
   },
 });
-
