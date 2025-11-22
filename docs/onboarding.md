@@ -101,11 +101,6 @@ npx convex dev
      NEXT_PUBLIC_CONVEX_SITE_URL=http://your-deployment.convex.site
      NEXT_PUBLIC_SITE_URL=http://localhost:3000
      ```
-   - Socket app (`apps/blockwarriors-socket/.env`):
-     ```
-     CONVEX_DEPLOYMENT=your-convex-deployment-name
-     CONVEX_URL=https://your-deployment.convex.cloud
-     ```
 
 ### 3. Run the Applications
 

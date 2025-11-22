@@ -329,6 +329,8 @@ export const createMatchWithTokens = mutation({
       }
 
       // Insert all tokens for this team
+      // Note: user_id should NOT be set here - it will be set when players log in with /login <token>
+      // user_id stores the Minecraft UUID, not the Convex user ID
       for (const token of finalTokens) {
         const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
           token: token,
@@ -337,7 +339,7 @@ export const createMatchWithTokens = mutation({
           created_at: now,
           expires_at: expiresAt,
           is_active: true,
-          user_id: args.userId,
+          // user_id is intentionally undefined - will be set when player logs in
         };
 
         await ctx.db.insert("game_tokens", tokenData);

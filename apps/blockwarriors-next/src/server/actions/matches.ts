@@ -4,7 +4,10 @@ import { getToken } from '@/lib/auth-server';
 import { getUser } from '@/auth/server';
 import { isValidGameMode, type GameMode } from '@/lib/match-constants';
 
-const SOCKET_SERVER_URL = process.env.SOCKET_SERVER_URL || 'http://localhost:3001';
+const CONVEX_SITE_URL =
+  process.env.CONVEX_SITE_URL ||
+  process.env.NEXT_PUBLIC_CONVEX_URL?.replace('.cloud', '.site') ||
+  '';
 
 export interface StartMatchResult {
   matchId: string;
@@ -19,9 +22,11 @@ export interface StartMatchResult {
 
 /**
  * Start a match by generating tokens
- * Calls the socket server's start_match endpoint
+ * Calls Convex HTTP route /matches/start
  */
-export async function startMatch(selectedMode: string): Promise<StartMatchResult> {
+export async function startMatch(
+  selectedMode: string
+): Promise<StartMatchResult> {
   try {
     // Validate user is authenticated
     const user = await getUser();
@@ -42,7 +47,8 @@ export async function startMatch(selectedMode: string): Promise<StartMatchResult
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error: 'Invalid game mode. selectedMode is required and must be a string.',
+        error:
+          'Invalid game mode. selectedMode is required and must be a string.',
       };
     }
 
@@ -56,7 +62,18 @@ export async function startMatch(selectedMode: string): Promise<StartMatchResult
       };
     }
 
-    // Get Convex auth token for the socket server
+    if (!CONVEX_SITE_URL) {
+      return {
+        matchId: '',
+        tokens: { redTeam: [], blueTeam: [] },
+        expiresAt: 0,
+        matchType: '',
+        error:
+          'Convex site URL not configured. Please set CONVEX_SITE_URL environment variable.',
+      };
+    }
+
+    // Get Convex auth token for authentication
     const token = await getToken();
     if (!token) {
       return {
@@ -64,30 +81,42 @@ export async function startMatch(selectedMode: string): Promise<StartMatchResult
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error: 'Authentication failed. Failed to get Convex authentication token.',
+        error:
+          'Authentication failed. Failed to get Convex authentication token.',
       };
     }
 
-    // Call socket server's start_match endpoint
-    const response = await fetch(`${SOCKET_SERVER_URL}/api/match/start_match`, {
+    // Call Convex HTTP route /matches/start
+    const response = await fetch(`${CONVEX_SITE_URL}/matches/start`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ selectedMode }),
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: `HTTP ${response.status}: ${response.statusText}` }));
-      console.error('Socket server error:', { status: response.status, errorData });
-      
+      const errorData = await response
+        .json()
+        .catch(() => ({
+          error: `HTTP ${response.status}: ${response.statusText}`,
+        }));
+      console.error('Convex HTTP route error:', {
+        status: response.status,
+        errorData,
+      });
+
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error: errorData.error || errorData.details || errorData.message || `Failed to start match (${response.status})`,
+        error:
+          errorData.error ||
+          errorData.details ||
+          errorData.message ||
+          `Failed to start match (${response.status})`,
       };
     }
 
@@ -100,10 +129,11 @@ export async function startMatch(selectedMode: string): Promise<StartMatchResult
     };
   } catch (error) {
     console.error('Error starting match:', error);
-    const errorMessage = error instanceof Error 
-      ? `${error.message}${error.cause ? ` (cause: ${error.cause})` : ''}`
-      : 'Unknown error occurred';
-    
+    const errorMessage =
+      error instanceof Error
+        ? `${error.message}${error.cause ? ` (cause: ${error.cause})` : ''}`
+        : 'Unknown error occurred';
+
     return {
       matchId: '',
       tokens: { redTeam: [], blueTeam: [] },
@@ -113,4 +143,3 @@ export async function startMatch(selectedMode: string): Promise<StartMatchResult
     };
   }
 }
-

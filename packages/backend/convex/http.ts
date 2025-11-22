@@ -380,4 +380,178 @@ http.route({
   }),
 });
 
+// POST /matches/start - Create a new match with tokens (replaces socket server endpoint)
+http.route({
+  path: "/matches/start",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      // Get authenticated user
+      const user = await authComponent.getAuthUser(ctx);
+      if (!user) {
+        return new Response(
+          JSON.stringify({
+            error: "Not authenticated. Please log in to start a match.",
+          }),
+          {
+            status: 401,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const body = await request.json();
+      const { selectedMode } = body as { selectedMode?: string };
+
+      // Validate game mode
+      if (!selectedMode || typeof selectedMode !== "string") {
+        return new Response(
+          JSON.stringify({ error: "Missing selected mode" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      const tokensPerTeamMap: Record<string, number> = {
+        pvp: 1,
+        bedwars: 4,
+        ctf: 5,
+      };
+
+      if (!(selectedMode in tokensPerTeamMap)) {
+        return new Response(
+          JSON.stringify({
+            error: `Invalid game mode: ${selectedMode}. Must be one of: ${Object.keys(tokensPerTeamMap).join(", ")}`,
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Create match with tokens
+      const result = await ctx.runMutation(api.matches.createMatchWithTokens, {
+        matchType: selectedMode,
+        matchStatus: "Queuing",
+        mode: selectedMode,
+        userId: user._id,
+        tokensPerTeam: tokensPerTeamMap[selectedMode],
+      });
+
+      return new Response(
+        JSON.stringify({
+          matchId: result.matchId.toString(),
+          tokens: result.tokens,
+          expiresAt: result.expiresAt,
+          matchType: selectedMode,
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          error: "Failed to start match",
+          details: error instanceof Error ? error.message : "Unknown error",
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
+// POST /login - Validate token and mark as used
+http.route({
+  path: "/login",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    try {
+      const body = await request.json();
+      const { token, playerId, ign } = body as {
+        token?: string;
+        playerId?: string;
+        ign?: string;
+      };
+
+      if (!token || !playerId) {
+        return new Response(
+          JSON.stringify({ error: "Missing required fields: token, playerId" }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Validate token
+      const validation = await ctx.runQuery(api.tokens.validateToken, {
+        token: token,
+      });
+
+      if (!validation || !validation.valid) {
+        return new Response(
+          JSON.stringify({
+            status: "bad",
+            error: validation?.error || "Token validation failed",
+          }),
+          {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      // Mark token as used
+      try {
+        await ctx.runMutation(api.tokens.markTokenAsUsed, {
+          token: token,
+          playerId: playerId,
+          ign: ign,
+        });
+      } catch (error) {
+        // Token might already be marked, but validation passed so continue
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        if (
+          !errorMessage.includes("already") &&
+          !errorMessage.includes("Token")
+        ) {
+          throw error;
+        }
+      }
+
+      return new Response(
+        JSON.stringify({
+          status: "ok",
+          matchId: validation.matchId?.toString() || "",
+          gameTeamId: validation.gameTeamId?.toString(),
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (error) {
+      return new Response(
+        JSON.stringify({
+          status: "bad",
+          error: `Failed to process login: ${error instanceof Error ? error.message : "Unknown error"}`,
+        }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+  }),
+});
+
 export default http;
