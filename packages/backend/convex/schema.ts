@@ -38,7 +38,8 @@ export default defineSchema({
     red_team_id: v.id("game_teams"),
     mode: v.string(),
     expires_at: v.number(),
-  }),
+    match_state: v.optional(v.any()),
+  }).index("by_match_status", ["match_status"]),
 
   // Game tokens table
   game_tokens: defineTable({
