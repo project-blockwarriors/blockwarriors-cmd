@@ -5,9 +5,7 @@ import { getUser } from '@/auth/server';
 import { isValidGameMode, type GameMode } from '@/lib/match-constants';
 
 const CONVEX_SITE_URL =
-  process.env.CONVEX_SITE_URL ||
-  process.env.NEXT_PUBLIC_CONVEX_URL?.replace('.cloud', '.site') ||
-  '';
+  process.env.CONVEX_SITE_URL || process.env.NEXT_PUBLIC_CONVEX_SITE_URL || '';
 
 export interface StartMatchResult {
   matchId: string;
@@ -20,9 +18,15 @@ export interface StartMatchResult {
   error?: string;
 }
 
+export interface BeginGameResult {
+  success: boolean;
+  error?: string;
+}
+
 /**
- * Start a match by generating tokens
- * Calls Convex HTTP route /matches/start
+ * Start a match by creating it (without tokens)
+ * Tokens will be generated when Minecraft server acknowledges the match
+ * Calls Convex HTTP route /matches/new
  */
 export async function startMatch(
   selectedMode: string
@@ -86,22 +90,23 @@ export async function startMatch(
       };
     }
 
-    // Call Convex HTTP route /matches/start
-    const response = await fetch(`${CONVEX_SITE_URL}/matches/start`, {
+    // Call Convex HTTP route /matches/new (creates match without tokens)
+    const response = await fetch(`${CONVEX_SITE_URL}/matches/new`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify({ selectedMode }),
+      body: JSON.stringify({
+        match_type: selectedMode,
+        mode: selectedMode,
+      }),
     });
 
     if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({
-          error: `HTTP ${response.status}: ${response.statusText}`,
-        }));
+      const errorData = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }));
       console.error('Convex HTTP route error:', {
         status: response.status,
         errorData,
@@ -121,11 +126,13 @@ export async function startMatch(
     }
 
     const data = await response.json();
+    // Match is created but tokens haven't been generated yet
+    // Tokens will be generated when Minecraft server acknowledges the match
     return {
-      matchId: data.matchId,
-      tokens: data.tokens,
-      expiresAt: data.expiresAt,
-      matchType: data.matchType || selectedMode,
+      matchId: data.match_id || data.matchId,
+      tokens: { redTeam: [], blueTeam: [] }, // Empty - tokens generated on acknowledge
+      expiresAt: data.expires_at || data.expiresAt || 0,
+      matchType: data.match_type || data.matchType || selectedMode,
     };
   } catch (error) {
     console.error('Error starting match:', error);
@@ -140,6 +147,93 @@ export async function startMatch(
       expiresAt: 0,
       matchType: '',
       error: `Failed to start match: ${errorMessage}`,
+    };
+  }
+}
+
+/**
+ * Begin the game by updating match status to "Playing"
+ * Only works when all players have logged in (all tokens used)
+ */
+export async function beginGame(matchId: string): Promise<BeginGameResult> {
+  try {
+    // Validate user is authenticated
+    const user = await getUser();
+    if (!user) {
+      return {
+        success: false,
+        error: 'Not authenticated. Please log in to begin the game.',
+      };
+    }
+
+    if (!matchId || typeof matchId !== 'string') {
+      return {
+        success: false,
+        error: 'Invalid match ID.',
+      };
+    }
+
+    if (!CONVEX_SITE_URL) {
+      return {
+        success: false,
+        error:
+          'Convex site URL not configured. Please set CONVEX_SITE_URL environment variable.',
+      };
+    }
+
+    // Get Convex auth token for authentication
+    const token = await getToken();
+    if (!token) {
+      return {
+        success: false,
+        error:
+          'Authentication failed. Failed to get Convex authentication token.',
+      };
+    }
+
+    // Update match status to "Playing"
+    const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        match_id: matchId,
+        match_status: 'Playing',
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({
+        error: `HTTP ${response.status}: ${response.statusText}`,
+      }));
+      console.error('Convex HTTP route error:', {
+        status: response.status,
+        errorData,
+      });
+
+      return {
+        success: false,
+        error:
+          errorData.error ||
+          errorData.details ||
+          errorData.message ||
+          `Failed to begin game (${response.status})`,
+      };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error beginning game:', error);
+    const errorMessage =
+      error instanceof Error
+        ? `${error.message}${error.cause ? ` (cause: ${error.cause})` : ''}`
+        : 'Unknown error occurred';
+
+    return {
+      success: false,
+      error: `Failed to begin game: ${errorMessage}`,
     };
   }
 }

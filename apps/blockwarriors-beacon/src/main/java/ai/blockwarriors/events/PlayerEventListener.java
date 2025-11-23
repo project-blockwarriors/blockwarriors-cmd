@@ -104,7 +104,7 @@ public class PlayerEventListener implements Listener {
         loggedInPlayers.remove(playerId);
 
         // Remove player from login command
-        loginCommand.closeSocketandRemoveLoggedIn(playerId);
+        loginCommand.removeLoggedInPlayer(playerId);
 
         // Unregister player from match telemetry if they're in a match
         Plugin plugin = (Plugin) org.bukkit.Bukkit.getPluginManager().getPlugin("beacon");
