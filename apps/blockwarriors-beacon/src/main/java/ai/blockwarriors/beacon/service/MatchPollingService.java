@@ -30,7 +30,7 @@ public class MatchPollingService {
     private final Set<String> processedMatches = new HashSet<>();
     private MatchManager matchManager;
     private int taskId = -1;
-    private static final int POLL_INTERVAL_SECONDS = 2; // Poll every 2 seconds
+    private static final int POLL_INTERVAL_SECONDS = 5; // Poll every 5 seconds
 
     public MatchPollingService(JavaPlugin plugin, String convexSiteUrl) {
         this.plugin = plugin;
