@@ -88,9 +88,11 @@ graph TB
   - Minecraft plugin (Java/Spigot API 1.20.6)
   - Connects to Convex via HTTP routes
   - Handles player authentication, match creation, and game events
-  - Commands: `/login`, `/creatematch`, `/listloggedin`
-  - Polls Convex for queued matches and starts them when ready
-  - Built with Maven, uses Multiverse Core for world management
+  - Commands: `/login`, `/bypass`, `/creatematch`, `/listloggedin`
+  - Polls Convex for matches in "Queuing", "Waiting", and "Playing" statuses
+  - Acknowledges queued matches (generates tokens)
+  - Auto-starts matches when all players are ready
+  - Built with Maven, uses Bukkit WorldCreator for world management
   - Reads server envs:
     - `CONVEX_SITE_URL` (Convex HTTP routes URL)
 
