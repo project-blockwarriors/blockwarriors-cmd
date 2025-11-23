@@ -7,7 +7,7 @@ const crons = cronJobs();
 // This prevents matches from staying in "Queuing" status indefinitely
 crons.interval(
   "archive old queued matches",
-  { minutes: 2 },
+  { minutes: 5 },
   internal.matches.archiveOldQueuedMatches,
   {}
 );
