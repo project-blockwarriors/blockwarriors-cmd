@@ -22,6 +22,7 @@ The project uses the following technologies:
 ### Backend
 
 - Next.js Server Actions/API Routes
+- Convex (hosted backend for queries, mutations, HTTP routes)
 - Minecraft Server (Paper/Spigot API)
 
 ### Authentication
