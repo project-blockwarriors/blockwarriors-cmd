@@ -3,7 +3,6 @@ package ai.blockwarriors.beacon.service;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
