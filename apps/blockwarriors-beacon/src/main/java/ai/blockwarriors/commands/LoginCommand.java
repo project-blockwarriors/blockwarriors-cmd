@@ -60,7 +60,7 @@ public class LoginCommand implements CommandExecutor {
             public void run() {
                 try {
                     // Prepare login request
-                    String urlString = convexSiteUrl + "/login";
+                    String urlString = convexSiteUrl + "/auth/login";
                     URL url = new URL(urlString);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
@@ -139,7 +139,7 @@ public class LoginCommand implements CommandExecutor {
         return true;
     }
 
-    public void closeSocketandRemoveLoggedIn(UUID playerUUID) {
+    public void removeLoggedInPlayer(UUID playerUUID) {
         loggedInPlayers.remove(playerUUID);
     }
 }

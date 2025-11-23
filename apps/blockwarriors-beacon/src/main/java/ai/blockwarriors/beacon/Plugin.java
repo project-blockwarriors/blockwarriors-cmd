@@ -9,9 +9,6 @@ import java.util.UUID;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import ai.blockwarriors.commands.LoginCommand;
 import ai.blockwarriors.commands.debug.CreateMatchCommand;

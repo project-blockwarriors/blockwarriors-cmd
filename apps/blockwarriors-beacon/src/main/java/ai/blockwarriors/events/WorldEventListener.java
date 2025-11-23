@@ -12,7 +12,6 @@ import java.util.logging.Logger;
  * Prevents mob spawning in match worlds
  */
 public class WorldEventListener implements Listener {
-    private static final Logger LOGGER = Logger.getLogger("beacon");
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onCreatureSpawn(CreatureSpawnEvent event) {
