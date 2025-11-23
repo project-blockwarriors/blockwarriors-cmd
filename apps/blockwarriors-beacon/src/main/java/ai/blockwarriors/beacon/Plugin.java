@@ -7,7 +7,6 @@ import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.command.CommandExecutor;
-import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import ai.blockwarriors.commands.LoginCommand;
@@ -46,39 +45,41 @@ public class Plugin extends JavaPlugin {
     @Override
     public void onEnable() {
         LOGGER.info("beacon enabled");
-        
+
         // Initialize Convex URL
         String convexUrl = System.getenv().getOrDefault("CONVEX_SITE_URL", convexSiteUrl);
-        
+
         // Initialize match manager
         matchManager = new MatchManager(this, convexUrl);
-        
+
         // Initialize match telemetry service
         matchTelemetryService = new MatchTelemetryService(this, convexUrl);
-        
+
         // Link telemetry service to match manager
         matchManager.setTelemetryService(matchTelemetryService);
-        
+
         // Initialize login command with Convex URL
         loginCommand = new LoginCommand(loggedInPlayers, convexUrl);
-        
+
         // Register command executors
         registerCommand("login", loginCommand);
         registerCommand("creatematch", new CreateMatchCommand());
         registerCommand("listloggedin", new ListLoggedInCommand(loggedInPlayers));
         registerCommand("bypass", new ai.blockwarriors.commands.BypassCommand(bypassedPlayers));
-        
+
         // Register event listeners
-        getServer().getPluginManager().registerEvents(new PlayerEventListener(loggedInPlayers, bypassedPlayers, loginCommand), this);
-        getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.MatchEventListener(matchManager), this);
+        getServer().getPluginManager()
+                .registerEvents(new PlayerEventListener(loggedInPlayers, bypassedPlayers, loginCommand), this);
+        getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.MatchEventListener(matchManager),
+                this);
         getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.WorldEventListener(), this);
-        
+
         // Initialize and start match polling service
         matchPollingService = new MatchPollingService(this, convexUrl);
         matchPollingService.setMatchManager(matchManager);
         matchPollingService.start();
         LOGGER.info("MatchPollingService started with Convex URL: " + convexUrl);
-        
+
         // Start match telemetry service (already initialized above)
         matchTelemetryService.start();
         LOGGER.info("MatchTelemetryService started");
