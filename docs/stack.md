@@ -107,4 +107,4 @@ At a glance:
 - Frontend (Next.js) calls Convex HTTP routes directly.
 - Convex hosts data logic, HTTP routes, and auth; all apps share the same generated API from `packages/backend`.
 - Minecraft plugin (Beacon) connects to Convex HTTP routes for match coordination.
-- All communication happens via Convex HTTP routes - no Socket.io server needed.
+- All communication happens via Convex HTTP routes.

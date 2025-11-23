@@ -67,7 +67,6 @@ sequenceDiagram
     participant HTTP as Convex HTTP Routes
     participant DB as Convex Database
     participant POLLING as MatchPollingService
-    participant SOCKET as Socket Server
     participant BEACON as Minecraft Server
     participant TELEMETRY as MatchTelemetryService
     participant PLAYER as Player
@@ -142,7 +141,7 @@ sequenceDiagram
   - Fetch queued matches
   - Check match readiness (all tokens used)
   - Update match status (Waiting → Playing)
-  - Emit startMatch event via Socket.IO
+  - Start match directly when ready
 
 ### MatchTelemetryService
 
@@ -170,7 +169,7 @@ sequenceDiagram
 - **GET /matches/readiness?match_id={id}**: Check if match is ready (all tokens used)
 - **GET /matches/tokens?match_id={id}**: Get all tokens for a match
 - **POST /matches/update**: Update match status and/or match_state
-- **POST /login**: Validate token and mark as used (replaces Socket.IO login)
+- **POST /login**: Validate token and mark as used
 
 ### Convex Mutations/Queries
 
@@ -238,11 +237,3 @@ Queuing → Waiting → Playing → Finished/Terminated
 3. **Match Detection**: Polling service checks readiness → When all tokens used, match starts directly
 4. **Telemetry Collection**: Service collects player stats → Updates match_state in Convex
 5. **Match State Rendering**: Website can query match_state → Render player telemetry data
-
-## Architecture Changes
-
-**Removed Socket.IO Dependency**: All communication now happens via Convex HTTP routes:
-
-- Login is handled via `POST /login` HTTP route instead of Socket.IO
-- Match starting happens directly in the Minecraft server instead of via Socket.IO events
-- No real-time socket connections needed - polling and HTTP requests handle everything
