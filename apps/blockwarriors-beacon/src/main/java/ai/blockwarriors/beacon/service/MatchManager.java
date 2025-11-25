@@ -103,17 +103,15 @@ public class MatchManager {
             public void run() {
                 // Kick all players from the match world
                 World world = Bukkit.getWorld(worldName);
-                if (world != null) {
-                    for (UUID playerId : playerIds) {
-                        Player player = Bukkit.getPlayer(playerId);
-                        if (player != null && player.isOnline()) {
-                            // Teleport to main world first
-                            World mainWorld = Bukkit.getWorlds().get(0);
-                            if (mainWorld != null && !mainWorld.equals(world)) {
-                                player.teleport(mainWorld.getSpawnLocation());
-                            }
-                            player.sendMessage("Match ended! You have been returned to the lobby.");
-                        }
+                // Intentionally do not check for world == null; let it throw if something is wrong
+                for (UUID playerId : playerIds) {
+                    Player player = Bukkit.getPlayer(playerId);
+                    if (player != null && player.isOnline()) {
+                        // Always teleport to the main world, no matter what
+                        World mainWorld = Bukkit.getWorlds().get(0);
+                        // Do not check for null or same world; let any errors surface visibly
+                        player.teleport(mainWorld.getSpawnLocation());
+                        player.sendMessage("Match ended! You have been returned to the lobby.");
                     }
                 }
 
