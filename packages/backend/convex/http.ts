@@ -232,36 +232,13 @@ http.route({
       );
     }
 
-    const { match_id, tokens_per_team, match_type } = body;
+    const { match_id } = body;
 
     // Validate required fields
-    if (!match_id || tokens_per_team === undefined) {
+    if (!match_id) {
       return new Response(
         JSON.stringify({
-          error: "Missing required fields: match_id, tokens_per_team",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
-    }
-
-    // Determine tokens per team from match_type if not provided
-    let tokensPerTeam = tokens_per_team;
-    if (!tokensPerTeam && match_type) {
-      const tokensPerTeamMap: Record<string, number> = {
-        pvp: 1,
-        bedwars: 4,
-        ctf: 5,
-      };
-      tokensPerTeam = tokensPerTeamMap[match_type] || 1;
-    }
-
-    if (!tokensPerTeam || tokensPerTeam < 1) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid tokens_per_team. Must be at least 1.",
+          error: "Missing required field: match_id",
         }),
         {
           status: 400,
@@ -272,11 +249,11 @@ http.route({
 
     try {
       // Atomically acknowledge match and generate tokens
+      // Convex determines tokens_per_team from the match's match_type
       const result = await ctx.runMutation(
         api.matches.acknowledgeMatchAndGenerateTokens,
         {
           matchId: match_id as Id<"matches">,
-          tokensPerTeam: tokensPerTeam,
         }
       );
 
