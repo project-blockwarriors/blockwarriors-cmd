@@ -18,7 +18,7 @@ export interface StartMatchResult {
   error?: string;
 }
 
-export interface BeginGameResult {
+export interface UpdateMatchStatusResult {
   success: boolean;
   error?: string;
 }
@@ -147,93 +147,6 @@ export async function startMatch(
       expiresAt: 0,
       matchType: '',
       error: `Failed to start match: ${errorMessage}`,
-    };
-  }
-}
-
-/**
- * Begin the game by updating match status to "Playing"
- * Only works when all players have logged in (all tokens used)
- */
-export async function beginGame(matchId: string): Promise<BeginGameResult> {
-  try {
-    // Validate user is authenticated
-    const user = await getUser();
-    if (!user) {
-      return {
-        success: false,
-        error: 'Not authenticated. Please log in to begin the game.',
-      };
-    }
-
-    if (!matchId || typeof matchId !== 'string') {
-      return {
-        success: false,
-        error: 'Invalid match ID.',
-      };
-    }
-
-    if (!CONVEX_SITE_URL) {
-      return {
-        success: false,
-        error:
-          'Convex site URL not configured. Please set CONVEX_SITE_URL environment variable.',
-      };
-    }
-
-    // Get Convex auth token for authentication
-    const token = await getToken();
-    if (!token) {
-      return {
-        success: false,
-        error:
-          'Authentication failed. Failed to get Convex authentication token.',
-      };
-    }
-
-    // Update match status to "Playing"
-    const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        match_id: matchId,
-        match_status: 'Playing',
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({
-        error: `HTTP ${response.status}: ${response.statusText}`,
-      }));
-      console.error('Convex HTTP route error:', {
-        status: response.status,
-        errorData,
-      });
-
-      return {
-        success: false,
-        error:
-          errorData.error ||
-          errorData.details ||
-          errorData.message ||
-          `Failed to begin game (${response.status})`,
-      };
-    }
-
-    return { success: true };
-  } catch (error) {
-    console.error('Error beginning game:', error);
-    const errorMessage =
-      error instanceof Error
-        ? `${error.message}${error.cause ? ` (cause: ${error.cause})` : ''}`
-        : 'Unknown error occurred';
-
-    return {
-      success: false,
-      error: `Failed to begin game: ${errorMessage}`,
     };
   }
 }
