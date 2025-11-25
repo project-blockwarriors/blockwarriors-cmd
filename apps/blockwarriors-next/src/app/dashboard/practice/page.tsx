@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { authClient } from '@/lib/auth-client';
 import { GAME_MODES, type GameMode } from '@/lib/match-constants';
-import { startMatch, beginGame } from '@/server/actions/matches';
+import { startMatch } from '@/server/actions/matches';
 import { api } from '@/lib/convex';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
 
@@ -35,7 +35,6 @@ export default function PracticePage() {
 
   const [matchId, setMatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isBeginningGame, setIsBeginningGame] = useState(false);
 
   // Subscribe to match updates with tokens and IGNs (real-time)
   const matchData = useQuery(
@@ -43,7 +42,7 @@ export default function PracticePage() {
     matchId ? { matchId: matchId as Id<'matches'> } : 'skip'
   );
 
-  // Redirect to match detail page when match starts
+  // Redirect to match detail page when server starts the match
   useEffect(() => {
     if (matchData?.match_status === 'Playing' && matchId) {
       router.push(`/dashboard/matches/${matchId}`);
@@ -66,17 +65,12 @@ export default function PracticePage() {
     matchData.totalTokens > 0 &&
     matchData.usedTokens === matchData.totalTokens;
 
-  // Check if match is ready to begin (has tokens and all players logged in)
-  const canBeginGame =
-    hasTokens && matchData?.match_status === 'Waiting' && allPlayersReady;
-
   // Check if button should be disabled
   const isButtonDisabled = Boolean(
     !selectedMode ||
       isLoading ||
-      isBeginningGame ||
       waitingForTokens ||
-      (matchId && !canBeginGame && hasTokens)
+      matchId // Disable button after match is created (waiting for players or auto-starting)
   );
 
   // Use centralized game mode configuration
@@ -119,31 +113,6 @@ export default function PracticePage() {
     }
   };
 
-  const handleBeginGame = async () => {
-    if (!matchId || !canBeginGame) return;
-
-    setIsBeginningGame(true);
-
-    try {
-      const result = await beginGame(matchId);
-
-      if (result.error) {
-        console.error('Failed to begin game:', result.error);
-        alert(`Error: ${result.error}`);
-        return;
-      }
-
-      // Match status will be updated to "Playing" and redirect will happen automatically
-      // via the useEffect that watches match_status
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Failed to begin game';
-      console.error('Failed to begin game:', errorMessage);
-      alert(`Error: ${errorMessage}`);
-    } finally {
-      setIsBeginningGame(false);
-    }
-  };
 
   return (
     <motion.div
@@ -274,26 +243,24 @@ export default function PracticePage() {
         </div>
 
         <Button
-          onClick={canBeginGame ? handleBeginGame : handleStartMatch}
+          onClick={handleStartMatch}
           disabled={isButtonDisabled}
           className="w-full flex items-center justify-center gap-2 py-6 text-lg"
         >
-          {isLoading || isBeginningGame ? (
+          {isLoading || (matchId && hasTokens && allPlayersReady) ? (
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
           ) : (
             <PlayIcon className="w-5 h-5" />
           )}
           {isLoading
             ? 'Starting Match...'
-            : isBeginningGame
-              ? 'Beginning Game...'
-              : canBeginGame
-                ? 'Begin Game'
-                : waitingForTokens
-                  ? 'Waiting for Server...'
-                  : matchId && hasTokens && !allPlayersReady
-                    ? `Waiting for Players (${matchData?.usedTokens || 0}/${matchData?.totalTokens || 0})`
-                    : 'Start Match'}
+            : waitingForTokens
+              ? 'Waiting for Server...'
+              : matchId && hasTokens && allPlayersReady
+                ? 'Server Starting Match...'
+                : matchId && hasTokens && !allPlayersReady
+                  ? `Waiting for Players (${matchData?.usedTokens || 0}/${matchData?.totalTokens || 0})`
+                  : 'Start Match'}
         </Button>
       </motion.div>
 
