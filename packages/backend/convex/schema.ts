@@ -38,7 +38,8 @@ export default defineSchema({
     red_team_id: v.id("game_teams"),
     mode: v.string(),
     expires_at: v.number(),
-  }),
+    match_state: v.optional(v.any()),
+  }).index("by_match_status", ["match_status"]),
 
   // Game tokens table
   game_tokens: defineTable({
@@ -46,6 +47,7 @@ export default defineSchema({
     match_id: v.id("matches"),
     game_team_id: v.id("game_teams"),
     user_id: v.optional(v.string()),
+    ign: v.optional(v.string()), // In-Game Name (Minecraft username)
     bot_id: v.optional(v.number()),
     created_at: v.number(),
     expires_at: v.number(),

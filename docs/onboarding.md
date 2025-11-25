@@ -7,7 +7,6 @@ Welcome to the BlockWarriors project! This guide will help you get set up and re
 BlockWarriors Command Block is a monolithic repository for managing BlockWarriors tournaments and teams with the following components:
 
 - **BlockWarriors Next.js Application**: A modern web dashboard for tournament and team management
-- **BlockWarriors Socket.io Server**: Real-time communication server handling live updates and events
 
 ## Technology Stack
 
@@ -23,7 +22,7 @@ The project uses the following technologies:
 ### Backend
 
 - Next.js Server Actions/API Routes
-- Express.js with Socket.io
+- Convex (hosted backend for queries, mutations, HTTP routes)
 - Minecraft Server (Paper/Spigot API)
 
 ### Authentication
@@ -101,11 +100,6 @@ npx convex dev
      NEXT_PUBLIC_CONVEX_SITE_URL=http://your-deployment.convex.site
      NEXT_PUBLIC_SITE_URL=http://localhost:3000
      ```
-   - Socket app (`apps/blockwarriors-socket/.env`):
-     ```
-     CONVEX_DEPLOYMENT=your-convex-deployment-name
-     CONVEX_URL=https://your-deployment.convex.cloud
-     ```
 
 ### 3. Run the Applications
 
@@ -133,7 +127,6 @@ npm run dev
 ## Additional Resources
 
 - [Next.js Documentation](https://nextjs.org/docs)
-- [Socket.io Documentation](https://socket.io/docs)
 - [Project Contributing Guide](./contributing.md)
 
 ## Need Help?

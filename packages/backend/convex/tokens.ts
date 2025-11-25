@@ -36,7 +36,7 @@ export const createToken = mutation({
       user_id: args.userId ?? undefined,
       bot_id: args.botId ?? undefined,
     };
-    
+
     const tokenId = await ctx.db.insert("game_tokens", tokenData);
 
     return tokenId;
@@ -73,7 +73,7 @@ export const createTokensForMatch = mutation({
           is_active: true,
           user_id: args.userId ?? undefined,
         };
-        
+
         const tokenId = await ctx.db.insert("game_tokens", tokenData);
         tokenIds.push(tokenId);
       }
@@ -135,6 +135,7 @@ export const getTokenByValue = query({
       token_id: tokenDoc._id,
       token: tokenDoc.token,
       user_id: tokenDoc.user_id,
+      ign: tokenDoc.ign,
       match_id: tokenDoc.match_id,
       game_team_id: tokenDoc.game_team_id,
       bot_id: tokenDoc.bot_id,
@@ -160,6 +161,7 @@ export const getTokensByMatchId = query({
       token_id: token._id,
       token: token.token,
       user_id: token.user_id,
+      ign: token.ign,
       match_id: token.match_id,
       game_team_id: token.game_team_id,
       bot_id: token.bot_id,
@@ -167,6 +169,64 @@ export const getTokensByMatchId = query({
       expires_at: token.expires_at,
       is_active: token.is_active,
     }));
+  },
+});
+
+// Check if a match is ready (all tokens have been used)
+// A token is considered "used" if it has a user_id set (Minecraft UUID)
+export const checkMatchReadiness = query({
+  args: {
+    matchId: v.id("matches"),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      return {
+        ready: false,
+        totalTokens: 0,
+        usedTokens: 0,
+        error: "Match not found",
+      };
+    }
+
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
+
+    if (tokens.length === 0) {
+      return {
+        ready: false,
+        totalTokens: 0,
+        usedTokens: 0,
+        error: "No tokens found for match",
+      };
+    }
+
+    // Count tokens that have been used (have user_id set)
+    const usedTokens = tokens.filter(
+      (token) => token.user_id !== undefined && token.user_id !== null
+    );
+    const totalTokens = tokens.length;
+    const ready = usedTokens.length === totalTokens;
+
+    // Group tokens by team
+    const blueTeamTokens = tokens.filter(
+      (token) => token.game_team_id === match.blue_team_id
+    );
+    const redTeamTokens = tokens.filter(
+      (token) => token.game_team_id === match.red_team_id
+    );
+
+    return {
+      ready,
+      totalTokens,
+      usedTokens: usedTokens.length,
+      blueTeamTokens: blueTeamTokens.length,
+      redTeamTokens: redTeamTokens.length,
+      blueTeamUsed: blueTeamTokens.filter((t) => t.user_id).length,
+      redTeamUsed: redTeamTokens.filter((t) => t.user_id).length,
+    };
   },
 });
 
@@ -193,6 +253,44 @@ export const deactivateToken = mutation({
   },
 });
 
+// Mark a token as used by a player (Minecraft UUID)
+// This is called when a player successfully logs in with a token
+export const markTokenAsUsed = mutation({
+  args: {
+    token: v.string(),
+    playerId: v.string(), // Minecraft UUID
+    ign: v.optional(v.string()), // In-Game Name (Minecraft username)
+  },
+  handler: async (ctx, args) => {
+    const tokenDoc = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!tokenDoc) {
+      throw new Error("Token not found");
+    }
+
+    if (!tokenDoc.is_active) {
+      throw new Error("Token is not active");
+    }
+
+    const now = Date.now();
+    if (tokenDoc.expires_at < now) {
+      throw new Error("Token has expired");
+    }
+
+    // Mark token as used by storing playerId in user_id field and IGN
+    // (user_id can store any string identifier, including Minecraft UUIDs)
+    await ctx.db.patch(tokenDoc._id, {
+      user_id: args.playerId,
+      ign: args.ign ?? undefined,
+    });
+
+    return { success: true, matchId: tokenDoc.match_id };
+  },
+});
+
 /**
  * Generate a batch of unique tokens for a match
  * This function generates tokens upfront and inserts them in batch
@@ -212,7 +310,7 @@ export const generateTokenBatch = mutation({
     // Generate unique tokens upfront
     const tokens: string[] = [];
     const tokenSet = new Set<string>();
-    
+
     // Generate tokens until we have enough unique ones
     while (tokens.length < args.count) {
       const token = uuidv4();
@@ -229,7 +327,7 @@ export const generateTokenBatch = mutation({
         .query("game_tokens")
         .withIndex("by_token", (q) => q.eq("token", token))
         .first();
-      
+
       if (existing) {
         existingTokens.add(token);
       }
@@ -249,7 +347,7 @@ export const generateTokenBatch = mutation({
             .query("game_tokens")
             .withIndex("by_token", (q) => q.eq("token", newToken))
             .first();
-          
+
           if (!existing && !finalTokens.includes(newToken)) {
             finalTokens.push(newToken);
             isUnique = true;
@@ -257,7 +355,9 @@ export const generateTokenBatch = mutation({
           attempts++;
         }
         if (!isUnique) {
-          throw new Error(`Failed to generate unique token after ${attempts} attempts`);
+          throw new Error(
+            `Failed to generate unique token after ${attempts} attempts`
+          );
         }
       } else {
         finalTokens.push(token);
@@ -276,7 +376,7 @@ export const generateTokenBatch = mutation({
         is_active: true,
         user_id: args.userId ?? undefined,
       };
-      
+
       const tokenId = await ctx.db.insert("game_tokens", tokenData);
       tokenIds.push(tokenId);
     }
@@ -287,4 +387,3 @@ export const generateTokenBatch = mutation({
     };
   },
 });
-
