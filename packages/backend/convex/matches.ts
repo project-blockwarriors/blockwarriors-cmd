@@ -434,11 +434,11 @@ export const createMatchWithTokens = mutation({
  * Atomically acknowledge a match and generate tokens
  * Called by Minecraft server when it acknowledges a queued match
  * Updates match status to "Waiting" and generates tokens for both teams
+ * Determines tokens per team from the match's match_type
  */
 export const acknowledgeMatchAndGenerateTokens = mutation({
   args: {
     matchId: v.id("matches"),
-    tokensPerTeam: v.number(),
   },
   handler: async (ctx, args) => {
     const match = await ctx.db.get(args.matchId);
@@ -450,6 +450,20 @@ export const acknowledgeMatchAndGenerateTokens = mutation({
     if (match.match_status !== "Queuing") {
       throw new Error(
         `Match is not in Queuing status. Current status: ${match.match_status}`
+      );
+    }
+
+    // Determine tokens per team from match_type (source of truth)
+    const tokensPerTeamMap: Record<string, number> = {
+      pvp: 1,
+      bedwars: 4,
+      ctf: 5,
+    };
+    const tokensPerTeam = tokensPerTeamMap[match.match_type] || 1;
+
+    if (tokensPerTeam < 1) {
+      throw new Error(
+        `Invalid tokens per team for match type: ${match.match_type}`
       );
     }
 
@@ -529,13 +543,13 @@ export const acknowledgeMatchAndGenerateTokens = mutation({
     // Generate tokens for red team
     const redTokens = await generateTokensForTeam(
       match.red_team_id,
-      args.tokensPerTeam
+      tokensPerTeam
     );
 
     // Generate tokens for blue team
     const blueTokens = await generateTokensForTeam(
       match.blue_team_id,
-      args.tokensPerTeam
+      tokensPerTeam
     );
 
     // Update match status to "Waiting" atomically with token generation

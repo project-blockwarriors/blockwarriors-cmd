@@ -76,8 +76,8 @@ public class MatchPollingService {
                 // Handle Queuing matches - need acknowledgment
                 if ("Queuing".equals(matchStatus)) {
                     // Acknowledge the match - this generates tokens and updates status to "Waiting"
-                    String matchType = match.optString("match_type", "");
-                    if (!acknowledgeMatch(matchId, matchType)) {
+                    // Convex determines tokens_per_team from the match's match_type
+                    if (!acknowledgeMatch(matchId)) {
                         LOGGER.warning("Failed to acknowledge match " + matchId + ", skipping");
                         continue;
                     }
@@ -279,9 +279,10 @@ public class MatchPollingService {
 
     /**
      * Acknowledge a queued match - generates tokens and updates status to "Waiting"
+     * Convex determines tokens_per_team from the match's match_type (source of truth)
      * Returns true if successful, false otherwise
      */
-    private boolean acknowledgeMatch(String matchId, String matchType) {
+    private boolean acknowledgeMatch(String matchId) {
         try {
             String urlString = convexSiteUrl + "/matches/acknowledge";
             URL url = new URL(urlString);
@@ -290,20 +291,9 @@ public class MatchPollingService {
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setDoOutput(true);
 
-            // Determine tokens per team from match type
-            int tokensPerTeam = 1; // Default
-            if ("bedwars".equals(matchType)) {
-                tokensPerTeam = 4;
-            } else if ("ctf".equals(matchType)) {
-                tokensPerTeam = 5;
-            } else if ("pvp".equals(matchType)) {
-                tokensPerTeam = 1;
-            }
-
+            // Only send match_id - Convex will determine tokens_per_team from match_type
             JSONObject requestBody = new JSONObject();
             requestBody.put("match_id", matchId);
-            requestBody.put("tokens_per_team", tokensPerTeam);
-            requestBody.put("match_type", matchType);
 
             try (OutputStream os = conn.getOutputStream()) {
                 byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
