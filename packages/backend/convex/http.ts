@@ -546,9 +546,9 @@ http.route({
   }),
 });
 
-// POST /auth/login - Validate token and mark as used (Minecraft player login)
+// POST /validateToken - Validate token and mark as used (Minecraft player login)
 http.route({
-  path: "/auth/login",
+  path: "/validateToken",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
     try {

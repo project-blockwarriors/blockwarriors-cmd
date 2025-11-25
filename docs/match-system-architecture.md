@@ -56,7 +56,7 @@ graph TB
 
     PLAYER_EVENTS -->|Player Quit| TELEMETRY
 
-    LOGIN -->|POST /auth/login| HTTP
+    LOGIN -->|POST /validateToken| HTTP
     HTTP -->|validateToken| TOKENS
     TOKENS -->|Query| DB
     HTTP -->|markTokenAsUsed| TOKENS
@@ -104,7 +104,7 @@ sequenceDiagram
 
     Note over PLAYER,HTTP: Player Login Phase
     PLAYER->>BEACON: /login <token>
-    BEACON->>HTTP: POST /auth/login<br/>{token, playerId, ign}
+    BEACON->>HTTP: POST /validateToken<br/>{token, playerId, ign}
     HTTP->>DB: validateToken(token)
     DB-->>HTTP: Token valid, match_id
     HTTP->>DB: markTokenAsUsed(token, playerId, ign)
@@ -198,7 +198,7 @@ sequenceDiagram
 - **GET /matches/readiness?match_id={id}**: Check if match is ready (all tokens used)
 - **GET /matches/tokens?match_id={id}**: Get all tokens for a match
 - **POST /matches/update**: Update match status and/or match_state
-- **POST /auth/login**: Validate token and mark as used (replaces `/login`)
+- **POST /validateToken**: Validate token and mark as used (replaces `/login`)
 
 ### Convex Mutations/Queries
 
@@ -276,7 +276,7 @@ Tokens are **only generated after** the Minecraft server acknowledges a queued m
 
 1. **Match Creation**: UI creates match → Convex stores it with "Queuing" status (no tokens yet)
 2. **Match Acknowledgment**: MC plugin polls → Finds "Queuing" match → Calls `/matches/acknowledge` → Tokens generated, status becomes "Waiting"
-3. **Player Login**: Player logs in → HTTP route `/auth/login` validates token → Token marked as used in Convex (with IGN stored)
+3. **Player Login**: Player logs in → HTTP route `/validateToken` validates token → Token marked as used in Convex (with IGN stored)
 4. **Match Ready Detection**: Polling service checks "Waiting" matches → When all tokens used, match can start
 5. **Match Start**: Either MC plugin auto-starts OR website clicks "Begin Game" → Status becomes "Playing" → MC plugin starts match
 6. **Telemetry Collection**: Service collects player stats → Updates match_state in Convex (stops when match finished)

@@ -59,7 +59,7 @@ public class LoginCommand implements CommandExecutor {
             public void run() {
                 try {
                     // Prepare login request
-                    String urlString = convexSiteUrl + "/auth/login";
+                    String urlString = convexSiteUrl + "/validateToken";
                     URL url = new URL(urlString);
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
