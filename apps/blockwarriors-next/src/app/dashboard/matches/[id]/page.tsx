@@ -99,8 +99,14 @@ export default function MatchDetailPage() {
             <ClockIcon className="w-5 h-5" />
             <span className="text-sm font-medium">Mode</span>
           </div>
-          <p className="text-2xl font-semibold text-white capitalize">
-            {matchData.mode}
+          <p
+            className={`text-2xl font-semibold capitalize ${
+              matchData.mode === 'ranked'
+                ? 'text-amber-400'
+                : 'text-cyan-400'
+            }`}
+          >
+            {matchData.mode === 'ranked' ? 'Ranked' : 'Practice'}
           </p>
         </div>
 

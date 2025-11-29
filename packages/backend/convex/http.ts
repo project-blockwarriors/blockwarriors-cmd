@@ -6,6 +6,31 @@ import { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
 
+/**
+ * Verify bearer token for server-to-server authentication (Minecraft beacon <-> Convex)
+ * Returns true if the token is valid, false otherwise.
+ */
+function verifyBearerToken(request: Request): boolean {
+  const authHeader = request.headers.get("Authorization");
+  if (!authHeader?.startsWith("Bearer ")) return false;
+  const token = authHeader.substring(7);
+  const secret = process.env.CONVEX_HTTP_SECRET;
+  return !!secret && token === secret;
+}
+
+/**
+ * Helper to return 401 Unauthorized response
+ */
+function unauthorizedResponse(): Response {
+  return new Response(
+    JSON.stringify({ error: "Unauthorized. Invalid or missing bearer token." }),
+    {
+      status: 401,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
+
 authComponent.registerRoutes(http, createAuth);
 
 http.route({
@@ -217,6 +242,11 @@ http.route({
   path: "/matches/acknowledge",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
     let body: any;
     try {
       body = await request.json();
@@ -296,6 +326,11 @@ http.route({
   path: "/matches/update",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
     try {
       const body = await request.json();
       const { match_id, match_status, match_state } = body;
@@ -379,6 +414,11 @@ http.route({
   path: "/matches/readiness",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
     try {
       const url = new URL(request.url);
       const matchId = url.searchParams.get("match_id");
@@ -420,6 +460,11 @@ http.route({
   path: "/matches/tokens",
   method: "GET",
   handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
     try {
       const url = new URL(request.url);
       const matchId = url.searchParams.get("match_id");
@@ -479,12 +524,12 @@ http.route({
       }
 
       const body = await request.json();
-      const { selectedMode } = body as { selectedMode?: string };
+      const { gameType } = body as { gameType?: string };
 
-      // Validate game mode
-      if (!selectedMode || typeof selectedMode !== "string") {
+      // Validate game type
+      if (!gameType || typeof gameType !== "string") {
         return new Response(
-          JSON.stringify({ error: "Missing selected mode" }),
+          JSON.stringify({ error: "Missing game type" }),
           {
             status: 400,
             headers: { "Content-Type": "application/json" },
@@ -498,10 +543,10 @@ http.route({
         ctf: 5,
       };
 
-      if (!(selectedMode in tokensPerTeamMap)) {
+      if (!(gameType in tokensPerTeamMap)) {
         return new Response(
           JSON.stringify({
-            error: `Invalid game mode: ${selectedMode}. Must be one of: ${Object.keys(tokensPerTeamMap).join(", ")}`,
+            error: `Invalid game type: ${gameType}. Must be one of: ${Object.keys(tokensPerTeamMap).join(", ")}`,
           }),
           {
             status: 400,
@@ -511,12 +556,14 @@ http.route({
       }
 
       // Create match with tokens
+      // matchType = game type (pvp, bedwars, ctf)
+      // mode = match mode (practice, ranked) - this endpoint is for practice matches
       const result = await ctx.runMutation(api.matches.createMatchWithTokens, {
-        matchType: selectedMode,
+        matchType: gameType,
         matchStatus: "Queuing",
-        mode: selectedMode,
+        mode: "practice",
         userId: user._id,
-        tokensPerTeam: tokensPerTeamMap[selectedMode],
+        tokensPerTeam: tokensPerTeamMap[gameType],
       });
 
       return new Response(
@@ -524,7 +571,7 @@ http.route({
           matchId: result.matchId.toString(),
           tokens: result.tokens,
           expiresAt: result.expiresAt,
-          matchType: selectedMode,
+          matchType: gameType,
         }),
         {
           status: 200,
@@ -551,6 +598,11 @@ http.route({
   path: "/validateToken",
   method: "POST",
   handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
     try {
       const body = await request.json();
       const { token, playerId, ign } = body as {

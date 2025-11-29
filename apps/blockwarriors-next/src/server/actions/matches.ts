@@ -2,7 +2,7 @@
 
 import { getToken } from '@/lib/auth-server';
 import { getUser } from '@/auth/server';
-import { isValidGameMode, type GameMode } from '@/lib/match-constants';
+import { isValidGameType, type GameType } from '@/lib/match-constants';
 
 const CONVEX_SITE_URL =
   process.env.CONVEX_SITE_URL || process.env.NEXT_PUBLIC_CONVEX_SITE_URL || '';
@@ -29,7 +29,7 @@ export interface UpdateMatchStatusResult {
  * Calls Convex HTTP route /matches/new
  */
 export async function startMatch(
-  selectedMode: string
+  gameType: string
 ): Promise<StartMatchResult> {
   try {
     // Validate user is authenticated
@@ -44,25 +44,25 @@ export async function startMatch(
       };
     }
 
-    // Validate game mode
-    if (!selectedMode || typeof selectedMode !== 'string') {
+    // Validate game type
+    if (!gameType || typeof gameType !== 'string') {
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
         error:
-          'Invalid game mode. selectedMode is required and must be a string.',
+          'Invalid game type. gameType is required and must be a string.',
       };
     }
 
-    if (!isValidGameMode(selectedMode)) {
+    if (!isValidGameType(gameType)) {
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error: `Invalid game mode. Game mode must be one of: pvp, bedwars, ctf`,
+        error: `Invalid game type. Game type must be one of: pvp, bedwars, ctf`,
       };
     }
 
@@ -91,6 +91,8 @@ export async function startMatch(
     }
 
     // Call Convex HTTP route /matches/new (creates match without tokens)
+    // match_type = game type (pvp, bedwars, ctf)
+    // mode = match mode (practice, ranked) - this is for practice matches
     const response = await fetch(`${CONVEX_SITE_URL}/matches/new`, {
       method: 'POST',
       headers: {
@@ -98,8 +100,8 @@ export async function startMatch(
         Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({
-        match_type: selectedMode,
-        mode: selectedMode,
+        match_type: gameType,
+        mode: 'practice',
       }),
     });
 
@@ -132,7 +134,7 @@ export async function startMatch(
       matchId: data.match_id || data.matchId,
       tokens: { redTeam: [], blueTeam: [] }, // Empty - tokens generated on acknowledge
       expiresAt: data.expires_at || data.expiresAt || 0,
-      matchType: data.match_type || data.matchType || selectedMode,
+      matchType: data.match_type || data.matchType || gameType,
     };
   } catch (error) {
     console.error('Error starting match:', error);
