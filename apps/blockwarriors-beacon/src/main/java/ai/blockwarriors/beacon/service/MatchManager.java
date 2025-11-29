@@ -16,6 +16,7 @@ public class MatchManager {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
+    private final String convexHttpSecret;
     private MatchTelemetryService telemetryService;
     
     // Map match ID to world name
@@ -27,9 +28,10 @@ public class MatchManager {
     // Map player UUID to match ID
     private final Map<UUID, String> playerMatches = new HashMap<>();
 
-    public MatchManager(JavaPlugin plugin, String convexSiteUrl) {
+    public MatchManager(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
+        this.convexHttpSecret = convexHttpSecret;
     }
 
     public void setTelemetryService(MatchTelemetryService telemetryService) {
@@ -101,9 +103,6 @@ public class MatchManager {
         new BukkitRunnable() {
             @Override
             public void run() {
-                // Kick all players from the match world
-                World world = Bukkit.getWorld(worldName);
-                // Intentionally do not check for world == null; let it throw if something is wrong
                 for (UUID playerId : playerIds) {
                     Player player = Bukkit.getPlayer(playerId);
                     if (player != null && player.isOnline()) {
@@ -146,6 +145,7 @@ public class MatchManager {
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
             conn.setDoOutput(true);
 
             org.json.JSONObject requestBody = new org.json.JSONObject();

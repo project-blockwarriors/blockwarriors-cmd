@@ -26,13 +26,15 @@ public class MatchPollingService {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
+    private final String convexHttpSecret;
     private MatchManager matchManager;
     private int taskId = -1;
     private static final int POLL_INTERVAL_SECONDS = 5; // Poll every 5 seconds
 
-    public MatchPollingService(JavaPlugin plugin, String convexSiteUrl) {
+    public MatchPollingService(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
+        this.convexHttpSecret = convexHttpSecret;
     }
 
     public void setMatchManager(MatchManager matchManager) {
@@ -289,6 +291,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
             conn.setDoOutput(true);
 
             // Only send match_id - Convex will determine tokens_per_team from match_type
@@ -347,6 +350,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -403,6 +407,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
             conn.setDoOutput(true);
 
             JSONObject requestBody = new JSONObject();
@@ -446,6 +451,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -566,6 +572,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {
@@ -641,6 +648,7 @@ public class MatchPollingService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
 
             int responseCode = conn.getResponseCode();
             if (responseCode != 200) {

@@ -12,7 +12,7 @@ import {
   CommandLineIcon,
 } from '@heroicons/react/24/outline';
 import { authClient } from '@/lib/auth-client';
-import { GAME_MODES, type GameMode } from '@/lib/match-constants';
+import { GAME_TYPES, type GameType } from '@/lib/match-constants';
 import { startMatch } from '@/server/actions/matches';
 import { api } from '@/lib/convex';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
@@ -25,7 +25,7 @@ interface ServerStatus {
 
 export default function PracticePage() {
   const router = useRouter();
-  const [selectedMode, setSelectedMode] = useState<GameMode | null>(null);
+  const [selectedGameType, setSelectedGameType] = useState<GameType | null>(null);
   const [serverStatus, setServerStatus] = useState<ServerStatus>({
     activeSessions: 0,
     playersOnline: 0,
@@ -67,14 +67,14 @@ export default function PracticePage() {
 
   // Check if button should be disabled
   const isButtonDisabled = Boolean(
-    !selectedMode ||
+    !selectedGameType ||
       isLoading ||
       waitingForTokens ||
       matchId // Disable button after match is created (waiting for players or auto-starting)
   );
 
   // Use centralized game mode configuration
-  const gameModes = Object.values(GAME_MODES).map((mode) => ({
+  const gameModes = Object.values(GAME_TYPES).map((mode) => ({
     id: mode.id,
     name: mode.name,
     description: mode.description,
@@ -85,12 +85,12 @@ export default function PracticePage() {
   const serverAddress = 'play.blockwarriors.ai';
 
   const handleStartMatch = async () => {
-    if (!selectedMode) return;
+    if (!selectedGameType) return;
 
     setIsLoading(true);
 
     try {
-      const result = await startMatch(selectedMode);
+      const result = await startMatch(selectedGameType);
 
       if (result.error) {
         console.error('Failed to start match:', result.error);
@@ -131,11 +131,11 @@ export default function PracticePage() {
           <motion.div
             key={mode.id}
             className={`bg-black/40 backdrop-blur-md rounded-lg p-6 cursor-pointer border-2 transition-all ${
-              selectedMode === mode.id
+              selectedGameType === mode.id
                 ? 'border-blue-500 bg-black/60'
                 : 'border-transparent hover:border-white/20'
             }`}
-            onClick={() => setSelectedMode(mode.id as GameMode)}
+            onClick={() => setSelectedGameType(mode.id as GameType)}
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
@@ -145,7 +145,7 @@ export default function PracticePage() {
             <p className="text-gray-400 text-sm mb-4">{mode.description}</p>
             <div className="flex items-center justify-between text-sm">
               <span className="text-gray-500">{mode.players}</span>
-              {selectedMode === mode.id && (
+              {selectedGameType === mode.id && (
                 <span className="text-blue-400">Selected</span>
               )}
             </div>
@@ -274,12 +274,11 @@ export default function PracticePage() {
           <div className="flex items-center gap-2">
             <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-yellow-400"></div>
             <h3 className="text-yellow-400 font-medium">
-              Waiting for Server Acknowledgment
+              Waiting for Minecraft server
             </h3>
           </div>
           <p className="text-sm text-gray-400">
-            Match created! Waiting for Minecraft server to acknowledge and
-            generate tokens...
+            Waiting for Minecraft server to prepare the match...
           </p>
           {matchId && (
             <div className="text-xs text-gray-500 font-mono">

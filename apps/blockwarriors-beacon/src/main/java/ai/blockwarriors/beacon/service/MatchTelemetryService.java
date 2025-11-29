@@ -29,14 +29,16 @@ public class MatchTelemetryService {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
     private final String convexSiteUrl;
+    private final String convexHttpSecret;
     private final Map<String, Set<UUID>> activeMatches = new HashMap<>(); // matchId -> Set of player UUIDs
     private final Map<UUID, String> playerToMatch = new HashMap<>(); // player UUID -> matchId
     private int taskId = -1;
     private static final long UPDATE_INTERVAL_TICKS = 20L; // Update every second (20 ticks)
 
-    public MatchTelemetryService(JavaPlugin plugin, String convexSiteUrl) {
+    public MatchTelemetryService(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexSiteUrl = convexSiteUrl;
+        this.convexHttpSecret = convexHttpSecret;
     }
 
     public void start() {
@@ -362,6 +364,7 @@ public class MatchTelemetryService {
             HttpURLConnection conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("POST");
             conn.setRequestProperty("Content-Type", "application/json");
+            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
             conn.setDoOutput(true);
 
             JSONObject requestBody = new JSONObject();

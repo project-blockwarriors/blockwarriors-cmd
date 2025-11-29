@@ -1,0 +1,11 @@
+# Convex Backend Configuration
+# These settings configure the connection between the beacon plugin and Convex backend
+
+# The Convex site URL for HTTP API calls
+convex-site-url: "https://abundant-ferret-667.convex.site"
+
+# The shared secret for server-to-server authentication
+# Generate with: openssl rand -base64 32
+# Must match the CONVEX_HTTP_SECRET environment variable set in Convex
+convex-http-secret: "your-secret-here"
+
