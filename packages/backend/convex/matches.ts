@@ -296,141 +296,6 @@ export const setMatchWinner = mutation({
 });
 
 /**
- * Atomically create a match with game teams and tokens
- * This ensures all-or-nothing creation - if any step fails, nothing is created
- */
-export const createMatchWithTokens = mutation({
-  args: {
-    matchType: v.string(),
-    matchStatus: v.string(),
-    mode: v.string(),
-    userId: v.string(),
-    tokensPerTeam: v.number(),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const expiresAt = now + 15 * 60 * 1000; // 15 minutes from now
-
-    // Step 1: Create game teams (red and blue)
-    // Using empty bot arrays for practice matches (can be configured later)
-    const redTeamId = await ctx.db.insert("game_teams", {
-      bots: [],
-    });
-
-    const blueTeamId = await ctx.db.insert("game_teams", {
-      bots: [],
-    });
-
-    // Step 2: Create match
-    const matchId = await ctx.db.insert("matches", {
-      match_type: args.matchType,
-      match_status: args.matchStatus,
-      blue_team_id: blueTeamId,
-      red_team_id: redTeamId,
-      mode: args.mode,
-      expires_at: expiresAt,
-    });
-
-    // Step 3: Generate tokens for both teams directly in this mutation
-    // This ensures atomicity - all tokens are created in the same transaction
-    const generateTokensForTeam = async (
-      teamId: Id<"game_teams">,
-      count: number
-    ): Promise<string[]> => {
-      const tokens: string[] = [];
-      const tokenSet = new Set<string>();
-
-      // Generate unique tokens upfront
-      while (tokens.length < count) {
-        const token = uuidv4();
-        if (!tokenSet.has(token)) {
-          tokenSet.add(token);
-          tokens.push(token);
-        }
-      }
-
-      // Check for existing tokens and regenerate if needed
-      const finalTokens: string[] = [];
-      for (const token of tokens) {
-        const existing = await ctx.db
-          .query("game_tokens")
-          .withIndex("by_token", (q) => q.eq("token", token))
-          .first();
-
-        if (existing) {
-          // Regenerate if collision (extremely rare with UUIDs)
-          let newToken: string;
-          let isUnique = false;
-          let attempts = 0;
-          while (!isUnique && attempts < 10) {
-            newToken = uuidv4();
-            const existingCheck = await ctx.db
-              .query("game_tokens")
-              .withIndex("by_token", (q) => q.eq("token", newToken))
-              .first();
-
-            if (!existingCheck && !finalTokens.includes(newToken)) {
-              finalTokens.push(newToken);
-              isUnique = true;
-            }
-            attempts++;
-          }
-          if (!isUnique) {
-            throw new Error(
-              `Failed to generate unique token after ${attempts} attempts`
-            );
-          }
-        } else {
-          finalTokens.push(token);
-        }
-      }
-
-      // Insert all tokens for this team
-      // Note: user_id should NOT be set here - it will be set when players log in with /login <token>
-      // user_id stores the Minecraft UUID, not the Convex user ID
-      for (const token of finalTokens) {
-        const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
-          token: token,
-          match_id: matchId,
-          game_team_id: teamId,
-          created_at: now,
-          expires_at: expiresAt,
-          is_active: true,
-          // user_id is intentionally undefined - will be set when player logs in
-        };
-
-        await ctx.db.insert("game_tokens", tokenData);
-      }
-
-      return finalTokens;
-    };
-
-    // Generate tokens for red team
-    const redTokens = await generateTokensForTeam(
-      redTeamId,
-      args.tokensPerTeam
-    );
-
-    // Generate tokens for blue team
-    const blueTokens = await generateTokensForTeam(
-      blueTeamId,
-      args.tokensPerTeam
-    );
-
-    return {
-      matchId: matchId,
-      tokens: {
-        redTeam: redTokens,
-        blueTeam: blueTokens,
-      },
-      redTeamId: redTeamId,
-      blueTeamId: blueTeamId,
-      expiresAt: expiresAt,
-    };
-  },
-});
-
-/**
  * Atomically acknowledge a match and generate tokens
  * Called by Minecraft server when it acknowledges a queued match
  * Updates match status to "Waiting" and generates tokens for both teams
@@ -524,6 +389,8 @@ export const acknowledgeMatchAndGenerateTokens = mutation({
       }
 
       // Insert all tokens for this team
+      // Note: user_id should NOT be set here - it will be set when players log in with /login <token>
+      // user_id stores the Minecraft UUID, not the Convex user ID
       for (const token of finalTokens) {
         const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
           token: token,
