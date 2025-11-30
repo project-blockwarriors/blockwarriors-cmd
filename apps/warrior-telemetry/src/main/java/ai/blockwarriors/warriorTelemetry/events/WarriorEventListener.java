@@ -1,6 +1,9 @@
 package ai.blockwarriors.warriorTelemetry.events;
 
 import ai.blockwarriors.warriorTelemetry.Plugin;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.md_5.bungee.api.ChatColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -59,8 +62,8 @@ public class WarriorEventListener implements Listener {
         ScoreboardManager manager = Bukkit.getScoreboardManager();
         Scoreboard scoreboard = manager.getNewScoreboard();
 
-        Objective objective = scoreboard.registerNewObjective("warrior", "dummy",
-            ChatColor.GOLD + "" + ChatColor.BOLD + target.getName());
+        Objective objective = scoreboard.registerNewObjective("warrior", Criteria.DUMMY,
+            Component.text(target.getName()).color(NamedTextColor.GOLD).decorate(TextDecoration.BOLD));
         objective.setDisplaySlot(DisplaySlot.SIDEBAR);
 
         Location loc = target.getLocation();

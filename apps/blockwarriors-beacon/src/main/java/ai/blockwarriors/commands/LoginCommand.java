@@ -17,17 +17,18 @@ import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
-import org.json.JSONException;
 
 public class LoginCommand implements CommandExecutor {
 
     private final Set<UUID> loggedInPlayers;
     private final String convexSiteUrl;
+    private final String convexHttpSecret;
     private static final Logger LOGGER = Logger.getLogger("beacon");
 
-    public LoginCommand(Set<UUID> loggedInPlayersInput, String convexSiteUrl) {
+    public LoginCommand(Set<UUID> loggedInPlayersInput, String convexSiteUrl, String convexHttpSecret) {
         loggedInPlayers = loggedInPlayersInput;
         this.convexSiteUrl = convexSiteUrl;
+        this.convexHttpSecret = convexHttpSecret;
     }
 
     @Override
@@ -42,7 +43,6 @@ public class LoginCommand implements CommandExecutor {
             return true;
         }
 
-        Logger logger = Bukkit.getLogger();
         Player player = (Player) sender;
 
         if (args.length != 1) {
@@ -64,6 +64,7 @@ public class LoginCommand implements CommandExecutor {
                     HttpURLConnection conn = (HttpURLConnection) url.openConnection();
                     conn.setRequestMethod("POST");
                     conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
                     conn.setDoOutput(true);
 
                     JSONObject requestBody = new JSONObject();

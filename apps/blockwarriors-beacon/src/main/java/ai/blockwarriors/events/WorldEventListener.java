@@ -6,8 +6,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntitySpawnEvent;
 
-import java.util.logging.Logger;
-
 /**
  * Prevents mob spawning in match worlds
  */

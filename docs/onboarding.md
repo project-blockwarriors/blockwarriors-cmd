@@ -86,9 +86,12 @@ npx convex dev
    npx convex env set GOOGLE_CLIENT_ID your_google_client_id
    npx convex env set GOOGLE_CLIENT_SECRET your_google_client_secret
    npx convex env set BETTER_AUTH_SECRET $(openssl rand -base64 32)
+   npx convex env set CONVEX_HTTP_SECRET $(openssl rand -base64 32)
    npx convex env set SITE_URL http://localhost:3000
    # For production, set SITE_URL to your public site URL
    ```
+
+   Note: `CONVEX_HTTP_SECRET` is used for server-to-server authentication between the Minecraft beacon plugin and Convex. Copy this same secret to `plugins/beacon/config.yml` on your Minecraft server.
 
    These are required because Convex auth (in `packages/backend/convex/auth.ts`) reads from `process.env` inside the Convex runtime.
 
