@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Menu, X, Swords, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { Menu, X, ChevronRight, LayoutDashboard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
 
@@ -48,9 +49,13 @@ export function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <div className="relative">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-princeton-orange to-princeton-orange-light flex items-center justify-center group-hover:glow-orange-sm transition-all duration-300">
-                <Swords className="w-5 h-5 text-black" />
-              </div>
+              <Image
+                src="/blockwarriors-logo.png"
+                alt="BlockWarriors"
+                width={36}
+                height={36}
+                className="rounded-lg group-hover:scale-105 transition-transform duration-300"
+              />
               <div className="absolute -inset-1 bg-princeton-orange/20 rounded-xl blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
             <span className="font-bold text-lg text-white tracking-tight">

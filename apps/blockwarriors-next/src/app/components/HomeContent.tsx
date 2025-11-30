@@ -4,7 +4,6 @@ import { motion, useScroll, useTransform } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-  Swords,
   Code2,
   Users,
   Trophy,
@@ -17,12 +16,12 @@ import {
   Github,
   Twitter,
   MessageCircle,
-  Clock,
   MapPin,
   Calendar,
   Bot,
   Cpu,
   Gamepad2,
+  Swords,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/landing/Navbar';
@@ -68,16 +67,28 @@ export default function HomeContent() {
       {/* Hero Section */}
       <section
         ref={heroRef}
-        className="relative min-h-screen flex flex-col items-center justify-start pt-28 pb-16 overflow-hidden"
+        className="relative min-h-screen flex flex-col items-center justify-center pt-20 pb-20 overflow-hidden"
       >
+        {/* Background Image */}
+        <div className="absolute inset-0 z-0">
+          <Image
+            src="/blockwarriors-ai-background.webp"
+            alt=""
+            fill
+            className="object-cover object-center opacity-30"
+            priority
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/70 via-transparent to-[#0A0A0A]/90" />
+        </div>
+
         {/* Background Effects */}
-        <div className="absolute inset-0 bg-grid opacity-50" />
-        <div className="absolute inset-0 bg-gradient-to-b from-princeton-orange/5 via-transparent to-transparent" />
+        <div className="absolute inset-0 bg-grid opacity-30 z-[1]" />
+        <div className="absolute inset-0 bg-gradient-to-b from-princeton-orange/5 via-transparent to-transparent z-[1]" />
 
         {/* Animated gradient orbs */}
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-princeton-orange/20 rounded-full blur-[120px] animate-float" />
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-princeton-orange/20 rounded-full blur-[120px] animate-float z-[1]" />
         <div
-          className="absolute bottom-1/4 -right-32 w-96 h-96 bg-minecraft-grass/15 rounded-full blur-[120px] animate-float"
+          className="absolute bottom-1/4 -right-32 w-96 h-96 bg-minecraft-grass/15 rounded-full blur-[120px] animate-float z-[1]"
           style={{ animationDelay: '-3s' }}
         />
 
@@ -86,7 +97,7 @@ export default function HomeContent() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1, delay: 0.5 }}
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none z-[1]"
         >
           {[...Array(6)].map((_, i) => (
             <motion.div
@@ -112,7 +123,7 @@ export default function HomeContent() {
 
         <motion.div
           style={{ opacity: heroOpacity, scale: heroScale }}
-          className="container max-w-6xl mx-auto px-4 relative z-10"
+          className="container max-w-6xl mx-auto px-4 relative z-10 flex flex-col items-center"
         >
           <motion.div
             variants={staggerContainer}
@@ -204,38 +215,12 @@ export default function HomeContent() {
           </motion.div>
         </motion.div>
 
-        {/* Floating artwork preview */}
-        <motion.div
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.8 }}
-          className="w-full max-w-3xl px-4 mt-16"
-        >
-          <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-2xl shadow-black/50 group">
-            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent z-10" />
-            <Image
-              src="/blockwarriors-ai-challenge-artwork.webp"
-              alt="BlockWarriors AI Challenge"
-              width={900}
-              height={450}
-              className="w-full h-auto opacity-90 group-hover:opacity-100 group-hover:scale-[1.02] transition-all duration-700"
-              priority
-            />
-            <div className="absolute bottom-4 left-4 z-20 flex items-center gap-2">
-              <div className="w-2 h-2 bg-minecraft-grass rounded-full animate-pulse" />
-              <span className="text-sm text-white/70 font-medium">
-                Tournament Arena Preview
-              </span>
-            </div>
-          </div>
-        </motion.div>
-
         {/* Scroll indicator */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 1.5 }}
-          className="mt-12"
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 z-10"
         >
           <motion.div
             animate={{ y: [0, 8, 0] }}
@@ -676,9 +661,13 @@ export default function HomeContent() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
             {/* Logo */}
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-princeton-orange to-princeton-orange-light flex items-center justify-center">
-                <Swords className="w-5 h-5 text-black" />
-              </div>
+              <Image
+                src="/blockwarriors-logo.png"
+                alt="BlockWarriors"
+                width={36}
+                height={36}
+                className="rounded-lg"
+              />
               <span className="font-bold text-lg text-white tracking-tight">
                 Block<span className="text-princeton-orange">Warriors</span>
               </span>
