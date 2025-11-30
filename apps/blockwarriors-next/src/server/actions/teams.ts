@@ -74,6 +74,3 @@ export async function disbandTeam(
   return await disbandTeamDb(teamId, leaderId);
 }
 
-export async function getTeamLeaderboard(): Promise<{ data?: Team[]; error?: string | null }> {
-  return await getAllTeamsScores();
-}

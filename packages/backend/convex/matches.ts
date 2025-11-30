@@ -114,42 +114,6 @@ export const getMatchWithTokens = query({
   },
 });
 
-// Get match by token (finds match associated with a token)
-export const getMatchByToken = query({
-  args: {
-    token: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const tokenDoc = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-
-    if (!tokenDoc || !tokenDoc.is_active) {
-      return null;
-    }
-
-    const match = await ctx.db.get(tokenDoc.match_id);
-    if (!match) {
-      return null;
-    }
-
-    return {
-      match_id: match._id,
-      match_type: match.match_type,
-      match_status: match.match_status,
-      match_elo: match.match_elo,
-      winner_team_id: match.winner_team_id,
-      blue_team_id: match.blue_team_id,
-      red_team_id: match.red_team_id,
-      mode: match.mode,
-      expires_at: match.expires_at,
-      match_state: match.match_state,
-      game_team_id: tokenDoc.game_team_id,
-    };
-  },
-});
-
 // Valid match status values
 const VALID_STATUSES = [
   "Queuing",
@@ -215,12 +179,13 @@ export const updateMatchState = mutation({
   },
 });
 
-// Update match status and/or state
+// Update match status, state, and/or winner
 export const updateMatch = mutation({
   args: {
     matchId: v.id("matches"),
     matchStatus: v.optional(v.string()),
     matchState: v.optional(v.any()),
+    winnerPlayerId: v.optional(v.string()), // Minecraft UUID of the winning player
   },
   handler: async (ctx, args) => {
     const match = await ctx.db.get(args.matchId);
@@ -228,7 +193,11 @@ export const updateMatch = mutation({
       throw new Error("Match not found");
     }
 
-    const updates: { match_status?: string; match_state?: any } = {};
+    const updates: {
+      match_status?: string;
+      match_state?: any;
+      winner_team_id?: Id<"game_teams">;
+    } = {};
 
     if (args.matchStatus !== undefined) {
       if (!isValidStatusTransition(match.match_status, args.matchStatus)) {
@@ -241,6 +210,27 @@ export const updateMatch = mutation({
 
     if (args.matchState !== undefined) {
       updates.match_state = args.matchState;
+    }
+
+    // If winner player ID is provided, look up their team
+    if (args.winnerPlayerId !== undefined) {
+      // Find the token for this player in this match
+      const tokens = await ctx.db
+        .query("game_tokens")
+        .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+        .collect();
+
+      const winnerToken = tokens.find(
+        (token) => token.user_id === args.winnerPlayerId
+      );
+
+      if (winnerToken) {
+        updates.winner_team_id = winnerToken.game_team_id;
+      } else {
+        console.warn(
+          `Could not find token for winner player ${args.winnerPlayerId} in match ${args.matchId}`
+        );
+      }
     }
 
     await ctx.db.patch(args.matchId, updates);
@@ -275,23 +265,6 @@ export const listMatchesByStatus = query({
       expires_at: match.expires_at,
       match_state: match.match_state,
     }));
-  },
-});
-
-// Set match winner
-export const setMatchWinner = mutation({
-  args: {
-    matchId: v.id("matches"),
-    winnerTeamId: v.id("game_teams"),
-    matchElo: v.union(v.number(), v.null()),
-  },
-  handler: async (ctx, args) => {
-    await ctx.db.patch(args.matchId, {
-      winner_team_id: args.winnerTeamId,
-      match_status: "completed",
-      match_elo: args.matchElo ?? undefined,
-    });
-    return { success: true };
   },
 });
 

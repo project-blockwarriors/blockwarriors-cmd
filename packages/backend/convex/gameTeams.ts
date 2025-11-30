@@ -7,8 +7,6 @@ export const createGameTeam = mutation({
     bots: v.array(v.number()),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-
     const gameTeamId = await ctx.db.insert("game_teams", {
       bots: args.bots,
     });
@@ -24,8 +22,6 @@ export const createGameTeamsForMatch = mutation({
     blueTeamBots: v.array(v.number()),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-
     const redTeamId = await ctx.db.insert("game_teams", {
       bots: args.redTeamBots,
     });
@@ -40,23 +36,4 @@ export const createGameTeamsForMatch = mutation({
     };
   },
 });
-
-// Get game team by ID
-export const getGameTeamById = query({
-  args: {
-    gameTeamId: v.id("game_teams"),
-  },
-  handler: async (ctx, args) => {
-    const gameTeam = await ctx.db.get(args.gameTeamId);
-    if (!gameTeam) {
-      return null;
-    }
-
-    return {
-      game_team_id: gameTeam._id,
-      bots: gameTeam.bots,
-    };
-  },
-});
-
 

@@ -103,37 +103,6 @@ export const getTeamById = query({
   },
 });
 
-// Get team leaderboard (sorted by ELO)
-export const getTeamLeaderboard = query({
-  args: {},
-  returns: v.array(
-    v.object({
-      id: v.id("teams"),
-      team_name: v.string(),
-      leader_id: v.string(),
-      team_elo: v.number(),
-      team_wins: v.number(),
-      team_losses: v.number(),
-    })
-  ),
-  handler: async (ctx) => {
-    const teams = await ctx.db
-      .query("teams")
-      .withIndex("by_team_elo")
-      .order("desc")
-      .collect();
-
-    return teams.map((team) => ({
-      id: team._id,
-      team_name: team.team_name,
-      leader_id: team.leader_id,
-      team_elo: team.team_elo,
-      team_wins: team.team_wins,
-      team_losses: team.team_losses,
-    }));
-  },
-});
-
 // Create a new team
 export const createTeam = mutation({
   args: {
