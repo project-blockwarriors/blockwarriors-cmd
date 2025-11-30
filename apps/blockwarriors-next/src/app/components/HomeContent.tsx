@@ -664,67 +664,6 @@ export default function HomeContent() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <section
-        id="faq"
-        className="py-20 relative bg-gradient-to-b from-transparent via-card/50 to-transparent"
-      >
-        <div className="container max-w-4xl mx-auto px-4">
-          <motion.div
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, margin: '-100px' }}
-            variants={staggerContainer}
-            className="space-y-8"
-          >
-            {/* Section header */}
-            <motion.div variants={fadeInUp} className="text-center">
-              <h2 className="text-3xl sm:text-4xl font-bold text-white">
-                Frequently Asked Questions
-              </h2>
-            </motion.div>
-
-            {/* FAQ items - 2 column grid */}
-            <motion.div
-              variants={staggerContainer}
-              className="grid md:grid-cols-2 gap-4"
-            >
-              {[
-                {
-                  q: 'How do I build my bot?',
-                  a: 'Use Mineflayer (JavaScript), write your own Minecraft client, or any approach that connects to a Minecraft server.',
-                },
-                {
-                  q: 'What languages can I use?',
-                  a: 'Any language that interfaces with Minecraft! Mineflayer uses JS/TS, but Python, Java, etc. all work.',
-                },
-                {
-                  q: 'How large should teams be?',
-                  a: 'Teams can have 2-4 members. Solo? Join our Discord to find teammates.',
-                },
-                {
-                  q: 'Is there a cost to participate?',
-                  a: 'BlockWarriors is completely free. We believe in accessible AI education.',
-                },
-              ].map((faq, i) => (
-                <motion.div
-                  key={i}
-                  variants={fadeInUp}
-                  className="p-6 rounded-2xl bg-card border border-white/5 hover:border-princeton-orange/20 transition-colors duration-300"
-                >
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    {faq.q}
-                  </h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {faq.a}
-                  </p>
-                </motion.div>
-              ))}
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
       {/* Resources Section */}
       <section id="resources" className="py-20 relative">
         <div className="container max-w-6xl mx-auto px-4">
@@ -828,6 +767,67 @@ export default function HomeContent() {
                     {resource.description}
                   </p>
                 </motion.a>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section
+        id="faq"
+        className="py-20 relative bg-gradient-to-b from-transparent via-card/50 to-transparent"
+      >
+        <div className="container max-w-4xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={staggerContainer}
+            className="space-y-10"
+          >
+            {/* Section header */}
+            <motion.div variants={fadeInUp} className="text-center">
+              <h2 className="text-4xl sm:text-5xl font-bold text-white">
+                Frequently Asked Questions
+              </h2>
+            </motion.div>
+
+            {/* FAQ items - 2 column grid */}
+            <motion.div
+              variants={staggerContainer}
+              className="grid md:grid-cols-2 gap-4"
+            >
+              {[
+                {
+                  q: 'How do I build my bot?',
+                  a: 'Use Mineflayer (JavaScript), write your own Minecraft client, or any approach that connects to a Minecraft server.',
+                },
+                {
+                  q: 'What languages can I use?',
+                  a: 'Any language that interfaces with Minecraft! Mineflayer uses JS/TS, but Python, Java, etc. all work.',
+                },
+                {
+                  q: 'How large should teams be?',
+                  a: 'Teams can have 2-4 members. Solo? Join our Discord to find teammates.',
+                },
+                {
+                  q: 'Is there a cost to participate?',
+                  a: 'BlockWarriors is completely free. We believe in accessible AI education.',
+                },
+              ].map((faq, i) => (
+                <motion.div
+                  key={i}
+                  variants={fadeInUp}
+                  className="p-6 rounded-2xl bg-card border border-white/5 hover:border-princeton-orange/20 transition-colors duration-300"
+                >
+                  <h3 className="text-lg font-semibold text-white mb-2">
+                    {faq.q}
+                  </h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {faq.a}
+                  </p>
+                </motion.div>
               ))}
             </motion.div>
           </motion.div>
