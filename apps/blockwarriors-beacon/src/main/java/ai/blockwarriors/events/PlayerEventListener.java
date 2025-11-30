@@ -106,10 +106,38 @@ public class PlayerEventListener implements Listener {
         // Remove player from login command
         loginCommand.removeLoggedInPlayer(playerId);
 
-        // Unregister player from match telemetry if they're in a match
+        // Check if player was in an active match and handle match ending
         Plugin plugin = (Plugin) org.bukkit.Bukkit.getPluginManager().getPlugin("beacon");
-        if (plugin != null && plugin.getMatchTelemetryService() != null) {
-            plugin.getMatchTelemetryService().unregisterPlayer(playerId);
+        if (plugin != null) {
+            // Check if player was in a match
+            if (plugin.getMatchManager() != null && plugin.getMatchManager().isPlayerInMatch(playerId)) {
+                String matchId = plugin.getMatchManager().getMatchIdForPlayer(playerId);
+                if (matchId != null) {
+                    LOGGER.info("Player " + player.getName() + " quit during match " + matchId);
+                    
+                    // Find the remaining player (winner)
+                    UUID winnerId = null;
+                    for (UUID otherPlayerId : plugin.getMatchManager().getPlayersInMatch(matchId)) {
+                        if (!otherPlayerId.equals(playerId)) {
+                            Player winner = org.bukkit.Bukkit.getPlayer(otherPlayerId);
+                            if (winner != null && winner.isOnline()) {
+                                winnerId = otherPlayerId;
+                                winner.sendMessage("§aYou won the match! " + player.getName() + " has disconnected.");
+                                break;
+                            }
+                        }
+                    }
+                    
+                    // End the match with the remaining player as winner
+                    // Pass the quitting player's UUID as the "dead player" for final state
+                    plugin.getMatchManager().endMatch(matchId, winnerId != null ? winnerId.toString() : null, playerId);
+                }
+            }
+            
+            // Unregister player from match telemetry
+            if (plugin.getMatchTelemetryService() != null) {
+                plugin.getMatchTelemetryService().unregisterPlayer(playerId);
+            }
         }
     }
 

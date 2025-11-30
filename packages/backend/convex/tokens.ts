@@ -25,6 +25,11 @@ export const validateToken = query({
       return { valid: false, error: "Token has expired" };
     }
 
+    // Check if token has already been used by another player
+    if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
+      return { valid: false, error: "Token has already been used" };
+    }
+
     return {
       valid: true,
       matchId: tokenDoc.match_id,
@@ -145,6 +150,11 @@ export const markTokenAsUsed = mutation({
       throw new Error("Token has expired");
     }
 
+    // Check if token has already been used by another player (prevents race condition)
+    if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
+      throw new Error("Token has already been used");
+    }
+
     // Mark token as used by storing playerId in user_id field and IGN
     // (user_id can store any string identifier, including Minecraft UUIDs)
     await ctx.db.patch(tokenDoc._id, {
@@ -153,5 +163,31 @@ export const markTokenAsUsed = mutation({
     });
 
     return { success: true, matchId: tokenDoc.match_id };
+  },
+});
+
+// Deactivate all tokens for a match
+// Called when a match ends (Finished or Terminated)
+export const deactivateMatchTokens = mutation({
+  args: {
+    matchId: v.id("matches"),
+  },
+  handler: async (ctx, args) => {
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
+
+    let deactivatedCount = 0;
+    for (const token of tokens) {
+      if (token.is_active) {
+        await ctx.db.patch(token._id, {
+          is_active: false,
+        });
+        deactivatedCount++;
+      }
+    }
+
+    return { success: true, deactivatedCount };
   },
 });

@@ -213,13 +213,12 @@ export const updateMatch = mutation({
     }
 
     // If winner player ID is provided, look up their team
-    if (args.winnerPlayerId !== undefined) {
-      // Find the token for this player in this match
-      const tokens = await ctx.db
-        .query("game_tokens")
-        .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
-        .collect();
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
 
+    if (args.winnerPlayerId !== undefined) {
       const winnerToken = tokens.find(
         (token) => token.user_id === args.winnerPlayerId
       );
@@ -234,6 +233,19 @@ export const updateMatch = mutation({
     }
 
     await ctx.db.patch(args.matchId, updates);
+
+    // Deactivate all tokens when match ends (Finished or Terminated)
+    const newStatus = updates.match_status;
+    if (newStatus === "Finished" || newStatus === "Terminated") {
+      for (const token of tokens) {
+        if (token.is_active) {
+          await ctx.db.patch(token._id, {
+            is_active: false,
+          });
+        }
+      }
+    }
+
     return { success: true };
   },
 });
