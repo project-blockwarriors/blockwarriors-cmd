@@ -324,6 +324,194 @@ export default function HomeContent() {
                 </motion.div>
               ))}
             </motion.div>
+
+            {/* Interactive Demo Panel */}
+            <motion.div variants={fadeInUp} className="mt-8">
+              <div className="relative rounded-2xl overflow-hidden border border-white/10 bg-[#0D0D0D]">
+                {/* Window header */}
+                <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] border-b border-white/10">
+                  <div className="flex items-center gap-2">
+                    <div className="flex gap-1.5">
+                      <div className="w-3 h-3 rounded-full bg-red-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
+                      <div className="w-3 h-3 rounded-full bg-green-500/80" />
+                    </div>
+                    <span className="ml-3 text-xs text-muted-foreground font-mono">
+                      warrior-bot.js
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2 h-2 rounded-full bg-minecraft-grass animate-pulse" />
+                      <span className="text-xs text-minecraft-grass font-mono">
+                        Connected
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Code editor content */}
+                <div className="grid md:grid-cols-2 divide-x divide-white/10">
+                  {/* Code panel */}
+                  <div className="p-6 font-mono text-sm overflow-x-auto">
+                    <pre className="text-muted-foreground">
+                      <code>
+                        <span className="text-purple-400">const</span>{' '}
+                        <span className="text-blue-400">mineflayer</span>{' '}
+                        <span className="text-white">=</span>{' '}
+                        <span className="text-yellow-400">require</span>
+                        <span className="text-white">(</span>
+                        <span className="text-green-400">
+                          &apos;mineflayer&apos;
+                        </span>
+                        <span className="text-white">)</span>
+                        {'\n\n'}
+                        <span className="text-purple-400">const</span>{' '}
+                        <span className="text-blue-400">bot</span>{' '}
+                        <span className="text-white">=</span>{' '}
+                        <span className="text-blue-400">mineflayer</span>
+                        <span className="text-white">.</span>
+                        <span className="text-yellow-400">createBot</span>
+                        <span className="text-white">(</span>
+                        <span className="text-white">{'{'}</span>
+                        {'\n'}
+                        <span className="text-white">{'  '}</span>
+                        <span className="text-blue-300">host</span>
+                        <span className="text-white">:</span>{' '}
+                        <span className="text-green-400">
+                          &apos;blockwarriors.ai&apos;
+                        </span>
+                        <span className="text-white">,</span>
+                        {'\n'}
+                        <span className="text-white">{'  '}</span>
+                        <span className="text-blue-300">username</span>
+                        <span className="text-white">:</span>{' '}
+                        <span className="text-green-400">
+                          &apos;WarriorBot&apos;
+                        </span>
+                        {'\n'}
+                        <span className="text-white">{'})'}</span>
+                        {'\n\n'}
+                        <span className="text-gray-500">
+                          {'// Attack nearest enemy'}
+                        </span>
+                        {'\n'}
+                        <span className="text-blue-400">bot</span>
+                        <span className="text-white">.</span>
+                        <span className="text-yellow-400">on</span>
+                        <span className="text-white">(</span>
+                        <span className="text-green-400">
+                          &apos;spawn&apos;
+                        </span>
+                        <span className="text-white">,</span>{' '}
+                        <span className="text-purple-400">async</span>{' '}
+                        <span className="text-white">() =&gt; {'{'}</span>
+                        {'\n'}
+                        <span className="text-white">{'  '}</span>
+                        <span className="text-purple-400">const</span>{' '}
+                        <span className="text-blue-400">enemy</span>{' '}
+                        <span className="text-white">=</span>{' '}
+                        <span className="text-yellow-400">findEnemy</span>
+                        <span className="text-white">()</span>
+                        {'\n'}
+                        <span className="text-white">{'  '}</span>
+                        <span className="text-purple-400">await</span>{' '}
+                        <span className="text-blue-400">bot</span>
+                        <span className="text-white">.</span>
+                        <span className="text-yellow-400">attack</span>
+                        <span className="text-white">(</span>
+                        <span className="text-blue-400">enemy</span>
+                        <span className="text-white">)</span>
+                        {'\n'}
+                        <span className="text-white">{'})'}</span>
+                      </code>
+                    </pre>
+                  </div>
+
+                  {/* Live output panel */}
+                  <div className="p-6 bg-[#0a0a0a]">
+                    <div className="flex items-center gap-2 mb-4">
+                      <div className="w-2 h-2 rounded-full bg-princeton-orange animate-pulse" />
+                      <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
+                        Live Match Feed
+                      </span>
+                    </div>
+                    <div className="space-y-2 font-mono text-xs">
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:32]
+                        </span>
+                        <span className="text-minecraft-grass">
+                          WarriorBot spawned at arena
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:33]
+                        </span>
+                        <span className="text-blue-400">
+                          Scanning for enemies...
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:35]
+                        </span>
+                        <span className="text-yellow-400">
+                          Enemy detected: RedBot (15 blocks)
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:36]
+                        </span>
+                        <span className="text-princeton-orange">
+                          Engaging combat sequence
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:38]
+                        </span>
+                        <span className="text-white">
+                          Hit! RedBot took 6 damage
+                        </span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-muted-foreground">
+                          [12:04:40]
+                        </span>
+                        <span className="text-minecraft-grass">
+                          🏆 WarriorBot eliminated RedBot!
+                        </span>
+                      </div>
+                      <div className="mt-4 pt-4 border-t border-white/10">
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>Match Score</span>
+                          <span className="text-white font-bold">
+                            <span className="text-minecraft-grass">3</span> -{' '}
+                            <span className="text-red-400">1</span>
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom status bar */}
+                <div className="flex items-center justify-between px-4 py-2 bg-[#1a1a1a] border-t border-white/10 text-xs text-muted-foreground font-mono">
+                  <div className="flex items-center gap-4">
+                    <span>JavaScript</span>
+                    <span>•</span>
+                    <span>Mineflayer v4.14</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-minecraft-grass">●</span>
+                    <span>Round 3 of 5</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         </div>
       </section>
