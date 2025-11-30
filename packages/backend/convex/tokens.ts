@@ -1,87 +1,5 @@
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Id, Doc } from "./_generated/dataModel";
-import { v4 as uuidv4 } from "uuid";
-
-// Create a single token
-export const createToken = mutation({
-  args: {
-    token: v.string(), // UUID string
-    userId: v.union(v.string(), v.null()),
-    matchId: v.id("matches"),
-    gameTeamId: v.id("game_teams"),
-    botId: v.union(v.number(), v.null()),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const expiresAt = now + 15 * 60 * 1000; // 15 minutes from now
-
-    // Check if token already exists
-    const existing = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-
-    if (existing) {
-      throw new Error("Token already exists");
-    }
-
-    const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
-      token: args.token,
-      match_id: args.matchId,
-      game_team_id: args.gameTeamId,
-      created_at: now,
-      expires_at: expiresAt,
-      is_active: true,
-      user_id: args.userId ?? undefined,
-      bot_id: args.botId ?? undefined,
-    };
-
-    const tokenId = await ctx.db.insert("game_tokens", tokenData);
-
-    return tokenId;
-  },
-});
-
-// Create multiple tokens for a match
-export const createTokensForMatch = mutation({
-  args: {
-    tokens: v.array(v.string()), // Array of UUID strings
-    userId: v.union(v.string(), v.null()),
-    matchId: v.id("matches"),
-    gameTeamId: v.id("game_teams"),
-  },
-  handler: async (ctx, args) => {
-    const now = Date.now();
-    const expiresAt = now + 15 * 60 * 1000; // 15 minutes from now
-
-    const tokenIds = [];
-    for (const token of args.tokens) {
-      // Check if token already exists
-      const existing = await ctx.db
-        .query("game_tokens")
-        .withIndex("by_token", (q) => q.eq("token", token))
-        .first();
-
-      if (!existing) {
-        const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
-          token: token,
-          match_id: args.matchId,
-          game_team_id: args.gameTeamId,
-          created_at: now,
-          expires_at: expiresAt,
-          is_active: true,
-          user_id: args.userId ?? undefined,
-        };
-
-        const tokenId = await ctx.db.insert("game_tokens", tokenData);
-        tokenIds.push(tokenId);
-      }
-    }
-
-    return tokenIds;
-  },
-});
 
 // Validate token and return match info
 export const validateToken = query({
@@ -107,41 +25,16 @@ export const validateToken = query({
       return { valid: false, error: "Token has expired" };
     }
 
+    // Check if token has already been used by another player
+    if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
+      return { valid: false, error: "Token has already been used" };
+    }
+
     return {
       valid: true,
       matchId: tokenDoc.match_id,
       gameTeamId: tokenDoc.game_team_id,
       userId: tokenDoc.user_id,
-    };
-  },
-});
-
-// Get token by value
-export const getTokenByValue = query({
-  args: {
-    token: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const tokenDoc = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-
-    if (!tokenDoc) {
-      return null;
-    }
-
-    return {
-      token_id: tokenDoc._id,
-      token: tokenDoc.token,
-      user_id: tokenDoc.user_id,
-      ign: tokenDoc.ign,
-      match_id: tokenDoc.match_id,
-      game_team_id: tokenDoc.game_team_id,
-      bot_id: tokenDoc.bot_id,
-      created_at: tokenDoc.created_at,
-      expires_at: tokenDoc.expires_at,
-      is_active: tokenDoc.is_active,
     };
   },
 });
@@ -230,29 +123,6 @@ export const checkMatchReadiness = query({
   },
 });
 
-// Deactivate a token
-export const deactivateToken = mutation({
-  args: {
-    token: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const tokenDoc = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
-      .first();
-
-    if (!tokenDoc) {
-      throw new Error("Token not found");
-    }
-
-    await ctx.db.patch(tokenDoc._id, {
-      is_active: false,
-    });
-
-    return { success: true };
-  },
-});
-
 // Mark a token as used by a player (Minecraft UUID)
 // This is called when a player successfully logs in with a token
 export const markTokenAsUsed = mutation({
@@ -280,6 +150,11 @@ export const markTokenAsUsed = mutation({
       throw new Error("Token has expired");
     }
 
+    // Check if token has already been used by another player (prevents race condition)
+    if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
+      throw new Error("Token has already been used");
+    }
+
     // Mark token as used by storing playerId in user_id field and IGN
     // (user_id can store any string identifier, including Minecraft UUIDs)
     await ctx.db.patch(tokenDoc._id, {
@@ -291,99 +166,28 @@ export const markTokenAsUsed = mutation({
   },
 });
 
-/**
- * Generate a batch of unique tokens for a match
- * This function generates tokens upfront and inserts them in batch
- * Returns the generated token strings
- */
-export const generateTokenBatch = mutation({
+// Deactivate all tokens for a match
+// Called when a match ends (Finished or Terminated)
+export const deactivateMatchTokens = mutation({
   args: {
-    count: v.number(),
-    userId: v.union(v.string(), v.null()),
     matchId: v.id("matches"),
-    gameTeamId: v.id("game_teams"),
   },
   handler: async (ctx, args) => {
-    const now = Date.now();
-    const expiresAt = now + 15 * 60 * 1000; // 15 minutes from now
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
 
-    // Generate unique tokens upfront
-    const tokens: string[] = [];
-    const tokenSet = new Set<string>();
-
-    // Generate tokens until we have enough unique ones
-    while (tokens.length < args.count) {
-      const token = uuidv4();
-      if (!tokenSet.has(token)) {
-        tokenSet.add(token);
-        tokens.push(token);
-      }
-    }
-
-    // Check for existing tokens and filter them out
-    const existingTokens = new Set<string>();
+    let deactivatedCount = 0;
     for (const token of tokens) {
-      const existing = await ctx.db
-        .query("game_tokens")
-        .withIndex("by_token", (q) => q.eq("token", token))
-        .first();
-
-      if (existing) {
-        existingTokens.add(token);
+      if (token.is_active) {
+        await ctx.db.patch(token._id, {
+          is_active: false,
+        });
+        deactivatedCount++;
       }
     }
 
-    // If any tokens already exist, regenerate them
-    const finalTokens: string[] = [];
-    for (const token of tokens) {
-      if (existingTokens.has(token)) {
-        // Regenerate if collision
-        let newToken: string;
-        let isUnique = false;
-        let attempts = 0;
-        while (!isUnique && attempts < 10) {
-          newToken = uuidv4();
-          const existing = await ctx.db
-            .query("game_tokens")
-            .withIndex("by_token", (q) => q.eq("token", newToken))
-            .first();
-
-          if (!existing && !finalTokens.includes(newToken)) {
-            finalTokens.push(newToken);
-            isUnique = true;
-          }
-          attempts++;
-        }
-        if (!isUnique) {
-          throw new Error(
-            `Failed to generate unique token after ${attempts} attempts`
-          );
-        }
-      } else {
-        finalTokens.push(token);
-      }
-    }
-
-    // Batch insert all tokens
-    const tokenIds: Id<"game_tokens">[] = [];
-    for (const token of finalTokens) {
-      const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
-        token: token,
-        match_id: args.matchId,
-        game_team_id: args.gameTeamId,
-        created_at: now,
-        expires_at: expiresAt,
-        is_active: true,
-        user_id: args.userId ?? undefined,
-      };
-
-      const tokenId = await ctx.db.insert("game_tokens", tokenData);
-      tokenIds.push(tokenId);
-    }
-
-    return {
-      tokens: finalTokens,
-      tokenIds: tokenIds,
-    };
+    return { success: true, deactivatedCount };
   },
 });

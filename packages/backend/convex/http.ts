@@ -319,7 +319,7 @@ http.route({
   }),
 });
 
-// POST /matches/update - Update match status and/or state
+// POST /matches/update - Update match status, state, and/or winner
 // Since Convex doesn't support path parameters, we use a different path
 // and include the match ID in the request body
 http.route({
@@ -333,7 +333,7 @@ http.route({
 
     try {
       const body = await request.json();
-      const { match_id, match_status, match_state } = body;
+      const { match_id, match_status, match_state, winner_player_id } = body;
 
       if (!match_id) {
         return new Response(
@@ -346,10 +346,15 @@ http.route({
       }
 
       // At least one field must be provided
-      if (match_status === undefined && match_state === undefined) {
+      if (
+        match_status === undefined &&
+        match_state === undefined &&
+        winner_player_id === undefined
+      ) {
         return new Response(
           JSON.stringify({
-            error: "Must provide at least one of: match_status, match_state",
+            error:
+              "Must provide at least one of: match_status, match_state, winner_player_id",
           }),
           {
             status: 400,
@@ -363,6 +368,7 @@ http.route({
         matchId: match_id as Id<"matches">,
         matchStatus: match_status,
         matchState: match_state,
+        winnerPlayerId: winner_player_id,
       });
 
       // Get updated match to return

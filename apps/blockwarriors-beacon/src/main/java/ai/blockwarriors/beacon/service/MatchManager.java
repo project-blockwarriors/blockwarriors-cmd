@@ -96,8 +96,8 @@ public class MatchManager {
             telemetryService.sendFinalMatchState(matchId, winnerPlayerId, deadPlayerId);
         }
 
-        // Update match status to Finished
-        updateMatchStatus(matchId, "Finished");
+        // Update match status to Finished and set the winner
+        updateMatchStatus(matchId, "Finished", winnerPlayerId);
 
         // Kick players and delete world after a short delay
         new BukkitRunnable() {
@@ -137,9 +137,12 @@ public class MatchManager {
     }
 
     /**
-     * Update match status in Convex
+     * Update match status and winner in Convex
+     * @param matchId The match ID
+     * @param status The new match status
+     * @param winnerPlayerId The Minecraft UUID of the winning player (nullable)
      */
-    private void updateMatchStatus(String matchId, String status) {
+    private void updateMatchStatus(String matchId, String status, String winnerPlayerId) {
         try {
             java.net.URL url = new java.net.URL(convexSiteUrl + "/matches/update");
             java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
@@ -151,6 +154,9 @@ public class MatchManager {
             org.json.JSONObject requestBody = new org.json.JSONObject();
             requestBody.put("match_id", matchId);
             requestBody.put("match_status", status);
+            if (winnerPlayerId != null) {
+                requestBody.put("winner_player_id", winnerPlayerId);
+            }
 
             try (java.io.OutputStream os = conn.getOutputStream()) {
                 byte[] input = requestBody.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -161,7 +167,8 @@ public class MatchManager {
             if (responseCode != 200) {
                 LOGGER.warning("Failed to update match status: HTTP " + responseCode);
             } else {
-                LOGGER.info("Updated match " + matchId + " status to " + status);
+                LOGGER.info("Updated match " + matchId + " status to " + status + 
+                    (winnerPlayerId != null ? " with winner " + winnerPlayerId : ""));
             }
         } catch (Exception e) {
             LOGGER.severe("Error updating match status: " + e.getMessage());
