@@ -139,7 +139,7 @@ export function WaitlistForm({ isOpen, onClose }: WaitlistFormProps) {
                     </h2>
                     <p className="text-muted-foreground text-sm">
                       Be the first to know when registration opens for
-                      BlockWarriors Spring 2025.
+                      BlockWarriors Spring 2026.
                     </p>
                   </div>
 

@@ -65,56 +65,61 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <FormField
-          control={form.control}
-          name="first_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>First Name *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="John" 
-                  {...field} 
-                  value={field.value || ''} 
-                  required
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <FormField
+            control={form.control}
+            name="first_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white">First Name <span className="text-primary">*</span></FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="John" 
+                    {...field} 
+                    value={field.value || ''} 
+                    required
+                    className="border-primary/20 focus:border-primary"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="last_name"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Last Name *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Doe" 
-                  {...field} 
-                  value={field.value || ''} 
-                  required
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="last_name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel className="text-white">Last Name <span className="text-primary">*</span></FormLabel>
+                <FormControl>
+                  <Input 
+                    placeholder="Doe" 
+                    {...field} 
+                    value={field.value || ''} 
+                    required
+                    className="border-primary/20 focus:border-primary"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <FormField
           control={form.control}
           name="institution"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Institution *</FormLabel>
+              <FormLabel className="text-white">Institution <span className="text-primary">*</span></FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Princeton University" 
                   {...field} 
                   value={field.value || ''} 
                   required
+                  className="border-primary/20 focus:border-primary"
                 />
               </FormControl>
               <FormMessage />
@@ -127,13 +132,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="geographic_location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Geographic Location *</FormLabel>
+              <FormLabel className="text-white">Geographic Location <span className="text-primary">*</span></FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Princeton, NJ" 
                   {...field} 
                   value={field.value || ''} 
                   required
+                  className="border-primary/20 focus:border-primary"
                 />
               </FormControl>
               <FormMessage />
@@ -141,7 +147,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           )}
         />
 
-        <div className="flex justify-end gap-4">
+        <div className="flex justify-end gap-4 pt-4 border-t border-primary/10">
           <Button
             type="button"
             variant="outline"

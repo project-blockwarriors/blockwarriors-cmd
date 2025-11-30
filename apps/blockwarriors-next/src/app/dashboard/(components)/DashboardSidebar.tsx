@@ -1,3 +1,5 @@
+'use client';
+
 import { cn } from '@/lib/utils';
 import {
   Calendar,
@@ -9,24 +11,31 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import Image from 'next/image';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getUserProfile } from '@/server/actions/users';
-import { getUser } from '@/auth/server';
 import { SignOutButton } from '@/components/common/SignOutButton';
+import { useQuery } from 'convex/react';
+import { api } from '@/lib/convex';
+import { authClient } from '@/lib/auth-client';
 
 interface SidebarProps {
   className?: string;
 }
 
-export async function DashboardSidebar({ className = '' }: SidebarProps) {
-  const authUser = await getUser();
-  const userProfile = authUser ? await getUserProfile(authUser.id) : null;
+export function DashboardSidebar({ className = '' }: SidebarProps) {
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
+  
+  // Subscribe to user profile changes in real-time
+  const userProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    userId ? { userId } : 'skip'
+  );
+
   const hasCompletedSetup = userProfile?.first_name && userProfile?.team;
 
   const DisabledButton = ({
@@ -88,26 +97,14 @@ export async function DashboardSidebar({ className = '' }: SidebarProps) {
   return (
     <div className={cn('pb-12 min-h-screen', className)}>
       <div className="space-y-4 py-4">
-        {/* Brand header */}
-        <div className="px-4 py-3 border-b border-primary/20">
-          <Link href="/dashboard" className="flex items-center gap-2.5 mb-4 group">
-            <Image
-              src="/blockwarriors-logo.png"
-              alt="BlockWarriors"
-              width={32}
-              height={32}
-              className="rounded-lg"
-            />
-            <span className="font-bold text-lg text-white group-hover:text-primary transition-colors">
-              BlockWarriors
-            </span>
-          </Link>
-          <div className="flex items-center gap-3 px-1">
-            <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <User className="h-4 w-4 text-primary" />
+        {/* User profile */}
+        <div className="px-4 py-4 border-b border-primary/20">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-col">
-              <div className="font-medium truncate">
+            <div className="flex flex-col min-w-0">
+              <div className="font-semibold text-white truncate">
                 {userProfile?.first_name && userProfile?.first_name}{' '}
                 {userProfile?.last_name && userProfile?.last_name}
               </div>

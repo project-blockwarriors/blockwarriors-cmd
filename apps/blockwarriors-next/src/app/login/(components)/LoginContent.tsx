@@ -10,26 +10,42 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import Image from 'next/image';
 
 export default function LoginContent() {
   return (
     <PageLayout>
       <div className="flex justify-center px-4">
         <div className="w-full max-w-md">
-          <Card className="p-6 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600">
-            <CardHeader className="text-center">
-              <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-                Sign in to BlockWarriors
+          <Card className="p-8 bg-card/80 backdrop-blur-md border-primary/20 shadow-xl shadow-primary/5">
+            <CardHeader className="text-center pb-6">
+              {/* Logo */}
+              <div className="flex justify-center mb-4">
+                <div className="h-16 w-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Image
+                    src="/blockwarriors-logo.png"
+                    alt="BlockWarriors"
+                    width={48}
+                    height={48}
+                    className="rounded-lg"
+                  />
+                </div>
+              </div>
+              <CardTitle className="text-2xl font-bold text-white">
+                Sign in to <span className="text-primary">BlockWarriors</span>
               </CardTitle>
-              <CardDescription className="text-sm text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-muted-foreground mt-2">
                 Join the battle, become a legend
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-6">
               <LoginForm />
               <div className="relative py-2">
                 <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+                  <div className="w-full border-t border-primary/20"></div>
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">or continue with</span>
                 </div>
               </div>
               <GoogleSignInButton />

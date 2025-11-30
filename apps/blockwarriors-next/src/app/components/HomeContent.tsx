@@ -149,7 +149,7 @@ export default function HomeContent() {
               >
                 <span className="w-2 h-2 bg-minecraft-grass rounded-full animate-pulse" />
                 <span className="text-muted-foreground group-hover:text-white transition-colors">
-                  Join the Spring 2025 Waitlist
+                  Join the Spring 2026 Waitlist
                 </span>
                 <ChevronRight className="w-4 h-4 text-princeton-orange group-hover:translate-x-0.5 transition-transform" />
               </button>
@@ -213,7 +213,7 @@ export default function HomeContent() {
               {[
                 { value: '16', label: 'Teams in Finals' },
                 { value: 'TBD', label: 'Prizes' },
-                { value: 'April', label: 'Finals Date' },
+                { value: 'March', label: 'Finals Date' },
               ].map((stat, i) => (
                 <div key={i} className="text-center">
                   <div className="text-3xl sm:text-4xl font-bold text-white">
@@ -273,7 +273,7 @@ export default function HomeContent() {
             {/* Two column: Steps + Terminal Demo */}
             <div className="grid lg:grid-cols-5 gap-8 items-start">
               {/* Left: Steps */}
-              <div className="lg:col-span-2 space-y-6">
+              <div id="how-it-works" className="lg:col-span-2 space-y-6 scroll-mt-24">
                 {/* Steps */}
                 <motion.div variants={staggerContainer} className="space-y-4">
                   {[
@@ -563,7 +563,7 @@ export default function HomeContent() {
                 The Tournament
               </div>
               <h2 className="text-4xl sm:text-5xl font-bold text-white">
-                Spring 2025 Championship
+                Spring 2026 Championship
               </h2>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
                 Online qualifiers followed by in-person finals at Princeton
