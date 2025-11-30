@@ -67,4 +67,13 @@ export default defineSchema({
     value: v.any(),
     updated_at: v.number(),
   }).index("by_key", ["key"]),
+
+  // Waitlist table - stores interest form submissions
+  waitlist: defineTable({
+    email: v.string(),
+    name: v.string(),
+    class_year: v.string(),
+    degree_type: v.string(),
+    created_at: v.number(),
+  }).index("by_email", ["email"]),
 });

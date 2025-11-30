@@ -25,7 +25,8 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/landing/Navbar';
-import { useRef } from 'react';
+import { WaitlistForm } from '@/components/landing/WaitlistForm';
+import { useRef, useState } from 'react';
 
 // Animation variants
 const fadeInUp = {
@@ -52,6 +53,7 @@ const scaleIn = {
 
 export default function HomeContent() {
   const heroRef = useRef<HTMLDivElement>(null);
+  const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
   const { scrollYProgress } = useScroll({
     target: heroRef,
     offset: ['start start', 'end start'],
@@ -63,6 +65,10 @@ export default function HomeContent() {
   return (
     <div className="min-h-screen bg-[#0A0A0A] overflow-x-hidden">
       <Navbar />
+      <WaitlistForm
+        isOpen={isWaitlistOpen}
+        onClose={() => setIsWaitlistOpen(false)}
+      />
 
       {/* Hero Section */}
       <section
@@ -131,15 +137,18 @@ export default function HomeContent() {
             animate="visible"
             className="text-center space-y-8"
           >
-            {/* Badge */}
+            {/* Badge - Clickable to open waitlist */}
             <motion.div variants={fadeInUp} className="flex justify-center">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-princeton-orange/20 text-sm">
+              <button
+                onClick={() => setIsWaitlistOpen(true)}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full glass border border-princeton-orange/20 text-sm hover:border-princeton-orange/40 hover:bg-white/5 transition-all cursor-pointer group"
+              >
                 <span className="w-2 h-2 bg-minecraft-grass rounded-full animate-pulse" />
-                <span className="text-muted-foreground">
-                  Registration Open for Spring 2025
+                <span className="text-muted-foreground group-hover:text-white transition-colors">
+                  Join the Spring 2025 Waitlist
                 </span>
-                <ChevronRight className="w-4 h-4 text-princeton-orange" />
-              </div>
+                <ChevronRight className="w-4 h-4 text-princeton-orange group-hover:translate-x-0.5 transition-transform" />
+              </button>
             </motion.div>
 
             {/* Main headline */}
