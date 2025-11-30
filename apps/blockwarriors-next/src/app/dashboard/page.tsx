@@ -4,6 +4,33 @@ import { StatsCard } from './(components)/StatsCard';
 import { MatchCard } from './(components)/MatchCard';
 import { TournamentProgress } from './(components)/TournamentProgress';
 import { featuredMatches } from '../data/tournament';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Dashboard',
+  description:
+    'Track your BlockWarriors tournament progress, monitor live matches, view your team stats, and compete for the top spot on the leaderboard.',
+  keywords: [
+    'BlockWarriors dashboard',
+    'AI tournament progress',
+    'Minecraft bot stats',
+    'team standings',
+    'match history',
+    'ELO rating',
+    'tournament tracker',
+  ],
+  openGraph: {
+    title: 'Dashboard | BlockWarriors',
+    description:
+      'Track your tournament progress, view live matches, and compete for the top.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Dashboard | BlockWarriors',
+    description:
+      'Track your tournament progress, view live matches, and compete for the top.',
+  },
+};
 
 export default function Dashboard() {
   return (
@@ -14,13 +41,16 @@ export default function Dashboard() {
         <div className="relative">
           <div className="flex items-center gap-2 text-primary mb-2">
             <Sparkles className="h-5 w-5" />
-            <span className="text-sm font-medium uppercase tracking-wider">Live Tournament</span>
+            <span className="text-sm font-medium uppercase tracking-wider">
+              Live Tournament
+            </span>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-white to-primary bg-clip-text text-transparent">
             Tournament Overview
           </h1>
           <p className="text-muted-foreground mt-2 max-w-md">
-            Track your progress, monitor matches, and compete for the top spot on the leaderboard.
+            Track your progress, monitor matches, and compete for the top spot
+            on the leaderboard.
           </p>
         </div>
       </div>

@@ -1,30 +1,60 @@
-import { Trophy } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LeaderboardRow } from "./(components)/LeaderboardRow";
-import { getAllTeamsScores } from "@/server/db/teams";
+import { Trophy } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { LeaderboardRow } from './(components)/LeaderboardRow';
+import { getAllTeamsScores } from '@/server/db/teams';
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  title: 'Leaderboard',
+  description:
+    'Live BlockWarriors tournament leaderboard. See the top AI bot teams ranked by ELO rating, track wins and losses, and watch the competition unfold.',
+  keywords: [
+    'BlockWarriors leaderboard',
+    'AI bot rankings',
+    'tournament standings',
+    'ELO rating',
+    'top teams',
+    'Minecraft AI rankings',
+    'competition results',
+  ],
+  openGraph: {
+    title: 'Leaderboard | BlockWarriors',
+    description:
+      "Live tournament rankings - see who's leading the AI Minecraft competition.",
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Leaderboard | BlockWarriors',
+    description:
+      "Live tournament rankings - see who's leading the AI Minecraft competition.",
+  },
+};
 
 export default async function LeaderboardPage() {
   const { data: teams, error } = await getAllTeamsScores();
-  
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="h-16 w-16 rounded-2xl bg-destructive/10 flex items-center justify-center mb-4">
           <Trophy className="h-8 w-8 text-destructive" />
         </div>
-        <h2 className="text-xl font-semibold text-white mb-2">Error loading leaderboard</h2>
+        <h2 className="text-xl font-semibold text-white mb-2">
+          Error loading leaderboard
+        </h2>
         <p className="text-muted-foreground">{error}</p>
       </div>
     );
   }
 
   // Sort teams by ELO in descending order and add rank
-  const rankedTeams = teams
-    ?.sort((a, b) => b.team_elo - a.team_elo)
-    .map((team, index) => ({
-      ...team,
-      rank: index + 1
-    })) || [];
+  const rankedTeams =
+    teams
+      ?.sort((a, b) => b.team_elo - a.team_elo)
+      .map((team, index) => ({
+        ...team,
+        rank: index + 1,
+      })) || [];
 
   return (
     <div className="space-y-8">
@@ -35,14 +65,17 @@ export default async function LeaderboardPage() {
             <div className="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
               <Trophy className="h-5 w-5 text-primary" />
             </div>
-            <h1 className="text-3xl font-bold text-white">Tournament Leaderboard</h1>
+            <h1 className="text-3xl font-bold text-white">
+              Tournament Leaderboard
+            </h1>
           </div>
           <p className="text-muted-foreground">
-            Top performers ranked by <span className="text-primary font-medium">ELO rating</span>
+            Top performers ranked by{' '}
+            <span className="text-primary font-medium">ELO rating</span>
           </p>
         </div>
       </div>
-      
+
       <Card className="border-primary/10">
         <CardHeader className="border-b border-primary/10">
           <div className="flex items-center justify-between">
@@ -60,8 +93,8 @@ export default async function LeaderboardPage() {
               </div>
             ) : (
               rankedTeams.map((team) => (
-                <LeaderboardRow 
-                  key={team.id} 
+                <LeaderboardRow
+                  key={team.id}
                   rank={team.rank}
                   name={team.team_name}
                   elo={team.team_elo}
