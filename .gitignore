@@ -1,3 +1,5 @@
 .turbo/
 node_modules/
+.idea/
 .vscode/
+.cursor/mcp.json

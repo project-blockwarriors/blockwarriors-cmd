@@ -1,0 +1,9 @@
+name: warrior-telemetry
+version: '1.0-SNAPSHOT'
+main: ai.blockwarriors.warriorTelemetry.Plugin
+api-version: '1.20'
+
+commands:
+  warrior-telemetry:
+    description: View another player's telemetry stats
+    usage: /warrior-telemetry view <player>

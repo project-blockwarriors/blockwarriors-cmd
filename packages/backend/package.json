@@ -7,14 +7,16 @@
     "dev": "convex dev",
     "setup": "convex dev --until-success",
     "codegen": "convex codegen",
-    "deploy": "convex deploy"
+    "deploy": "convex deploy",
+    "test:http": "tsx test-http-routes.ts"
   },
   "dependencies": {
-    "convex": "^1.28.2",
-    "@convex-dev/better-auth": "^0.9.6"
+    "@convex-dev/better-auth": "^0.9.6",
+    "convex": "^1.28.2"
   },
   "devDependencies": {
+    "dotenv": "^16.6.1",
+    "tsx": "^4.7.0",
     "typescript": "^5.8.3"
   }
 }
-

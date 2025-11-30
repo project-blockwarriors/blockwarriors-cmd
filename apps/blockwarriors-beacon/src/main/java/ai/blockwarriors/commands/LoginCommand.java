@@ -1,39 +1,34 @@
 package ai.blockwarriors.commands;
 
-import io.socket.client.Ack;
-import io.socket.client.IO;
-import io.socket.client.Socket;
-import io.socket.emitter.Emitter;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
+import org.bukkit.scheduler.BukkitRunnable;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 import java.util.UUID;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
-import org.json.JSONException;
 
 public class LoginCommand implements CommandExecutor {
 
-    private final Map<UUID, Socket> playerSockets = new HashMap<>();
     private final Set<UUID> loggedInPlayers;
-    private final String socketUriBase;
+    private final String convexSiteUrl;
+    private final String convexHttpSecret;
     private static final Logger LOGGER = Logger.getLogger("beacon");
 
-
-    public LoginCommand(Set<UUID> loggedInPlayersInput, String socketUriBase) {
+    public LoginCommand(Set<UUID> loggedInPlayersInput, String convexSiteUrl, String convexHttpSecret) {
         loggedInPlayers = loggedInPlayersInput;
-        this.socketUriBase = socketUriBase;
+        this.convexSiteUrl = convexSiteUrl;
+        this.convexHttpSecret = convexHttpSecret;
     }
 
     @Override
@@ -48,7 +43,6 @@ public class LoginCommand implements CommandExecutor {
             return true;
         }
 
-        Logger logger = Bukkit.getLogger();
         Player player = (Player) sender;
 
         if (args.length != 1) {
@@ -57,118 +51,95 @@ public class LoginCommand implements CommandExecutor {
         }
 
         String token = args[0];
-        System.out.println("Token: " + token);
-        try {
+        LOGGER.info("Player " + player.getName() + " attempting login with token (length: " + token.length() + ")");
 
-            IO.Options options = IO.Options.builder().setForceNew(false).build();
-            Socket playerSocket = IO.socket(URI.create(socketUriBase + "/player"), options); // the "player" namespace
-            registerPlayerSocketListeners(player, playerSocket);
-
-            JSONObject playerValidationObject = new JSONObject();
-            playerValidationObject.put("playerId", player.getUniqueId());
-            playerValidationObject.put("token", token.substring(5));
-
-            playerSocket.emit("login", playerValidationObject, (Ack) returned -> {
-                JSONObject response = (JSONObject) returned[0];
+        // Run login asynchronously to avoid blocking the main thread
+        new BukkitRunnable() {
+            @Override
+            public void run() {
                 try {
-                    System.out.println(response.getString("status"));
-                    if (response.getString("status").equals("ok")) {
-                        logger.info("Successfully logged in. with status ok");
-                        player.sendMessage("Successfully logged in.");
-                        loggedInPlayers.add(player.getUniqueId()); // Add player to logged-in set
-                    } else {
-                        logger.info("Failed to log in: invalid token provided " + token);
-                        player.sendMessage("Failed to log in: invalid token provided " + token);
-                        player.kickPlayer("Failed to log in: invalid token provided " + token);
-                        closeSocketandRemoveLoggedIn(player.getUniqueId());
-                    }
-                } catch (JSONException e) {
-                    e.printStackTrace();
-                }
-            }); 
+                    // Prepare login request
+                    String urlString = convexSiteUrl + "/validateToken";
+                    URL url = new URL(urlString);
+                    HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Content-Type", "application/json");
+                    conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
+                    conn.setDoOutput(true);
 
-            playerSocket.connect();
-            playerSockets.put(player.getUniqueId(), playerSocket);
-            // End, success
-        } catch (JSONException e1) {
-            e1.printStackTrace();
-            return false;
-        } finally {
-            System.out.println("Command /login has been run");
-        }
+                    JSONObject requestBody = new JSONObject();
+                    // Tokens are pure UUIDs without prefix - use as-is
+                    // If token starts with "token", remove that prefix (for backwards
+                    // compatibility)
+                    String tokenToSend = token.startsWith("token") ? token.substring(5) : token;
+                    LOGGER.info("Sending token to Convex (length: " + tokenToSend.length() + ", starts with 'token': "
+                            + token.startsWith("token") + ")");
+                    requestBody.put("token", tokenToSend);
+                    requestBody.put("playerId", player.getUniqueId().toString());
+                    requestBody.put("ign", player.getName());
+
+                    try (OutputStream os = conn.getOutputStream()) {
+                        byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
+                        os.write(input, 0, input.length);
+                    }
+
+                    int responseCode = conn.getResponseCode();
+
+                    // Read response
+                    BufferedReader reader;
+                    if (responseCode >= 200 && responseCode < 300) {
+                        reader = new BufferedReader(
+                                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                    } else {
+                        reader = new BufferedReader(
+                                new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8));
+                    }
+
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+
+                    JSONObject responseJson = new JSONObject(response.toString());
+                    String status = responseJson.getString("status");
+
+                    // Handle response on main thread
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            if (status.equals("ok")) {
+                                LOGGER.info("Successfully logged in player " + player.getName());
+                                player.sendMessage("Successfully logged in.");
+                                loggedInPlayers.add(player.getUniqueId());
+                            } else {
+                                String error = responseJson.optString("error", "Invalid token");
+                                LOGGER.warning("Failed to log in player " + player.getName() + ": " + error);
+                                player.sendMessage("Failed to log in: " + error);
+                                player.kickPlayer("Failed to log in: " + error);
+                            }
+                        }
+                    }.runTask(Bukkit.getPluginManager().getPlugin("beacon"));
+
+                } catch (Exception e) {
+                    LOGGER.severe("Error during login: " + e.getMessage());
+                    e.printStackTrace();
+                    // Handle error on main thread
+                    new BukkitRunnable() {
+                        @Override
+                        public void run() {
+                            player.sendMessage("Error during login. Please try again.");
+                        }
+                    }.runTask(Bukkit.getPluginManager().getPlugin("beacon"));
+                }
+            }
+        }.runTaskAsynchronously(Bukkit.getPluginManager().getPlugin("beacon"));
+
         return true;
     }
 
-    public void closeSocketandRemoveLoggedIn(UUID playerUUID) {
-        Socket socket = playerSockets.get(playerUUID);
-        if (socket != null && socket.connected()) {
-            socket.disconnect();
-            socket.close();
-            loggedInPlayers.remove(playerUUID);
-            playerSockets.remove(playerUUID);
-        }
-    }
-
-    public Map<UUID, Socket> getPlayerSockets() {
-        return playerSockets;
-    }
-
-
-    private void registerPlayerSocketListeners(Player player, Socket playerSocket) {
-        LOGGER.info("Registering playerSocket listeners on player: " + player.getName());
-        playerSocket.on(Socket.EVENT_CONNECT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                System.out.println("SocketIO connection established with token.");
-                player.sendMessage("SocketIO connection established with token.");
-            }
-        }).on(Socket.EVENT_DISCONNECT, new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                Bukkit.getScheduler().runTask(Bukkit.getPluginManager().getPlugin("beacon"),
-                        new Runnable() {
-                            @Override
-                            public void run() {
-                                System.out.println("SocketIO connection failed or disconnected. (on disconnect)");
-                                player.kickPlayer("Socket-IO Connection DISCONNECTED"); // "SocketIO connection failed
-                                                                                        // or disconnected.");
-                                closeSocketandRemoveLoggedIn(player.getUniqueId());
-                            }
-                        });
-
-            }
-        });
-
-        // player joined match (in same room)
-        playerSocket.on("playerJoined", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                JSONObject playerId = (JSONObject) args[0];
-                try {
-                    UUID playerUUID = UUID.fromString(playerId.getString("playerId"));
-                    String playerName = Bukkit.getPlayer(playerUUID).getName();
-                    player.sendMessage("Player " + playerName + " has joined the match.");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        // player left match (in same room)
-        playerSocket.on("playerLeft", new Emitter.Listener() {
-            @Override
-            public void call(Object... args) {
-                JSONObject playerId = (JSONObject) args[0];
-                try {
-                    UUID playerUUID = UUID.fromString(playerId.getString("playerId"));
-                    String playerName = Bukkit.getOfflinePlayer(playerUUID).getName();
-                    player.sendMessage("Player " + playerName + " has left the match.");
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
-        });
-
-        // Add more event listeners as needed
+    public void removeLoggedInPlayer(UUID playerUUID) {
+        loggedInPlayers.remove(playerUUID);
     }
 }

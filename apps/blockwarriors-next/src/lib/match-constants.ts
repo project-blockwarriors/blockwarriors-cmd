@@ -2,10 +2,14 @@
  * Match configuration constants and type definitions
  */
 
-export type GameMode = 'pvp' | 'bedwars' | 'ctf';
+// Game types (pvp, bedwars, ctf) - determines the game being played
+export type GameType = 'pvp' | 'bedwars' | 'ctf';
 
-export interface GameModeConfig {
-  id: GameMode;
+// Match modes - determines competitive context (practice vs ranked)
+export type MatchMode = 'practice' | 'ranked';
+
+export interface GameTypeConfig {
+  id: GameType;
   name: string;
   description: string;
   players: string;
@@ -13,7 +17,7 @@ export interface GameModeConfig {
   tokensPerTeam: number;
 }
 
-export const GAME_MODES: Record<GameMode, GameModeConfig> = {
+export const GAME_TYPES: Record<GameType, GameTypeConfig> = {
   pvp: {
     id: 'pvp',
     name: 'Normal PvP',
@@ -40,22 +44,40 @@ export const GAME_MODES: Record<GameMode, GameModeConfig> = {
   },
 };
 
+export const MATCH_MODES: Record<MatchMode, { id: MatchMode; name: string; description: string }> = {
+  practice: {
+    id: 'practice',
+    name: 'Practice',
+    description: 'Casual matches for testing and learning',
+  },
+  ranked: {
+    id: 'ranked',
+    name: 'Ranked',
+    description: 'Competitive matches that affect team ELO',
+  },
+};
+
 /**
- * Get game mode configuration
+ * Get game type configuration
  */
-export function getGameModeConfig(mode: GameMode): GameModeConfig {
-  const config = GAME_MODES[mode];
+export function getGameTypeConfig(gameType: GameType): GameTypeConfig {
+  const config = GAME_TYPES[gameType];
   if (!config) {
-    throw new Error(`Invalid game mode: ${mode}`);
+    throw new Error(`Invalid game type: ${gameType}`);
   }
   return config;
 }
 
 /**
- * Validate if a string is a valid game mode
+ * Validate if a string is a valid game type
  */
-export function isValidGameMode(mode: string): mode is GameMode {
-  return mode in GAME_MODES;
+export function isValidGameType(gameType: string): gameType is GameType {
+  return gameType in GAME_TYPES;
 }
 
-
+/**
+ * Validate if a string is a valid match mode
+ */
+export function isValidMatchMode(mode: string): mode is MatchMode {
+  return mode in MATCH_MODES;
+}

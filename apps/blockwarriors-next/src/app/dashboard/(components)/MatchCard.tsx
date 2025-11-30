@@ -11,27 +11,29 @@ interface MatchCardProps {
 
 export function MatchCard({ team1, team2, time, score, map }: MatchCardProps) {
   return (
-    <div className="flex items-center justify-between p-4 rounded-lg bg-secondary">
+    <div className="flex items-center justify-between p-4 rounded-lg bg-secondary/50 border border-primary/10 hover:border-primary/30 hover:bg-secondary/70 transition-all">
       <div className="flex items-center gap-4">
-        <Sword className="h-5 w-5" />
+        <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+          <Sword className="h-5 w-5 text-primary" />
+        </div>
         <div>
-          <p className="font-semibold">{team1}</p>
+          <p className="font-semibold text-white">{team1}</p>
           <div className="text-sm text-muted-foreground">
-            vs {team2}
-            {map && <div>Map: {map}</div>}
+            vs <span className="text-white/80">{team2}</span>
+            {map && <span className="ml-2 text-primary/70">• {map}</span>}
           </div>
         </div>
       </div>
       <div className="text-right">
         {score ? (
           <>
-            <p className="font-bold">{score}</p>
+            <p className="font-bold text-primary text-lg">{score}</p>
             <p className="text-sm text-muted-foreground">{time}</p>
           </>
         ) : (
-          <div className="font-bold">
-            <Badge>{time}</Badge>
-          </div>
+          <Badge className="bg-primary/20 text-primary border-primary/30 hover:bg-primary/30">
+            {time}
+          </Badge>
         )}
       </div>
     </div>

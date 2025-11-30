@@ -9,7 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
-import type * as example from "../example.js";
+import type * as crons from "../crons.js";
 import type * as gameTeams from "../gameTeams.js";
 import type * as http from "../http.js";
 import type * as matches from "../matches.js";
@@ -17,6 +17,7 @@ import type * as settings from "../settings.js";
 import type * as teams from "../teams.js";
 import type * as tokens from "../tokens.js";
 import type * as userProfiles from "../userProfiles.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -34,7 +35,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
-  example: typeof example;
+  crons: typeof crons;
   gameTeams: typeof gameTeams;
   http: typeof http;
   matches: typeof matches;
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   teams: typeof teams;
   tokens: typeof tokens;
   userProfiles: typeof userProfiles;
+  waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

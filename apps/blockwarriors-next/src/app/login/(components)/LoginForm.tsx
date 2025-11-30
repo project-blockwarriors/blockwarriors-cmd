@@ -19,11 +19,11 @@ export default function LoginForm() {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label
           htmlFor="username"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-white mb-1.5"
         >
           Username
         </label>
@@ -36,7 +36,8 @@ export default function LoginForm() {
           onChange={(e) =>
             setFormData({ ...formData, username: e.target.value })
           }
-          className="mt-1 block w-full px-3 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+          className="block w-full px-3 py-2 bg-secondary border border-primary/20 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder:text-muted-foreground"
+          placeholder="Enter username"
           required
         />
       </div>
@@ -44,7 +45,7 @@ export default function LoginForm() {
       <div>
         <label
           htmlFor="password"
-          className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="block text-sm font-medium text-white mb-1.5"
         >
           Password
         </label>
@@ -57,7 +58,8 @@ export default function LoginForm() {
           onChange={(e) =>
             setFormData({ ...formData, password: e.target.value })
           }
-          className="mt-1 block w-full px-3 py-1.5 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 disabled:opacity-75 disabled:cursor-not-allowed"
+          className="block w-full px-3 py-2 bg-secondary border border-primary/20 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary disabled:opacity-50 disabled:cursor-not-allowed text-white placeholder:text-muted-foreground"
+          placeholder="Enter password"
           required
         />
       </div>
@@ -69,11 +71,11 @@ export default function LoginForm() {
             name="remember-me"
             type="checkbox"
             disabled
-            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded disabled:opacity-75 disabled:cursor-not-allowed"
+            className="h-4 w-4 text-primary focus:ring-primary border-primary/30 rounded bg-secondary disabled:opacity-50 disabled:cursor-not-allowed"
           />
           <label
             htmlFor="remember-me"
-            className="ml-2 text-gray-700 dark:text-gray-300"
+            className="ml-2 text-muted-foreground"
           >
             Remember me
           </label>
@@ -81,7 +83,7 @@ export default function LoginForm() {
 
         <Link
           href="/forgot-password"
-          className="font-medium text-indigo-600 hover:text-indigo-500 opacity-50 pointer-events-none"
+          className="font-medium text-primary/50 hover:text-primary pointer-events-none"
         >
           Forgot password?
         </Link>
@@ -90,7 +92,7 @@ export default function LoginForm() {
       <button
         type="submit"
         disabled
-        className="w-full flex justify-center py-1.5 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-black bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isLoading ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -99,11 +101,11 @@ export default function LoginForm() {
         )}
       </button>
 
-      <p className="text-center text-sm text-gray-600 dark:text-gray-400">
+      <p className="text-center text-sm text-muted-foreground">
         Don&apos;t have an account?{' '}
         <Link
           href="/register"
-          className="font-medium text-indigo-600 hover:text-indigo-500 opacity-50 pointer-events-none"
+          className="font-medium text-primary/50 hover:text-primary pointer-events-none"
         >
           Sign up
         </Link>

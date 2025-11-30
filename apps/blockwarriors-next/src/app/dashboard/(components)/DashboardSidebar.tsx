@@ -1,6 +1,7 @@
+'use client';
+
 import { cn } from '@/lib/utils';
 import {
-  ArrowLeft,
   Calendar,
   Gamepad2,
   Home,
@@ -16,17 +17,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { getUserProfile } from '@/server/actions/users';
-import { getUser } from '@/auth/server';
 import { SignOutButton } from '@/components/common/SignOutButton';
+import { useQuery } from 'convex/react';
+import { api } from '@/lib/convex';
+import { authClient } from '@/lib/auth-client';
 
 interface SidebarProps {
   className?: string;
 }
 
-export async function DashboardSidebar({ className = '' }: SidebarProps) {
-  const authUser = await getUser();
-  const userProfile = authUser ? await getUserProfile(authUser.id) : null;
+export function DashboardSidebar({ className = '' }: SidebarProps) {
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
+  
+  // Subscribe to user profile changes in real-time
+  const userProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    userId ? { userId } : 'skip'
+  );
+
   const hasCompletedSetup = userProfile?.first_name && userProfile?.team;
 
   const DisabledButton = ({
@@ -88,17 +97,18 @@ export async function DashboardSidebar({ className = '' }: SidebarProps) {
   return (
     <div className={cn('pb-12 min-h-screen', className)}>
       <div className="space-y-4 py-4">
-        <div className="px-3 py-2 border-b">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-4 w-4 text-muted-foreground" />
+        {/* User profile */}
+        <div className="px-4 py-4 border-b border-primary/20">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <User className="h-5 w-5 text-primary" />
             </div>
-            <div className="flex flex-col">
-              <div className="font-medium truncate">
+            <div className="flex flex-col min-w-0">
+              <div className="font-semibold text-white truncate">
                 {userProfile?.first_name && userProfile?.first_name}{' '}
                 {userProfile?.last_name && userProfile?.last_name}
               </div>
-              <div className="text-sm text-muted-foreground truncate">
+              <div className="text-sm text-primary/70 truncate">
                 {userProfile?.team ? userProfile.team.team_name : 'No Team'}
               </div>
             </div>
