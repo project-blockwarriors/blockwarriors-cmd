@@ -17,6 +17,7 @@ import type * as settings from "../settings.js";
 import type * as teams from "../teams.js";
 import type * as tokens from "../tokens.js";
 import type * as userProfiles from "../userProfiles.js";
+import type * as waitlist from "../waitlist.js";
 
 import type {
   ApiFromModules,
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   teams: typeof teams;
   tokens: typeof tokens;
   userProfiles: typeof userProfiles;
+  waitlist: typeof waitlist;
 }>;
 declare const fullApiWithMounts: typeof fullApi;
 

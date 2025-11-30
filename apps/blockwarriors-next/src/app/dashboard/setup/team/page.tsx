@@ -1,7 +1,7 @@
 import { Card } from '@/components/ui/card';
 import { getAllTeamsWithMembers } from '@/server/db/teams';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Users, UserPlus, Settings } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getUserProfile } from '@/server/db/users';
 import { getUser } from '@/auth/server';
@@ -35,42 +35,63 @@ export default async function TeamSetupPage() {
 
   return (
     <div className="space-y-8">
-      <Card className="w-full max-w-3xl p-6">
+      <Card className="w-full max-w-3xl p-8 border-primary/10">
+        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-tight mb-2">
-            {profile.team ? 'Manage Your Team 🤝' : 'Find Your Team 🤝'}
-          </h1>
-          <p className="text-muted-foreground">
-            {profile.team
-              ? isTeamLeader
-                ? 'Manage your team or disband it if needed.'
-                : 'View your team details or leave to join another one.'
-              : 'Join an existing team or create your own to start competing in BlockWarriors!'}
-          </p>
+          <div className="flex items-center gap-3 mb-3">
+            <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
+              {profile.team ? (
+                <Settings className="h-6 w-6 text-primary" />
+              ) : (
+                <Users className="h-6 w-6 text-primary" />
+              )}
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight text-white">
+                {profile.team ? 'Manage Your Team' : 'Find Your Team'}
+              </h1>
+              <p className="text-muted-foreground">
+                {profile.team
+                  ? isTeamLeader
+                    ? 'Manage your team or disband it if needed'
+                    : 'View your team details or leave to join another'
+                  : 'Join an existing team or create your own'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <Tabs
           defaultValue={profile.team ? 'view' : hasTeams ? 'join' : 'create'}
           className="space-y-6"
         >
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-2 bg-secondary/50 p-1">
             {profile.team ? (
               <>
-                <TabsTrigger value="view">View Team</TabsTrigger>
+                <TabsTrigger value="view" className="data-[state=active]:bg-primary data-[state=active]:text-black">
+                  <Users className="h-4 w-4 mr-2" />
+                  View Team
+                </TabsTrigger>
                 {isTeamLeader ? (
-                  <TabsTrigger value="disband" className="text-destructive">
+                  <TabsTrigger value="disband" className="data-[state=active]:bg-destructive data-[state=active]:text-white">
                     Disband Team
                   </TabsTrigger>
                 ) : (
-                  <TabsTrigger value="leave">Leave Team</TabsTrigger>
+                  <TabsTrigger value="leave" className="data-[state=active]:bg-primary data-[state=active]:text-black">
+                    Leave Team
+                  </TabsTrigger>
                 )}
               </>
             ) : (
               <>
-                <TabsTrigger value="join" disabled={!hasTeams}>
-                  Join a Team {!hasTeams && '(No Teams Available)'}
+                <TabsTrigger value="join" disabled={!hasTeams} className="data-[state=active]:bg-primary data-[state=active]:text-black">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Join a Team {!hasTeams && '(None)'}
                 </TabsTrigger>
-                <TabsTrigger value="create">Create Team</TabsTrigger>
+                <TabsTrigger value="create" className="data-[state=active]:bg-primary data-[state=active]:text-black">
+                  <Users className="h-4 w-4 mr-2" />
+                  Create Team
+                </TabsTrigger>
               </>
             )}
           </TabsList>
@@ -163,10 +184,10 @@ export default async function TeamSetupPage() {
                 {hasTeams ? (
                   <>
                     <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-primary/50" />
                       <Input
                         placeholder="Search teams by name..."
-                        className="pl-10"
+                        className="pl-10 border-primary/20 focus:border-primary"
                       />
                     </div>
 
@@ -189,8 +210,12 @@ export default async function TeamSetupPage() {
                     </div>
                   </>
                 ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No teams available. Be the first to create one!
+                  <div className="text-center py-12">
+                    <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                      <Users className="h-8 w-8 text-primary" />
+                    </div>
+                    <p className="text-white font-medium mb-1">No teams yet</p>
+                    <p className="text-muted-foreground text-sm">Be the first to create one!</p>
                   </div>
                 )}
               </TabsContent>

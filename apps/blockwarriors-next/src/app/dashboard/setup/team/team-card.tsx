@@ -93,47 +93,55 @@ export function TeamCard({
   }
 
   return (
-    <Card className="hover:bg-accent/5 transition-colors">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-lg">{team_name}</CardTitle>
-            <Badge variant="secondary" className="text-xs">
+    <Card className={`transition-all ${
+      isMember 
+        ? "border border-primary/50 bg-primary/5" 
+        : "border border-white/5 hover:border-primary/30 bg-card/50"
+    }`}>
+      <CardHeader className="p-5 pb-2">
+        <div className="flex items-start justify-between">
+          <div>
+            <CardTitle className="text-xl font-bold text-white mb-1">{team_name}</CardTitle>
+            <p className="text-sm text-muted-foreground">
               {members.length} {members.length === 1 ? 'member' : 'members'}
-            </Badge>
+            </p>
           </div>
+          {isMember && (
+            <Badge variant="outline" className="border-primary/30 text-primary bg-primary/5 text-sm font-normal">
+              Your Team
+            </Badge>
+          )}
         </div>
-        {leader_id && (
-          <CardDescription className="flex items-center gap-1">
-            <Crown className="h-3 w-3" />
-            Led by {members.find((m) => m.first_name)?.first_name}{' '}
-            {members.find((m) => m.last_name)?.last_name}
-          </CardDescription>
-        )}
       </CardHeader>
-      <CardContent className="pb-3">
-        <div className="space-y-1.5">
-          {members.map((member, idx) => (
-            <div
-              key={idx}
-              className="flex items-center justify-between text-sm"
-            >
-              <div className="flex items-center gap-2">
-                <Users className="h-3 w-3 text-muted-foreground" />
-                <span>
+      
+      <CardContent className="p-5 pt-2">
+        <div className="space-y-3">
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Roster
+          </div>
+          <div className="space-y-2.5">
+            {members.map((member, idx) => (
+              <div key={idx} className="flex items-center gap-3">
+                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                  member.user_id === leader_id 
+                    ? 'bg-primary/20 text-primary ring-1 ring-primary/30' 
+                    : 'bg-white/5 text-white/50'
+                }`}>
+                  {member.first_name[0]}
+                </div>
+                <span className={`text-base ${member.user_id === leader_id ? 'text-white font-medium' : 'text-white/60'}`}>
                   {member.first_name} {member.last_name}
                 </span>
+                {member.user_id === leader_id && (
+                  <Crown className="h-4 w-4 text-primary/50 ml-auto" />
+                )}
               </div>
-              {member.user_id === leader_id && (
-                <Badge variant="outline" className="text-xs">
-                  Leader
-                </Badge>
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </CardContent>
-      <CardFooter className="flex gap-2">
+
+      <CardFooter className="p-5 pt-0">
         {canJoin && (
           <Button
             className="w-full"

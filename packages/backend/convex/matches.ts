@@ -374,6 +374,8 @@ export const acknowledgeMatchAndGenerateTokens = mutation({
       }
 
       // Insert all tokens for this team
+      // Note: user_id should NOT be set here - it will be set when players log in with /login <token>
+      // user_id stores the Minecraft UUID, not the Convex user ID
       for (const token of finalTokens) {
         const tokenData: Omit<Doc<"game_tokens">, "_id" | "_creationTime"> = {
           token: token,

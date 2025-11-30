@@ -66,18 +66,27 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <div className="space-y-4">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            <h2 className="text-lg font-semibold">Create Your Team</h2>
+          <div className="flex items-center gap-3 p-4 rounded-lg bg-primary/5 border border-primary/20">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-white">Create Your Team</h2>
+              <p className="text-sm text-muted-foreground">Start building your championship team</p>
+            </div>
           </div>
           <FormField
             control={form.control}
             name="teamName"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Team Name</FormLabel>
+                <FormLabel className="text-white">Team Name <span className="text-primary">*</span></FormLabel>
                 <FormControl>
-                  <Input placeholder="Enter your team name" {...field} />
+                  <Input 
+                    placeholder="Enter your team name" 
+                    {...field} 
+                    className="border-primary/20 focus:border-primary"
+                  />
                 </FormControl>
                 <FormDescription>
                   Choose a unique name for your team. This will be displayed in
@@ -90,6 +99,7 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
         </div>
 
         <Button type="submit" className="w-full">
+          <Users className="h-4 w-4 mr-2" />
           Create Team
         </Button>
       </form>

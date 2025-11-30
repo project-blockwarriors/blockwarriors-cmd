@@ -1,4 +1,4 @@
-import { Trophy, Users } from "lucide-react";
+import { Trophy, Users, User } from "lucide-react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
 
@@ -20,29 +20,32 @@ export function TeamCard({
   team_losses 
 }: TeamCardProps) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Users className="h-5 w-5" />
-          <h3 className="font-semibold">{team_name}</h3>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="text-sm">
-            <span className="text-green-500">{team_wins}W</span>
-            {" - "}
-            <span className="text-red-500">{team_losses}L</span>
+    <Card className="border-primary/10 hover:border-primary/30 transition-all hover:shadow-lg hover:shadow-primary/5">
+      <CardHeader className="flex flex-row items-center justify-between pb-3">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+            <Users className="h-5 w-5 text-primary" />
           </div>
-          <div className="flex items-center gap-1 text-amber-500">
-            <Trophy className="h-4 w-4" />
-            <span className="font-medium">{team_elo}</span>
+          <h3 className="font-semibold text-lg text-white">{team_name}</h3>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="text-sm bg-secondary/50 px-3 py-1 rounded-full">
+            <span className="text-primary font-medium">{team_wins}W</span>
+            <span className="text-muted-foreground mx-1">-</span>
+            <span className="text-red-400 font-medium">{team_losses}L</span>
+          </div>
+          <div className="flex items-center gap-1.5 bg-primary/10 px-3 py-1 rounded-full">
+            <Trophy className="h-4 w-4 text-primary" />
+            <span className="font-bold text-primary">{team_elo}</span>
           </div>
         </div>
       </CardHeader>
       <CardContent>
         <div className="space-y-2">
           {members.map((member, i) => (
-            <div key={i} className="text-sm text-muted-foreground">
-              {member.first_name} {member.last_name}
+            <div key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
+              <User className="h-3 w-3 text-primary/50" />
+              <span>{member.first_name} {member.last_name}</span>
             </div>
           ))}
         </div>
