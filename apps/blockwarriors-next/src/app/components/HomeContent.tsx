@@ -368,77 +368,82 @@ export default function HomeContent() {
                     <div className="p-6 font-mono text-[13px] overflow-x-auto bg-[#0D0D0D]">
                       <div className="flex items-center gap-2 mb-4 text-xs text-muted-foreground">
                         <Code2 className="w-4 h-4" />
-                        <span>Your Bot Code</span>
+                        <span>AI Combat Agent</span>
                       </div>
                       <pre className="text-muted-foreground leading-relaxed">
                         <code>
-                          <span className="text-purple-400">const</span>{' '}
-                          <span className="text-blue-400">mineflayer</span>{' '}
-                          <span className="text-white">=</span>{' '}
-                          <span className="text-yellow-400">require</span>
-                          <span className="text-white">(</span>
-                          <span className="text-green-400">
-                            &apos;mineflayer&apos;
-                          </span>
-                          <span className="text-white">)</span>
-                          {'\n\n'}
-                          <span className="text-purple-400">const</span>{' '}
-                          <span className="text-blue-400">bot</span>{' '}
-                          <span className="text-white">=</span>{' '}
-                          <span className="text-blue-400">mineflayer</span>
-                          <span className="text-white">.</span>
-                          <span className="text-yellow-400">createBot</span>
-                          <span className="text-white">({'{'}</span>
-                          {'\n'}
-                          {'  '}
-                          <span className="text-blue-300">host</span>
-                          <span className="text-white">:</span>{' '}
-                          <span className="text-green-400">
-                            &apos;blockwarriors.ai&apos;
-                          </span>
-                          <span className="text-white">,</span>
-                          {'\n'}
-                          {'  '}
-                          <span className="text-blue-300">username</span>
-                          <span className="text-white">:</span>{' '}
-                          <span className="text-green-400">
-                            &apos;WarriorBot&apos;
-                          </span>
-                          {'\n'}
-                          <span className="text-white">{'})'}</span>
-                          {'\n\n'}
                           <span className="text-gray-500">
-                            {'// Attack nearest enemy'}
+                            {'// AI decision loop'}
                           </span>
                           {'\n'}
-                          <span className="text-blue-400">bot</span>
-                          <span className="text-white">.</span>
-                          <span className="text-yellow-400">on</span>
-                          <span className="text-white">(</span>
-                          <span className="text-green-400">
-                            &apos;spawn&apos;
-                          </span>
-                          <span className="text-white">,</span>{' '}
-                          <span className="text-purple-400">async</span>{' '}
-                          <span className="text-white">() =&gt; {'{'}</span>
+                          <span className="text-purple-400">
+                            async function
+                          </span>{' '}
+                          <span className="text-yellow-400">tick</span>
+                          <span className="text-white">() {'{'}</span>
                           {'\n'}
                           {'  '}
                           <span className="text-purple-400">const</span>{' '}
-                          <span className="text-blue-400">enemy</span>{' '}
+                          <span className="text-blue-400">state</span>{' '}
                           <span className="text-white">=</span>{' '}
-                          <span className="text-yellow-400">findEnemy</span>
+                          <span className="text-yellow-400">getGameState</span>
                           <span className="text-white">()</span>
                           {'\n'}
                           {'  '}
-                          <span className="text-purple-400">await</span>{' '}
-                          <span className="text-blue-400">bot</span>
-                          <span className="text-white">.</span>
-                          <span className="text-yellow-400">attack</span>
+                          <span className="text-purple-400">const</span>{' '}
+                          <span className="text-blue-400">threat</span>{' '}
+                          <span className="text-white">=</span>{' '}
+                          <span className="text-yellow-400">assessThreat</span>
                           <span className="text-white">(</span>
-                          <span className="text-blue-400">enemy</span>
+                          <span className="text-blue-400">state</span>
+                          <span className="text-white">)</span>
+                          {'\n\n'}
+                          {'  '}
+                          <span className="text-gray-500">
+                            {'// Neural network inference'}
+                          </span>
+                          {'\n'}
+                          {'  '}
+                          <span className="text-purple-400">const</span>{' '}
+                          <span className="text-blue-400">action</span>{' '}
+                          <span className="text-white">=</span>{' '}
+                          <span className="text-blue-400">model</span>
+                          <span className="text-white">.</span>
+                          <span className="text-yellow-400">predict</span>
+                          <span className="text-white">(</span>
+                          <span className="text-blue-400">state</span>
                           <span className="text-white">)</span>
                           {'\n'}
-                          <span className="text-white">{'})'}</span>
+                          {'  '}
+                          <span className="text-purple-400">const</span>{' '}
+                          <span className="text-blue-400">path</span>{' '}
+                          <span className="text-white">=</span>{' '}
+                          <span className="text-yellow-400">findPath</span>
+                          <span className="text-white">(</span>
+                          <span className="text-blue-400">target</span>
+                          <span className="text-white">)</span>
+                          {'\n\n'}
+                          {'  '}
+                          <span className="text-purple-400">await</span>{' '}
+                          <span className="text-yellow-400">execute</span>
+                          <span className="text-white">(</span>
+                          <span className="text-blue-400">action</span>
+                          <span className="text-white">,</span>{' '}
+                          <span className="text-blue-400">path</span>
+                          <span className="text-white">)</span>
+                          {'\n'}
+                          <span className="text-white">{'}'}</span>
+                          {'\n\n'}
+                          <span className="text-gray-500">
+                            {'// Run at 20 TPS'}
+                          </span>
+                          {'\n'}
+                          <span className="text-yellow-400">setInterval</span>
+                          <span className="text-white">(</span>
+                          <span className="text-blue-400">tick</span>
+                          <span className="text-white">,</span>{' '}
+                          <span className="text-green-400">50</span>
+                          <span className="text-white">)</span>
                         </code>
                       </pre>
                     </div>
@@ -448,67 +453,73 @@ export default function HomeContent() {
                       <div className="flex items-center gap-2 mb-4">
                         <div className="w-2 h-2 rounded-full bg-princeton-orange animate-pulse" />
                         <span className="text-xs text-muted-foreground font-mono uppercase tracking-wider">
-                          Live Match Feed
+                          AI Decision Log
                         </span>
                       </div>
                       <div className="space-y-2.5 font-mono text-[13px]">
                         <div className="flex items-start gap-2">
                           <span className="text-muted-foreground/60">
-                            [12:04:32]
+                            [tick 845]
                           </span>
-                          <span className="text-minecraft-grass">
-                            WarriorBot spawned at arena
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-muted-foreground/60">
-                            [12:04:33]
-                          </span>
-                          <span className="text-blue-400">
-                            Scanning for enemies...
+                          <span className="text-gray-400">
+                            Inference: 2.3ms latency
                           </span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-muted-foreground/60">
-                            [12:04:35]
+                            [tick 847]
+                          </span>
+                          <span className="text-purple-400">
+                            State: HUNTING → threat=0.2
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground/60">
+                            [tick 848]
                           </span>
                           <span className="text-yellow-400">
-                            Enemy detected: RedBot (15 blocks)
+                            Target acquired @ (142, 64, -89)
                           </span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-muted-foreground/60">
-                            [12:04:36]
+                            [tick 849]
+                          </span>
+                          <span className="text-blue-400">
+                            Pathfinding: A* → 12 nodes
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground/60">
+                            [tick 851]
+                          </span>
+                          <span className="text-cyan-400">
+                            Dodge predicted: 78% conf
+                          </span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-muted-foreground/60">
+                            [tick 852]
                           </span>
                           <span className="text-princeton-orange">
-                            Engaging combat sequence
+                            Action: STRAFE_LEFT + ATTACK
                           </span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-muted-foreground/60">
-                            [12:04:38]
-                          </span>
-                          <span className="text-white">
-                            Hit! RedBot took 6 damage
-                          </span>
-                        </div>
-                        <div className="flex items-start gap-2">
-                          <span className="text-muted-foreground/60">
-                            [12:04:40]
+                            [tick 853]
                           </span>
                           <span className="text-minecraft-grass">
-                            🏆 WarriorBot eliminated RedBot!
+                            🎯 Critical hit! Reward: +1.0
                           </span>
                         </div>
                         <div className="mt-4 pt-4 border-t border-white/10">
                           <div className="flex items-center justify-between">
                             <span className="text-muted-foreground">
-                              Match Score
+                              Model Confidence
                             </span>
-                            <span className="text-white font-bold">
-                              <span className="text-minecraft-grass">3</span>
-                              <span className="text-muted-foreground"> - </span>
-                              <span className="text-red-400">1</span>
+                            <span className="text-minecraft-grass font-bold">
+                              94.2%
                             </span>
                           </div>
                         </div>
