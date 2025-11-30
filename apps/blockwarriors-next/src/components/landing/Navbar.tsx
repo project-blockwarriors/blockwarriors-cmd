@@ -12,6 +12,7 @@ const navLinks = [
   { href: '#about', label: 'About' },
   { href: '#how-it-works', label: 'How it Works' },
   { href: '#tournament', label: 'Tournament' },
+  { href: '#resources', label: 'Resources' },
   { href: '#faq', label: 'FAQ' },
 ];
 

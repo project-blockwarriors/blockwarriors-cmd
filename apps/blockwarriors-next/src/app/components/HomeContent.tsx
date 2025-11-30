@@ -22,6 +22,10 @@ import {
   Cpu,
   Gamepad2,
   Swords,
+  BookOpen,
+  ExternalLink,
+  Handshake,
+  Mail,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Navbar } from '@/components/landing/Navbar';
@@ -614,6 +618,193 @@ export default function HomeContent() {
         </div>
       </section>
 
+      {/* Resources Section */}
+      <section id="resources" className="py-32 relative">
+        <div className="container max-w-6xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={staggerContainer}
+            className="space-y-12"
+          >
+            {/* Section header */}
+            <motion.div variants={fadeInUp} className="text-center space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-minecraft-grass/10 text-minecraft-grass text-sm font-medium">
+                <BookOpen className="w-4 h-4" />
+                Resources
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold text-white">
+                Learn & Build
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Everything you need to get started building AI bots for
+                Minecraft.
+              </p>
+            </motion.div>
+
+            {/* Resource cards */}
+            <motion.div
+              variants={staggerContainer}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-6"
+            >
+              {[
+                {
+                  title: 'Mineflayer Documentation',
+                  description:
+                    'The official docs for Mineflayer - a powerful JavaScript API for creating Minecraft bots.',
+                  url: 'https://github.com/PrismarineJS/mineflayer',
+                  tag: 'Official Docs',
+                  tagColor: 'bg-minecraft-grass/20 text-minecraft-grass',
+                },
+                {
+                  title: 'Mineflayer Examples',
+                  description:
+                    'Collection of example bots and code snippets to help you get started quickly.',
+                  url: 'https://github.com/PrismarineJS/mineflayer/tree/master/examples',
+                  tag: 'Examples',
+                  tagColor: 'bg-princeton-orange/20 text-princeton-orange',
+                },
+                {
+                  title: 'Prismarine Wiki',
+                  description:
+                    'Comprehensive wiki covering the entire Prismarine ecosystem for Minecraft development.',
+                  url: 'https://github.com/PrismarineJS/prismarine/wiki',
+                  tag: 'Wiki',
+                  tagColor: 'bg-blue-500/20 text-blue-400',
+                },
+                {
+                  title: 'MineRL Project',
+                  description:
+                    'Research project on reinforcement learning in Minecraft. Great for AI/ML approaches.',
+                  url: 'https://minerl.io/',
+                  tag: 'AI Research',
+                  tagColor: 'bg-purple-500/20 text-purple-400',
+                },
+                {
+                  title: 'Minecraft Protocol',
+                  description:
+                    'Detailed documentation of the Minecraft protocol for building custom clients.',
+                  url: 'https://wiki.vg/Protocol',
+                  tag: 'Protocol',
+                  tagColor: 'bg-yellow-500/20 text-yellow-400',
+                },
+                {
+                  title: 'Pathfinder Plugin',
+                  description:
+                    'Advanced pathfinding plugin for Mineflayer bots with A* navigation.',
+                  url: 'https://github.com/PrismarineJS/mineflayer-pathfinder',
+                  tag: 'Plugin',
+                  tagColor: 'bg-cyan-500/20 text-cyan-400',
+                },
+              ].map((resource, i) => (
+                <motion.a
+                  key={i}
+                  href={resource.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  variants={fadeInUp}
+                  className="group p-6 rounded-2xl bg-card border border-white/5 hover:border-princeton-orange/30 transition-all duration-300 block"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <span
+                      className={`text-xs font-medium px-2.5 py-1 rounded-full ${resource.tagColor}`}
+                    >
+                      {resource.tag}
+                    </span>
+                    <ExternalLink className="w-4 h-4 text-muted-foreground group-hover:text-princeton-orange transition-colors" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-white mb-2 group-hover:text-princeton-orange transition-colors">
+                    {resource.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {resource.description}
+                  </p>
+                </motion.a>
+              ))}
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Sponsors Section */}
+      <section
+        id="sponsors"
+        className="py-32 relative bg-gradient-to-b from-transparent via-card/30 to-transparent"
+      >
+        <div className="container max-w-4xl mx-auto px-4">
+          <motion.div
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: '-100px' }}
+            variants={staggerContainer}
+            className="space-y-12"
+          >
+            {/* Section header */}
+            <motion.div variants={fadeInUp} className="text-center space-y-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-princeton-orange/10 text-princeton-orange text-sm font-medium">
+                <Handshake className="w-4 h-4" />
+                Sponsors
+              </div>
+              <h2 className="text-4xl sm:text-5xl font-bold text-white">
+                Partner With Us
+              </h2>
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+                Help us make BlockWarriors the premier AI gaming competition.
+              </p>
+            </motion.div>
+
+            {/* Sponsor CTA card */}
+            <motion.div
+              variants={scaleIn}
+              className="relative p-8 md:p-12 rounded-2xl bg-gradient-to-br from-princeton-orange/5 to-transparent border border-princeton-orange/20 text-center"
+            >
+              <div className="absolute inset-0 rounded-2xl bg-grid-dense opacity-30" />
+              <div className="relative z-10 space-y-6">
+                <div className="w-16 h-16 mx-auto rounded-2xl bg-princeton-orange/10 flex items-center justify-center">
+                  <Handshake className="w-8 h-8 text-princeton-orange" />
+                </div>
+                <div className="space-y-3">
+                  <h3 className="text-2xl font-bold text-white">
+                    Become a Sponsor
+                  </h3>
+                  <p className="text-muted-foreground max-w-lg mx-auto">
+                    We&apos;re looking for sponsors to help fund prizes, provide
+                    resources, and support the next generation of AI developers.
+                    Join us in making BlockWarriors an unforgettable experience.
+                  </p>
+                </div>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                  <div className="flex flex-wrap justify-center gap-3 text-sm text-muted-foreground">
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                      💰 Prize Pool Funding
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                      🎮 Hardware Prizes
+                    </span>
+                    <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                      📢 Brand Visibility
+                    </span>
+                  </div>
+                </div>
+                <Button
+                  asChild
+                  className="bg-gradient-to-r from-princeton-orange to-princeton-orange-light text-black font-semibold px-8 py-3 rounded-xl hover:opacity-90 transition-opacity"
+                >
+                  <a
+                    href="mailto:ia8920@princeton.edu?subject=BlockWarriors Sponsorship Inquiry"
+                    className="flex items-center gap-2"
+                  >
+                    <Mail className="w-4 h-4" />
+                    Get in Touch
+                  </a>
+                </Button>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
       {/* Final CTA Section */}
       <section className="py-32 relative overflow-hidden">
         {/* Background effects */}
@@ -655,7 +846,7 @@ export default function HomeContent() {
                 className="bg-gradient-to-r from-princeton-orange to-princeton-orange-light text-black font-semibold px-10 py-7 rounded-xl text-lg hover:opacity-90 transition-all group glow-orange"
               >
                 <Link href="/login" className="flex items-center gap-2">
-                  Get Started Free
+                  Get Started!
                   <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
