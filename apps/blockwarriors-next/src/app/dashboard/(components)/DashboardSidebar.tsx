@@ -1,6 +1,5 @@
 import { cn } from '@/lib/utils';
 import {
-  ArrowLeft,
   Calendar,
   Gamepad2,
   Home,
@@ -10,6 +9,7 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import Image from 'next/image';
 import {
   Tooltip,
   TooltipContent,
@@ -88,17 +88,30 @@ export async function DashboardSidebar({ className = '' }: SidebarProps) {
   return (
     <div className={cn('pb-12 min-h-screen', className)}>
       <div className="space-y-4 py-4">
-        <div className="px-3 py-2 border-b">
-          <div className="flex items-center gap-3 px-2">
-            <div className="h-8 w-8 rounded-full bg-muted flex items-center justify-center">
-              <User className="h-4 w-4 text-muted-foreground" />
+        {/* Brand header */}
+        <div className="px-4 py-3 border-b border-primary/20">
+          <Link href="/dashboard" className="flex items-center gap-2.5 mb-4 group">
+            <Image
+              src="/blockwarriors-logo.png"
+              alt="BlockWarriors"
+              width={32}
+              height={32}
+              className="rounded-lg"
+            />
+            <span className="font-bold text-lg text-white group-hover:text-primary transition-colors">
+              BlockWarriors
+            </span>
+          </Link>
+          <div className="flex items-center gap-3 px-1">
+            <div className="h-8 w-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+              <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex flex-col">
               <div className="font-medium truncate">
                 {userProfile?.first_name && userProfile?.first_name}{' '}
                 {userProfile?.last_name && userProfile?.last_name}
               </div>
-              <div className="text-sm text-muted-foreground truncate">
+              <div className="text-sm text-primary/70 truncate">
                 {userProfile?.team ? userProfile.team.team_name : 'No Team'}
               </div>
             </div>

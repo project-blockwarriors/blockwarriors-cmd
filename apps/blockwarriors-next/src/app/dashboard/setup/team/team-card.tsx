@@ -93,7 +93,7 @@ export function TeamCard({
   }
 
   return (
-    <Card className="hover:bg-accent/5 transition-colors">
+    <Card className="hover:bg-primary/5 transition-colors">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

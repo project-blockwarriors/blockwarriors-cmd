@@ -293,21 +293,21 @@ export default function PracticePage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-green-500/10 border border-green-500/20 rounded-lg p-6 space-y-4"
+          className="bg-primary/10 border border-primary/20 rounded-lg p-6 space-y-4"
         >
           <div className="flex items-center gap-2">
-            <CommandLineIcon className="w-5 h-5 text-green-400" />
-            <h3 className="text-green-400 font-medium">Connection Details</h3>
+            <CommandLineIcon className="w-5 h-5 text-primary" />
+            <h3 className="text-primary font-medium">Connection Details</h3>
           </div>
 
           <div className="space-y-4">
             <div>
               <h4 className="text-sm text-gray-400 mb-1">Server Address</h4>
-              <div className="font-mono bg-black/20 p-2 rounded text-green-400 select-all flex items-center justify-between group">
+              <div className="font-mono bg-black/20 p-2 rounded text-primary select-all flex items-center justify-between group">
                 <span>{serverAddress}</span>
                 <button
                   onClick={() => navigator.clipboard.writeText(serverAddress)}
-                  className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="text-xs text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   Copy
                 </button>
@@ -359,12 +359,12 @@ export default function PracticePage() {
                           Token {index + 1}
                         </h4>
                         {isUsed && ign && (
-                          <span className="text-xs text-green-400 font-medium">
+                          <span className="text-xs text-primary font-medium">
                             ✓ {ign}
                           </span>
                         )}
                         {isUsed && !ign && (
-                          <span className="text-xs text-green-400 font-medium">
+                          <span className="text-xs text-primary font-medium">
                             ✓ Used
                           </span>
                         )}
@@ -372,14 +372,14 @@ export default function PracticePage() {
                       <div
                         className={`font-mono bg-black/20 p-2 rounded select-all flex items-center justify-between group ${
                           isUsed
-                            ? 'text-green-400 border border-green-500/30'
-                            : 'text-green-400'
+                            ? 'text-primary border border-primary/30'
+                            : 'text-primary'
                         }`}
                       >
                         <span className="text-sm">{token}</span>
                         <button
                           onClick={() => navigator.clipboard.writeText(token)}
-                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-xs text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Copy
                         </button>
@@ -412,12 +412,12 @@ export default function PracticePage() {
                           Token {index + 1}
                         </h4>
                         {isUsed && ign && (
-                          <span className="text-xs text-green-400 font-medium">
+                          <span className="text-xs text-primary font-medium">
                             ✓ {ign}
                           </span>
                         )}
                         {isUsed && !ign && (
-                          <span className="text-xs text-green-400 font-medium">
+                          <span className="text-xs text-primary font-medium">
                             ✓ Used
                           </span>
                         )}
@@ -425,14 +425,14 @@ export default function PracticePage() {
                       <div
                         className={`font-mono bg-black/20 p-2 rounded select-all flex items-center justify-between group ${
                           isUsed
-                            ? 'text-green-400 border border-green-500/30'
-                            : 'text-green-400'
+                            ? 'text-primary border border-primary/30'
+                            : 'text-primary'
                         }`}
                       >
                         <span className="text-sm">{token}</span>
                         <button
                           onClick={() => navigator.clipboard.writeText(token)}
-                          className="text-xs text-gray-500 hover:text-green-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-xs text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           Copy
                         </button>
@@ -452,7 +452,7 @@ export default function PracticePage() {
               <li>Enter the server address</li>
               <li>
                 Join the server and use{' '}
-                <span className="text-green-400">/login [token]</span> to start
+                <span className="text-primary">/login [token]</span> to start
                 playing
               </li>
             </ol>
