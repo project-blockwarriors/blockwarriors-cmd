@@ -4,6 +4,20 @@ export const BASE_URL =
   process.env.NEXT_PUBLIC_BASE_URL || 'https://blockwarriors.ai';
 
 /**
+ * OG image routes - all served as webp via /api/og/[route]-og
+ */
+export const ogImageRoutes = {
+  home: '/api/og/home-og',
+  login: '/api/og/login-og',
+  dashboard: '/api/og/dashboard-og',
+  competition: '/api/og/competition-og',
+  leaderboard: '/api/og/leaderboard-og',
+  matches: '/api/og/matches-og',
+} as const;
+
+export type OGImageRoute = keyof typeof ogImageRoutes;
+
+/**
  * Base metadata shared across all pages
  */
 export const baseMetadata: Metadata = {
@@ -60,19 +74,6 @@ export const baseMetadata: Metadata = {
   category: 'technology',
 };
 
-export type OGImageConfig = {
-  /** Relative path to the image (e.g., '/opengraph-image.png' or '/login/opengraph-image') */
-  url: string;
-  /** Image width in pixels */
-  width?: number;
-  /** Image height in pixels */
-  height?: number;
-  /** Alt text for the image */
-  alt?: string;
-  /** MIME type (defaults to 'image/png') */
-  type?: string;
-};
-
 export type PageMetadataConfig = {
   /** Page title (will use template from base) */
   title: string;
@@ -80,8 +81,10 @@ export type PageMetadataConfig = {
   description: string;
   /** Relative page URL path (e.g., '/login', '/dashboard') */
   path?: string;
-  /** OG image configuration - use static image path for clean URLs without hash */
-  ogImage?: OGImageConfig;
+  /** OG image route key from ogImageRoutes */
+  ogImage?: OGImageRoute;
+  /** Custom OG image URL (overrides ogImage route) */
+  customOgImageUrl?: string;
   /** Additional keywords for this page */
   keywords?: string[];
   /** Twitter creator handle (defaults to @blockwarriors) */
@@ -89,8 +92,8 @@ export type PageMetadataConfig = {
 };
 
 /**
- * Generate complete metadata for a page with static OG image support.
- * Use this for pages that need OG images without cache-busting hashes.
+ * Generate complete metadata for a page with dynamic OG image support.
+ * OG images are served via /api/og/[route]-og as webp without cache-busting hashes.
  *
  * @example
  * // In your page.tsx:
@@ -100,7 +103,7 @@ export type PageMetadataConfig = {
  *   title: 'Sign In',
  *   description: 'Sign in to BlockWarriors',
  *   path: '/login',
- *   ogImage: { url: '/login/opengraph-image.png' }, // static image in public/login/
+ *   ogImage: 'login', // Uses /api/og/login-og
  * });
  */
 export function createPageMetadata(config: PageMetadataConfig): Metadata {
@@ -109,6 +112,7 @@ export function createPageMetadata(config: PageMetadataConfig): Metadata {
     description,
     path = '',
     ogImage,
+    customOgImageUrl,
     keywords = [],
     twitterCreator = '@blockwarriors',
   } = config;
@@ -118,14 +122,18 @@ export function createPageMetadata(config: PageMetadataConfig): Metadata {
     ? title
     : `${title} | BlockWarriors`;
 
-  const ogImageConfig = ogImage
+  // Determine image URL
+  const imageUrl =
+    customOgImageUrl ?? (ogImage ? ogImageRoutes[ogImage] : null);
+
+  const ogImageConfig = imageUrl
     ? [
         {
-          url: ogImage.url,
-          width: ogImage.width ?? 1200,
-          height: ogImage.height ?? 630,
-          type: ogImage.type ?? 'image/png',
-          alt: ogImage.alt ?? fullTitle,
+          url: imageUrl,
+          width: 1200,
+          height: 630,
+          type: 'image/webp',
+          alt: fullTitle,
         },
       ]
     : undefined;
@@ -157,7 +165,7 @@ export function createPageMetadata(config: PageMetadataConfig): Metadata {
 }
 
 /**
- * Root page metadata with static OG image (no hash).
+ * Root page metadata with dynamic OG image.
  * This is used by the root layout.
  */
 export const rootMetadata: Metadata = {
@@ -172,10 +180,10 @@ export const rootMetadata: Metadata = {
     locale: 'en_US',
     images: [
       {
-        url: '/opengraph-image.png',
+        url: ogImageRoutes.home,
         width: 1200,
         height: 630,
-        type: 'image/png',
+        type: 'image/webp',
         alt: 'BlockWarriors - AI Minecraft Tournament',
       },
     ],
@@ -188,7 +196,7 @@ export const rootMetadata: Metadata = {
     creator: '@blockwarriors',
     images: [
       {
-        url: '/opengraph-image.png',
+        url: ogImageRoutes.home,
         width: 1200,
         height: 630,
         alt: 'BlockWarriors - AI Minecraft Tournament',

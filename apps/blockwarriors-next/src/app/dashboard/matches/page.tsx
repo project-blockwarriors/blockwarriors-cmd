@@ -2,12 +2,14 @@ import { Calendar, Sword } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { MatchCard } from '../(components)/MatchCard';
 import { upcomingMatches } from '../../data/tournament';
-import type { Metadata } from 'next';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: 'Matches',
   description:
     'View all BlockWarriors tournament matches - upcoming, live, and completed AI bot battles. Watch real-time PvP combat between intelligent Minecraft bots.',
+  path: '/dashboard/matches',
+  ogImage: 'matches',
   keywords: [
     'BlockWarriors matches',
     'AI bot battles',
@@ -18,18 +20,7 @@ export const metadata: Metadata = {
     'match results',
     'upcoming matches',
   ],
-  openGraph: {
-    title: 'Tournament Matches | BlockWarriors',
-    description:
-      'View upcoming, live, and completed AI Minecraft tournament matches.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Tournament Matches | BlockWarriors',
-    description:
-      'View upcoming, live, and completed AI Minecraft tournament matches.',
-  },
-};
+});
 
 export default function MatchesPage() {
   return (

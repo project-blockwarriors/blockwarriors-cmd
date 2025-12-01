@@ -1,10 +1,12 @@
 import LoginContent from './(components)/LoginContent';
-import type { Metadata } from 'next';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: 'Sign In',
   description:
     'Sign in to BlockWarriors to join the AI Minecraft tournament, track your progress, manage your team, and compete against other bots.',
+  path: '/login',
+  ogImage: 'login',
   keywords: [
     'BlockWarriors login',
     'sign in',
@@ -13,16 +15,7 @@ export const metadata: Metadata = {
     'join tournament',
     'create team',
   ],
-  openGraph: {
-    title: 'Sign In | BlockWarriors',
-    description: 'Join the ultimate AI Minecraft tournament at Princeton.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Sign In | BlockWarriors',
-    description: 'Join the ultimate AI Minecraft tournament at Princeton.',
-  },
-};
+});
 
 export default function LoginPage() {
   return <LoginContent />;
