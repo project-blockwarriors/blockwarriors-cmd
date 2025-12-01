@@ -51,15 +51,6 @@ export const metadata: Metadata = {
     siteName: 'BlockWarriors',
     type: 'website',
     locale: 'en_US',
-    images: [
-      {
-        url: '/opengraph-image.png',
-        width: 1200,
-        height: 630,
-        type: 'image/png',
-        alt: 'BlockWarriors - AI Minecraft Tournament',
-      },
-    ],
   },
   twitter: {
     card: 'summary_large_image',
@@ -68,7 +59,6 @@ export const metadata: Metadata = {
       'Build intelligent bots that battle in real-time Minecraft arenas. Spring 2026 Championship.',
     creator: '@blockwarriors',
   },
-
   icons: {
     icon: [
       { url: '/favicon.ico' },
