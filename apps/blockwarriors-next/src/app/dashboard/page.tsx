@@ -4,12 +4,14 @@ import { StatsCard } from './(components)/StatsCard';
 import { MatchCard } from './(components)/MatchCard';
 import { TournamentProgress } from './(components)/TournamentProgress';
 import { featuredMatches } from '../data/tournament';
-import type { Metadata } from 'next';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: 'Dashboard',
   description:
     'Track your BlockWarriors tournament progress, monitor live matches, view your team stats, and compete for the top spot on the leaderboard.',
+  path: '/dashboard',
+  ogImage: 'dashboard',
   keywords: [
     'BlockWarriors dashboard',
     'AI tournament progress',
@@ -19,18 +21,7 @@ export const metadata: Metadata = {
     'ELO rating',
     'tournament tracker',
   ],
-  openGraph: {
-    title: 'Dashboard | BlockWarriors',
-    description:
-      'Track your tournament progress, view live matches, and compete for the top.',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Dashboard | BlockWarriors',
-    description:
-      'Track your tournament progress, view live matches, and compete for the top.',
-  },
-};
+});
 
 export default function Dashboard() {
   return (
