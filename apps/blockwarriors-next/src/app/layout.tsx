@@ -67,6 +67,14 @@ export const metadata: Metadata = {
     description:
       'Build intelligent bots that battle in real-time Minecraft arenas. Spring 2026 Championship.',
     creator: '@blockwarriors',
+    images: [
+      {
+        url: '/opengraph-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'BlockWarriors - AI Minecraft Tournament',
+      },
+    ],
   },
 
   icons: {
