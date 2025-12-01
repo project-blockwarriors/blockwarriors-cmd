@@ -1,4 +1,4 @@
-import { getSessionCookie } from "better-auth/cookies";
+import { getSessionCookie } from 'better-auth/cookies';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from '@/lib/auth-server';
@@ -33,7 +33,7 @@ export async function middleware(request: NextRequest) {
 
   // Check for session cookie first (quick check)
   const sessionCookie = getSessionCookie(request);
-  
+
   // If there's a session cookie, verify the token is actually valid
   // This prevents redirect loops when cookie exists but token is invalid
   let isAuthenticated = false;
