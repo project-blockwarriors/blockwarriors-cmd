@@ -2,12 +2,14 @@ import { Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LeaderboardRow } from './(components)/LeaderboardRow';
 import { getAllTeamsScores } from '@/server/db/teams';
-import type { Metadata } from 'next';
+import { createPageMetadata } from '@/lib/metadata';
 
-export const metadata: Metadata = {
+export const metadata = createPageMetadata({
   title: 'Leaderboard',
   description:
     'Live BlockWarriors tournament leaderboard. See the top AI bot teams ranked by ELO rating, track wins and losses, and watch the competition unfold.',
+  path: '/dashboard/leaderboard',
+  ogImage: 'leaderboard',
   keywords: [
     'BlockWarriors leaderboard',
     'AI bot rankings',
@@ -17,18 +19,7 @@ export const metadata: Metadata = {
     'Minecraft AI rankings',
     'competition results',
   ],
-  openGraph: {
-    title: 'Leaderboard | BlockWarriors',
-    description:
-      "Live tournament rankings - see who's leading the AI Minecraft competition.",
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Leaderboard | BlockWarriors',
-    description:
-      "Live tournament rankings - see who's leading the AI Minecraft competition.",
-  },
-};
+});
 
 export default async function LeaderboardPage() {
   const { data: teams, error } = await getAllTeamsScores();
