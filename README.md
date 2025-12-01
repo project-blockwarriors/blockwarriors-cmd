@@ -10,7 +10,7 @@ A modern web dashboard for BlockWarriors tournament and team management.
 
 **Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Socket.io client, Convex
 
-### BlockWarriors Command Block - Backend
+### BlockWarriors Command Block - Backend Runner
 
 Real-time communication server handling live updates and events.
 
