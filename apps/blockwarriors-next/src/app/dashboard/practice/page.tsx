@@ -25,7 +25,9 @@ interface ServerStatus {
 
 export default function PracticePage() {
   const router = useRouter();
-  const [selectedGameType, setSelectedGameType] = useState<GameType | null>(null);
+  const [selectedGameType, setSelectedGameType] = useState<GameType | null>(
+    null
+  );
   const [serverStatus, setServerStatus] = useState<ServerStatus>({
     activeSessions: 0,
     playersOnline: 0,
@@ -67,10 +69,7 @@ export default function PracticePage() {
 
   // Check if button should be disabled
   const isButtonDisabled = Boolean(
-    !selectedGameType ||
-      isLoading ||
-      waitingForTokens ||
-      matchId // Disable button after match is created (waiting for players or auto-starting)
+    !selectedGameType || isLoading || waitingForTokens || matchId // Disable button after match is created (waiting for players or auto-starting)
   );
 
   // Use centralized game mode configuration
@@ -82,7 +81,7 @@ export default function PracticePage() {
     tokens: mode.tokensPerMatch,
   }));
 
-  const serverAddress = 'play.blockwarriors.ai';
+  const serverAddress = 'mcpanel.blockwarriors.ai:25565';
 
   const handleStartMatch = async () => {
     if (!selectedGameType) return;
@@ -112,7 +111,6 @@ export default function PracticePage() {
       setIsLoading(false);
     }
   };
-
 
   return (
     <motion.div
