@@ -1,0 +1,28 @@
+{
+  "name": "mineflayer-tester",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mineflayer bot testing client for BlockWarriors",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "PORT=3001 node src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "minecraft-data": "^3.0.0",
+    "mineflayer": "^4.20.1",
+    "mineflayer-pathfinder": "^2.4.5",
+    "mineflayer-pvp": "^1.3.2",
+    "socket.io": "^4.7.2"
+  },
+  "optionalDependencies": {
+    "prismarine-viewer": "^1.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0"
+  }
+}

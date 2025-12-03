@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BlockWarriors Mineflayer Testing Client</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>BlockWarriors Mineflayer Testing Client</h1>
+            <p class="subtitle">Server: <code>mcpanel.blockwarriors.ai:25565</code></p>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Panel: Bot Management -->
+            <div class="panel bots-panel">
+                <div class="panel-header">
+                    <h2>Bots</h2>
+                    <button class="btn btn-primary" onclick="app.showCreateBotDialog()">+ Add Bot</button>
+                </div>
+                <div class="bots-list" id="bots-list">
+                    <p class="empty-state">No bots created yet. Click "Add Bot" to get started.</p>
+                </div>
+            </div>
+
+            <!-- Middle Panel: Controls & Minimap -->
+            <div class="center-column">
+                <!-- Minimap -->
+                <div class="panel minimap-panel">
+                    <div class="panel-header">
+                        <h2>Minimap</h2>
+                        <button class="btn btn-secondary" onclick="app.centerMinimap()">Center</button>
+                    </div>
+                    <div class="minimap-container">
+                        <canvas id="minimap" width="400" height="400"></canvas>
+                        <div class="minimap-info" id="minimap-info">
+                            <span>Scale: <span id="minimap-scale">1:10</span></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Movement Controls -->
+                <div class="panel controls-panel">
+                    <div class="panel-header">
+                        <h2>Movement Controls</h2>
+                        <select id="selected-bot" onchange="app.selectBot()">
+                            <option value="">Select a bot...</option>
+                        </select>
+                    </div>
+                    <div class="controls-container">
+                        <div class="movement-grid">
+                            <button class="move-btn" onclick="app.moveBot(-10, -10)">↖</button>
+                            <button class="move-btn" onclick="app.moveBot(0, -10)">↑</button>
+                            <button class="move-btn" onclick="app.moveBot(10, -10)">↗</button>
+                            <button class="move-btn" onclick="app.moveBot(-10, 0)">←</button>
+                            <button class="move-btn center" onclick="app.stopBot()">STOP</button>
+                            <button class="move-btn" onclick="app.moveBot(10, 0)">→</button>
+                            <button class="move-btn" onclick="app.moveBot(-10, 10)">↙</button>
+                            <button class="move-btn" onclick="app.moveBot(0, 10)">↓</button>
+                            <button class="move-btn" onclick="app.moveBot(10, 10)">↘</button>
+                        </div>
+                        <div class="control-actions">
+                            <button class="btn btn-secondary" onclick="app.showMoveDialog()">Go to XYZ</button>
+                            <button class="btn btn-danger" onclick="app.quickStopFollow()">Stop Follow</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Panel: Logs -->
+            <div class="panel logs-panel">
+                <div class="panel-header">
+                    <h2>Activity Log</h2>
+                    <button class="btn btn-secondary" onclick="app.clearLogs()">Clear</button>
+                </div>
+                <div class="logs-container" id="logs-container">
+                    <p class="log-entry log-info">Welcome to the Mineflayer Testing Client!</p>
+                    <p class="log-entry log-info">Create a bot and connect it with a token to begin testing.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Bot Dialog -->
+    <div class="modal" id="create-bot-modal">
+        <div class="modal-content">
+            <h3>Create New Bot</h3>
+            <form onsubmit="app.createBot(event)">
+                <div class="form-group">
+                    <label for="bot-username">Username</label>
+                    <input type="text" id="bot-username" placeholder="Enter bot username" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideCreateBotDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Connect Bot Dialog -->
+    <div class="modal" id="connect-bot-modal">
+        <div class="modal-content">
+            <h3>Connect Bot</h3>
+            <form onsubmit="app.connectBot(event)">
+                <input type="hidden" id="connect-bot-id">
+                <div class="form-group">
+                    <label for="bot-token">Token</label>
+                    <input type="text" id="bot-token" placeholder="Enter authentication token" required>
+                    <small>Get a token from a created match on the BlockWarriors dashboard</small>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideConnectBotDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Connect</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Kill Player Dialog -->
+    <div class="modal" id="kill-player-modal">
+        <div class="modal-content">
+            <h3>Attack Player</h3>
+            <form onsubmit="app.killPlayer(event)">
+                <input type="hidden" id="kill-bot-id">
+                <div class="form-group">
+                    <label for="kill-target">Target Username</label>
+                    <input type="text" id="kill-target" placeholder="Enter player username" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideKillPlayerDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-danger">Attack</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Chat Dialog -->
+    <div class="modal" id="chat-modal">
+        <div class="modal-content">
+            <h3>Send Chat Message</h3>
+            <form onsubmit="app.sendChat(event)">
+                <input type="hidden" id="chat-bot-id">
+                <div class="form-group">
+                    <label for="chat-message">Message</label>
+                    <input type="text" id="chat-message" placeholder="Enter message" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideChatDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Move Dialog -->
+    <div class="modal" id="move-modal">
+        <div class="modal-content">
+            <h3>Move Bot</h3>
+            <form onsubmit="app.moveBotToCoords(event)">
+                <input type="hidden" id="move-bot-id">
+                <div class="form-group">
+                    <label for="move-x">X</label>
+                    <input type="number" id="move-x" placeholder="X coordinate" required>
+                </div>
+                <div class="form-group">
+                    <label for="move-y">Y</label>
+                    <input type="number" id="move-y" placeholder="Y coordinate" required>
+                </div>
+                <div class="form-group">
+                    <label for="move-z">Z</label>
+                    <input type="number" id="move-z" placeholder="Z coordinate" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideMoveDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Move</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Follow Dialog -->
+    <div class="modal" id="follow-modal">
+        <div class="modal-content">
+            <h3>Follow Player</h3>
+            <form onsubmit="app.followPlayer(event)">
+                <input type="hidden" id="follow-bot-id">
+                <div class="form-group">
+                    <label for="follow-target">Target Username</label>
+                    <input type="text" id="follow-target" placeholder="Enter player username" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="app.hideFollowDialog()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Follow</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
