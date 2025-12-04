@@ -1,6 +1,6 @@
 import { getUser } from '@/auth/server';
 import { redirect } from 'next/navigation';
-import { CheckCircle2, Circle, Rocket, User, Users } from 'lucide-react';
+import { CheckCircle2, Rocket, User, Users } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import ClientButton from './(components)/ClientButton';
 import { UserProfile } from '@/types/user';
@@ -39,7 +39,7 @@ export default async function SetupPage() {
             <span className="text-sm font-medium">Quick Setup</span>
           </div>
           <h1 className="text-4xl font-bold bg-gradient-to-r from-white via-white to-primary bg-clip-text text-transparent">
-            Let's Get You Started
+            Let&apos;s Get You Started
           </h1>
           <p className="text-lg text-muted-foreground max-w-lg mx-auto leading-relaxed mt-3">
             Welcome to BlockWarriors! Follow these simple steps to join the competition

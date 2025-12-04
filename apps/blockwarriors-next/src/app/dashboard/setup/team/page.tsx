@@ -154,7 +154,7 @@ export default async function TeamSetupPage() {
                     <div className="p-4 border rounded-lg bg-muted">
                       <h3 className="font-semibold mb-2">Leaving Your Team</h3>
                       <p className="text-sm text-muted-foreground">
-                        You'll need to join another team or create a new one to
+                        You&apos;ll need to join another team or create a new one to
                         participate in tournaments.
                       </p>
                     </div>

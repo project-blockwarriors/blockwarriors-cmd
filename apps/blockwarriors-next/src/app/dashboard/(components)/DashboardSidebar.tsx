@@ -26,6 +26,46 @@ interface SidebarProps {
   className?: string;
 }
 
+interface DisabledButtonProps {
+  children: React.ReactNode;
+}
+
+const DisabledButton = ({ children }: DisabledButtonProps) => (
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          variant="ghost"
+          className="w-full justify-start opacity-50 cursor-not-allowed"
+          disabled
+        >
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        <p>Complete setup first to access this feature</p>
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
+);
+
+interface NavButtonProps {
+  href: string;
+  children: React.ReactNode;
+  hasCompletedSetup: boolean;
+}
+
+const NavButton = ({ href, children, hasCompletedSetup }: NavButtonProps) => {
+  if (!hasCompletedSetup && href !== '/dashboard/setup') {
+    return <DisabledButton>{children}</DisabledButton>;
+  }
+  return (
+    <Button variant="ghost" className="w-full justify-start" asChild>
+      <Link href={href}>{children}</Link>
+    </Button>
+  );
+};
+
 export function DashboardSidebar({ className = '' }: SidebarProps) {
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
@@ -38,50 +78,8 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
 
   const hasCompletedSetup = userProfile?.first_name && userProfile?.team;
 
-  const DisabledButton = ({
-    href,
-    children,
-  }: {
-    href: string;
-    children: React.ReactNode;
-  }) => (
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant="ghost"
-            className="w-full justify-start opacity-50 cursor-not-allowed"
-            disabled
-          >
-            {children}
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>Complete setup first to access this feature</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
-
-  const NavButton = ({
-    href,
-    children,
-  }: {
-    href: string;
-    children: React.ReactNode;
-  }) => {
-    if (!hasCompletedSetup && href !== '/dashboard/setup') {
-      return <DisabledButton href={href}>{children}</DisabledButton>;
-    }
-    return (
-      <Button variant="ghost" className="w-full justify-start" asChild>
-        <Link href={href}>{children}</Link>
-      </Button>
-    );
-  };
-
   const setupButton = (
-    <NavButton href="/dashboard/setup">
+    <NavButton href="/dashboard/setup" hasCompletedSetup={hasCompletedSetup}>
       <div
         className={cn(
           'flex items-center gap-2',
@@ -119,31 +117,31 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
             {/* Only show Get Started at top if not complete */}
             {!hasCompletedSetup && setupButton}
 
-            <NavButton href="/dashboard">
+            <NavButton href="/dashboard" hasCompletedSetup={hasCompletedSetup}>
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Overview
               </div>
             </NavButton>
-            <NavButton href="/dashboard/matches">
+            <NavButton href="/dashboard/matches" hasCompletedSetup={hasCompletedSetup}>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Matches
               </div>
             </NavButton>
-            <NavButton href="/dashboard/teams">
+            <NavButton href="/dashboard/teams" hasCompletedSetup={hasCompletedSetup}>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 Teams
               </div>
             </NavButton>
-            <NavButton href="/dashboard/leaderboard">
+            <NavButton href="/dashboard/leaderboard" hasCompletedSetup={hasCompletedSetup}>
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
                 Leaderboard
               </div>
             </NavButton>
-            <NavButton href="/dashboard/practice">
+            <NavButton href="/dashboard/practice" hasCompletedSetup={hasCompletedSetup}>
               <div className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Practice

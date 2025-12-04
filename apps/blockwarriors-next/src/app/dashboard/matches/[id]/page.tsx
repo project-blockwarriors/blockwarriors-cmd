@@ -32,13 +32,14 @@ export default function MatchDetailPage() {
             Match Not Found
           </h1>
           <p className="text-gray-400">
-            The match you're looking for doesn't exist.
+            The match you&apos;re looking for doesn&apos;t exist.
           </p>
         </div>
       </div>
     );
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const matchState = matchData.match_state as any;
   const players = Array.isArray(matchState?.players) ? matchState.players : [];
 
@@ -146,6 +147,7 @@ export default function MatchDetailPage() {
                 {matchData.tokens.blueTeam.length > 0 ? (
                   <div className="space-y-2">
                     {matchData.tokens.blueTeam.map(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (tokenData: any, index: number) => (
                         <div key={index} className="bg-black/20 rounded p-3">
                           {tokenData.is_used && tokenData.ign ? (
@@ -185,6 +187,7 @@ export default function MatchDetailPage() {
                 {matchData.tokens.redTeam.length > 0 ? (
                   <div className="space-y-2">
                     {matchData.tokens.redTeam.map(
+                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
                       (tokenData: any, index: number) => (
                         <div key={index} className="bg-black/20 rounded p-3">
                           {tokenData.is_used && tokenData.ign ? (
@@ -231,7 +234,9 @@ export default function MatchDetailPage() {
                 Players ({players.length})
               </h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {players.map((playerData: any, index: number) => (
+                {players.map(
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  (playerData: any, index: number) => (
                   <div
                     key={playerData.playerId || index}
                     className="bg-white/5 rounded-lg p-4 border border-white/10"

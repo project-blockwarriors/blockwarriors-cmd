@@ -11,7 +11,6 @@ import {
   UsersIcon,
   CommandLineIcon,
 } from '@heroicons/react/24/outline';
-import { authClient } from '@/lib/auth-client';
 import { GAME_TYPES, type GameType } from '@/lib/match-constants';
 import { startMatch } from '@/server/actions/matches';
 import { api } from '@/lib/convex';
@@ -26,12 +25,11 @@ interface ServerStatus {
 export default function PracticePage() {
   const router = useRouter();
   const [selectedGameType, setSelectedGameType] = useState<GameType | null>(null);
-  const [serverStatus, setServerStatus] = useState<ServerStatus>({
+  const [serverStatus] = useState<ServerStatus>({
     activeSessions: 0,
     playersOnline: 0,
     serverLoad: 0,
   });
-  const [tokensGenerated, setTokensGenerated] = useState(false);
 
   const [matchId, setMatchId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -95,15 +93,12 @@ export default function PracticePage() {
       if (result.error) {
         console.error('Failed to start match:', result.error);
         alert(`Error: ${result.error}`);
-        setTokensGenerated(false);
         return;
       }
 
       // Match created - tokens will be generated when Minecraft server acknowledges
       setMatchId(result.matchId);
-      setTokensGenerated(true);
     } catch (error) {
-      setTokensGenerated(false);
       const errorMessage =
         error instanceof Error ? error.message : 'Failed to start match';
       console.error('Failed to start match:', errorMessage);

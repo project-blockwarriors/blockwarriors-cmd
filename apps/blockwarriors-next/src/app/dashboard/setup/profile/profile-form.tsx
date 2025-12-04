@@ -48,6 +48,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter();
 
   const form = useForm<ProfileFormData>({
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     resolver: zodResolver(profileSchema as any),
     defaultValues: initialData,
   });

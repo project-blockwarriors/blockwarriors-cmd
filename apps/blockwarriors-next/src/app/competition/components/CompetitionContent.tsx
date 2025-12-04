@@ -84,7 +84,7 @@ export default function CompetitionContent() {
                 Global Qualifiers
               </h3>
               <p className="text-gray-300 text-center leading-relaxed">
-                Teams compete in preliminary rounds to showcase their AI's
+                Teams compete in preliminary rounds to showcase their AI&apos;s
                 abilities and secure a spot in the finals.
               </p>
             </motion.div>
@@ -243,8 +243,8 @@ export default function CompetitionContent() {
             </h3>
             <div className="space-y-6 text-gray-300">
               <p className="leading-relaxed">
-                Be part of the team that's revolutionizing AI research through
-                gaming. We're looking for passionate individuals to help with:
+                Be part of the team that&apos;s revolutionizing AI research through
+                gaming. We&apos;re looking for passionate individuals to help with:
               </p>
               <ul className="space-y-3 ml-4">
                 <li className="flex items-start gap-3">
@@ -319,7 +319,7 @@ export default function CompetitionContent() {
               Ready to Join the Competition?
             </h2>
             <p className="text-xl text-gray-200 mb-8">
-              Register now to secure your team's spot in this groundbreaking
+              Register now to secure your team&apos;s spot in this groundbreaking
               tournament.
             </p>
             <motion.button
