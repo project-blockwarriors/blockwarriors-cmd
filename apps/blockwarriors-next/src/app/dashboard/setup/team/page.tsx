@@ -16,10 +16,8 @@ export default async function TeamSetupPage() {
     redirect('/login');
   }
 
-  // Fetch user profile and team information
   const userProfile = await getUserProfile(authUser.id);
 
-  // Create profile object with user_id and team info
   const profile: UserProfile = {
     user_id: authUser.id,
     first_name: userProfile?.first_name ?? null,
@@ -154,7 +152,7 @@ export default async function TeamSetupPage() {
                     <div className="p-4 border rounded-lg bg-muted">
                       <h3 className="font-semibold mb-2">Leaving Your Team</h3>
                       <p className="text-sm text-muted-foreground">
-                        You'll need to join another team or create a new one to
+                        You&apos;ll need to join another team or create a new one to
                         participate in tournaments.
                       </p>
                     </div>

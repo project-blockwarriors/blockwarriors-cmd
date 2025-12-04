@@ -2,7 +2,7 @@
 
 import { getToken } from '@/lib/auth-server';
 import { getUser } from '@/auth/server';
-import { isValidGameType, type GameType } from '@/lib/match-constants';
+import { isValidGameType } from '@/lib/match-constants';
 
 const CONVEX_SITE_URL =
   process.env.CONVEX_SITE_URL || process.env.NEXT_PUBLIC_CONVEX_SITE_URL || '';

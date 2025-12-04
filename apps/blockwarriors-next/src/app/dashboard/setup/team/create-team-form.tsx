@@ -44,7 +44,7 @@ interface CreateTeamFormProps {
 export function CreateTeamForm({ userId }: CreateTeamFormProps) {
   const router = useRouter();
   const form = useForm<CreateTeamFormData>({
-    resolver: zodResolver(createTeamSchema as any),
+    resolver: zodResolver(createTeamSchema),
     defaultValues: {
       teamName: '',
     },
@@ -58,8 +58,9 @@ export function CreateTeamForm({ userId }: CreateTeamFormProps) {
         type: 'manual',
         message: 'Failed to create team. Please try again.',
       });
+    } else {
+      router.push('/dashboard/setup');
     }
-    else {router.push('/dashboard/setup')}
   }
 
   return (
