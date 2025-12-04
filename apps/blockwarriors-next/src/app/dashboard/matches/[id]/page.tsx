@@ -9,7 +9,8 @@ import { ServerIcon, UsersIcon, ClockIcon } from '@heroicons/react/24/outline';
 
 interface TokenData {
   token: string;
-  ign: string | null;
+  user_id: string | undefined;
+  ign: string | undefined;
   is_used: boolean;
 }
 
@@ -183,32 +184,27 @@ export default function MatchDetailPage() {
                 {matchData.tokens.blueTeam.length > 0 ? (
                   <div className="space-y-2">
                     {matchData.tokens.blueTeam.map(
-                      (tokenData: TokenData | string, index: number) => {
-                        const token = typeof tokenData === 'string' ? tokenData : tokenData.token;
-                        const ign = typeof tokenData === 'string' ? null : tokenData.ign;
-                        const isUsed = typeof tokenData === 'string' ? false : tokenData.is_used;
-                        return (
-                          <div key={index} className="bg-black/20 rounded p-3">
-                            {isUsed && ign ? (
-                              <div>
-                                <p className="text-white font-medium">
-                                  {ign}
-                                </p>
-                                <p className="text-xs text-gray-400">Joined</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <p className="text-gray-500">
-                                  Waiting for player...
-                                </p>
-                                <p className="text-xs text-gray-600 font-mono">
-                                  {token.substring(0, 8)}...
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
+                      (tokenData: TokenData, index: number) => (
+                        <div key={index} className="bg-black/20 rounded p-3">
+                          {tokenData.is_used && tokenData.ign ? (
+                            <div>
+                              <p className="text-white font-medium">
+                                {tokenData.ign}
+                              </p>
+                              <p className="text-xs text-gray-400">Joined</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-gray-500">
+                                Waiting for player...
+                              </p>
+                              <p className="text-xs text-gray-600 font-mono">
+                                {tokenData.token.substring(0, 8)}...
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
                     )}
                   </div>
                 ) : (
@@ -227,32 +223,27 @@ export default function MatchDetailPage() {
                 {matchData.tokens.redTeam.length > 0 ? (
                   <div className="space-y-2">
                     {matchData.tokens.redTeam.map(
-                      (tokenData: TokenData | string, index: number) => {
-                        const token = typeof tokenData === 'string' ? tokenData : tokenData.token;
-                        const ign = typeof tokenData === 'string' ? null : tokenData.ign;
-                        const isUsed = typeof tokenData === 'string' ? false : tokenData.is_used;
-                        return (
-                          <div key={index} className="bg-black/20 rounded p-3">
-                            {isUsed && ign ? (
-                              <div>
-                                <p className="text-white font-medium">
-                                  {ign}
-                                </p>
-                                <p className="text-xs text-gray-400">Joined</p>
-                              </div>
-                            ) : (
-                              <div>
-                                <p className="text-gray-500">
-                                  Waiting for player...
-                                </p>
-                                <p className="text-xs text-gray-600 font-mono">
-                                  {token.substring(0, 8)}...
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      }
+                      (tokenData: TokenData, index: number) => (
+                        <div key={index} className="bg-black/20 rounded p-3">
+                          {tokenData.is_used && tokenData.ign ? (
+                            <div>
+                              <p className="text-white font-medium">
+                                {tokenData.ign}
+                              </p>
+                              <p className="text-xs text-gray-400">Joined</p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-gray-500">
+                                Waiting for player...
+                              </p>
+                              <p className="text-xs text-gray-600 font-mono">
+                                {tokenData.token.substring(0, 8)}...
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )
                     )}
                   </div>
                 ) : (

@@ -35,7 +35,7 @@ const profileSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
   institution: z.string().min(1, 'Institution is required'),
   geographic_location: z.string().min(1, 'Geographic location is required'),
-  team: z.unknown().nullable(),
+  team: z.any().nullable(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -48,7 +48,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter();
 
   const form = useForm<ProfileFormData>({
-    resolver: zodResolver(profileSchema),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(profileSchema as any),
     defaultValues: initialData,
   });
 
@@ -60,6 +61,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         last_name: data.last_name || null,
         institution: data.institution || null,
         geographic_location: data.geographic_location || null,
+        team: data.team ?? null,
       });
       router.push('/dashboard/setup');
     } catch (error) {
