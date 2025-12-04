@@ -16,10 +16,8 @@ export default async function TeamSetupPage() {
     redirect('/login');
   }
 
-  // Fetch user profile and team information
   const userProfile = await getUserProfile(authUser.id);
 
-  // Create profile object with user_id and team info
   const profile: UserProfile = {
     user_id: authUser.id,
     first_name: userProfile?.first_name ?? null,

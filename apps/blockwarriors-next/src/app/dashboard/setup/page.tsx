@@ -13,10 +13,8 @@ export default async function SetupPage() {
     redirect('/login');
   }
 
-  // Fetch user profile (should already be initialized on account creation)
   const user: UserProfile | null = await getUserProfile(authUser.id);
 
-  // Check if profile is complete (all required fields are filled)
   const profileComplete = Boolean(
     user?.first_name &&
       user?.last_name &&
@@ -24,7 +22,6 @@ export default async function SetupPage() {
       user?.geographic_location
   );
 
-  // Check if user has a team (either as a member or leader)
   const teamComplete = Boolean(user?.team?.id);
   const isTeamLeader = user?.team?.leader_id === authUser.id;
 

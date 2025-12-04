@@ -35,7 +35,7 @@ const profileSchema = z.object({
   last_name: z.string().min(1, 'Last name is required'),
   institution: z.string().min(1, 'Institution is required'),
   geographic_location: z.string().min(1, 'Geographic location is required'),
-  team: z.any().nullable(),
+  team: z.unknown().nullable(),
 });
 
 type ProfileFormData = z.infer<typeof profileSchema>;
@@ -48,14 +48,19 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   const router = useRouter();
 
   const form = useForm<ProfileFormData>({
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(profileSchema as any),
+    resolver: zodResolver(profileSchema),
     defaultValues: initialData,
   });
 
   async function onSubmit(data: ProfileFormData) {
     try {
-      await updateUserProfile(data as UserProfile);
+      await updateUserProfile({
+        ...data,
+        first_name: data.first_name || null,
+        last_name: data.last_name || null,
+        institution: data.institution || null,
+        geographic_location: data.geographic_location || null,
+      });
       router.push('/dashboard/setup');
     } catch (error) {
       console.error('Failed to update profile:', error);

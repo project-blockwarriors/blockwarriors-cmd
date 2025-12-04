@@ -43,7 +43,7 @@ const DisabledButton = ({ children }: DisabledButtonProps) => (
         </Button>
       </TooltipTrigger>
       <TooltipContent>
-        <p>Complete setup first to access this feature</p>
+        <p>Complete setup first to unlock access to the rest of the dashboard</p>
       </TooltipContent>
     </Tooltip>
   </TooltipProvider>
@@ -69,14 +69,13 @@ const NavButton = ({ href, children, hasCompletedSetup }: NavButtonProps) => {
 export function DashboardSidebar({ className = '' }: SidebarProps) {
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
-  
-  // Subscribe to user profile changes in real-time
+
   const userProfile = useQuery(
     api.userProfiles.getUserProfile,
     userId ? { userId } : 'skip'
   );
 
-  const hasCompletedSetup = userProfile?.first_name && userProfile?.team;
+  const hasCompletedSetup = Boolean(userProfile?.first_name && userProfile?.team);
 
   const setupButton = (
     <NavButton href="/dashboard/setup" hasCompletedSetup={hasCompletedSetup}>
@@ -95,7 +94,6 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
   return (
     <div className={cn('pb-12 min-h-screen', className)}>
       <div className="space-y-4 py-4">
-        {/* User profile */}
         <div className="px-4 py-4 border-b border-primary/20">
           <div className="flex items-center gap-3">
             <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
@@ -103,8 +101,7 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
             </div>
             <div className="flex flex-col min-w-0">
               <div className="font-semibold text-white truncate">
-                {userProfile?.first_name && userProfile?.first_name}{' '}
-                {userProfile?.last_name && userProfile?.last_name}
+                {userProfile?.first_name} {userProfile?.last_name}
               </div>
               <div className="text-sm text-primary/70 truncate">
                 {userProfile?.team ? userProfile.team.team_name : 'No Team'}
@@ -114,7 +111,6 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
         </div>
         <div className="px-3">
           <div className="space-y-1">
-            {/* Only show Get Started at top if not complete */}
             {!hasCompletedSetup && setupButton}
 
             <NavButton href="/dashboard" hasCompletedSetup={hasCompletedSetup}>
@@ -148,14 +144,12 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
               </div>
             </NavButton>
 
-            {/* Show Get Started at bottom if complete */}
             {hasCompletedSetup && (
               <div className="pt-4 mt-4 border-t border-border">
                 {setupButton}
               </div>
             )}
-            
-            {/* Sign Out Button */}
+
             <div className="pt-4 mt-4 border-t border-border">
               <SignOutButton variant="ghost" className="w-full justify-start" />
             </div>

@@ -15,16 +15,13 @@ export default async function DashboardLayout({
     redirect('/login');
   }
 
-  // Get current pathname to check if we're on a setup route
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || '';
   const isSetupRoute = pathname.startsWith('/dashboard/setup');
 
-  // Only check setup completion if not on a setup route
   if (!isSetupRoute) {
     const userProfile = await getUserProfile(authUser.id);
 
-    // Check if profile is complete (all required fields are filled)
     const profileComplete = Boolean(
       userProfile?.first_name &&
         userProfile?.last_name &&
@@ -32,10 +29,8 @@ export default async function DashboardLayout({
         userProfile?.geographic_location
     );
 
-    // Check if user has a team (either as a member or leader)
     const teamComplete = Boolean(userProfile?.team?.id);
 
-    // Redirect to setup if not complete
     if (!profileComplete || !teamComplete) {
       redirect('/dashboard/setup');
     }
