@@ -9,7 +9,7 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "eslint ."
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.9.6",
@@ -82,10 +82,10 @@
     "@babel/core": "^7.26.0",
     "@babel/preset-env": "^7.26.0",
     "@babel/preset-react": "^7.26.3",
+    "@eslint/js": "^9.39.1",
     "@netlify/plugin-nextjs": "^5.9.2",
     "@types/react": "18.3.12",
     "autoprefixer": "^10.4.20",
-    "babel-eslint": "^10.1.0",
     "eslint": "^9.39.1",
     "eslint-config-next": "^16.0.7",
     "eslint-config-prettier": "^9.1.0",
