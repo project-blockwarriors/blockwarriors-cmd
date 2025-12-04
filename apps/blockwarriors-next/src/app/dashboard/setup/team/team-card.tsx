@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -13,7 +12,7 @@ import { joinTeam, leaveTeam, disbandTeam } from '@/server/actions/teams';
 import { useRouter } from 'next/navigation';
 import { TeamMember, TeamWithUsers } from '@/types/team';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
-import { Users, Crown, UserPlus, LogOut, Trash2 } from 'lucide-react';
+import { Crown, UserPlus, LogOut, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
@@ -201,7 +200,7 @@ export function TeamCard({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Leave team?</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to leave this team? You'll need to
+                    Are you sure you want to leave this team? You&apos;ll need to
                     rejoin or create a new team to participate in tournaments.
                   </AlertDialogDescription>
                 </AlertDialogHeader>

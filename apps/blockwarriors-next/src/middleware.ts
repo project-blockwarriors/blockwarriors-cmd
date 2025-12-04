@@ -41,7 +41,7 @@ export async function middleware(request: NextRequest) {
     try {
       const token = await getToken();
       isAuthenticated = !!token;
-    } catch (error) {
+    } catch {
       // If token verification fails, treat as unauthenticated
       isAuthenticated = false;
     }

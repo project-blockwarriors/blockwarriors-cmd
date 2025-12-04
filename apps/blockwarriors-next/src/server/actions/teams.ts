@@ -4,9 +4,7 @@ import { TeamWithUsers, Team } from '@/types/team';
 import {
   getAllTeamsWithMembers as getAllTeamsWithMembersDb,
   createTeam as createTeamDb,
-  updateUserTeam,
   disbandTeam as disbandTeamDb,
-  getAllTeamsScores,
 } from '../db/teams';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
 import { fetchMutation } from 'convex/nextjs';

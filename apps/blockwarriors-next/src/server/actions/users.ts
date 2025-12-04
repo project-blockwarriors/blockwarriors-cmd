@@ -16,7 +16,7 @@ export async function getUserProfile(
 
 export async function updateUserProfile(
   newUserProfile: UserProfile
-): Promise<{ data: any; error: string | null }> {
+): Promise<{ data: unknown; error: string | null }> {
   return await updateUserProfileDb(newUserProfile);
 }
 
@@ -41,7 +41,7 @@ export async function signOutAction(): Promise<{
 
 // Google sign-in is now handled client-side via authClient.signIn.social()
 // This action is no longer needed but kept for backward compatibility
-export async function googleSigninAction(origin?: string) {
+export async function googleSigninAction() {
   // BetterAuth handles this client-side
   return { errorMessage: null, url: null };
 }

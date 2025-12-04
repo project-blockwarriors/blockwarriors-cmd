@@ -75,7 +75,7 @@ export async function initializeUserProfile(
 // Update user profile in Convex only (Supabase removed)
 export async function updateUserProfile(
   newUserProfile: UserProfile
-): Promise<{ data: any; error: string | null }> {
+): Promise<{ data: unknown; error: string | null }> {
   if (!newUserProfile.user_id) {
     return { data: null, error: 'User ID is required' };
   }
