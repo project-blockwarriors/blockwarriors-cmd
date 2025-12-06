@@ -8,7 +8,7 @@ Welcome to the BlockWarriors Command Block! This is a monolithic repository for 
 
 A modern web dashboard for BlockWarriors tournament and team management.
 
-**Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Socket.io client, Convex
+**Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Convex
 
 ### BlockWarriors Command Block - Backend
 
