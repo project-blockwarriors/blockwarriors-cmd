@@ -269,7 +269,10 @@ export default function HomeContent() {
             {/* Two column: Steps + Terminal Demo */}
             <div className="grid lg:grid-cols-5 gap-8 items-start">
               {/* Left: Steps */}
-              <div id="how-it-works" className="lg:col-span-2 space-y-6 scroll-mt-24">
+              <div
+                id="how-it-works"
+                className="lg:col-span-2 space-y-6 scroll-mt-24"
+              >
                 {/* Steps */}
                 <motion.div variants={staggerContainer} className="space-y-4">
                   {[
@@ -857,9 +860,7 @@ export default function HomeContent() {
                   <Handshake className="w-6 h-6 text-princeton-orange" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-white">
-                    Partner With Us
-                  </h3>
+                  <h3 className="text-xl font-bold text-white">Support Us</h3>
                   <p className="text-sm text-muted-foreground">
                     Help fund prizes and support the next generation of AI
                     developers.
@@ -880,7 +881,7 @@ export default function HomeContent() {
                   className="bg-gradient-to-r from-princeton-orange to-princeton-orange-light text-black font-semibold px-6 py-2 rounded-lg hover:opacity-90 transition-opacity"
                 >
                   <a
-                    href="mailto:ia8920@princeton.edu?subject=BlockWarriors Sponsorship Inquiry"
+                    href="mailto:ia8920@princeton.edu?subject=BlockWarrior Supporter Inquiry"
                     className="flex items-center gap-2"
                   >
                     <Mail className="w-4 h-4" />
@@ -1015,9 +1016,15 @@ export default function HomeContent() {
           </div>
 
           {/* Copyright */}
-          <div className="mt-12 pt-8 border-t border-white/5 text-center">
+          <div className="mt-12 pt-8 border-t border-white/5 text-center space-y-3">
             <p className="text-sm text-muted-foreground">
               © 2025 BlockWarriors. Hosted at Princeton University.
+            </p>
+            <p className="text-sm text-muted-foreground max-w-3xl mx-auto">
+              This organization is open to all students interested in supporting
+              our organization's mission, regardless of identity, such as race,
+              sex, ethnicity, national origin, or other protected
+              characteristics.
             </p>
           </div>
         </div>
