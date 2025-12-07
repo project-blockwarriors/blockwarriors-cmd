@@ -144,7 +144,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       const isSelected = bot.id === selectedBotId;
       const color = BOT_COLORS[index % BOT_COLORS.length];
 
-      const yaw = bot.position.yaw || 0;
+      const yaw = bot.position.yaw ?? 0;
       const dirLength = isSelected ? 20 : 15;
       const endX = screenX + Math.sin(yaw) * dirLength;
       const endZ = screenZ - Math.cos(yaw) * dirLength;
@@ -356,7 +356,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       const worldPos = screenToWorld(clickX, clickY);
       if (worldPos) {
         const selectedBot = bots.find((b) => b.id === selectedBotId);
-        const y = selectedBot?.position?.y || 64;
+        const y = selectedBot?.position?.y ?? 64;
 
         setWaypoint({ x: worldPos.x, z: worldPos.z });
         onCommand(selectedBotId, {
@@ -411,7 +411,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     const worldPos = screenToWorld(coords.x, coords.y);
     if (worldPos) {
       const selectedBot = bots.find((b) => b.id === selectedBotId);
-      const y = selectedBot?.position?.y || 64;
+      const y = selectedBot?.position?.y ?? 64;
 
       setWaypoint({ x: worldPos.x, z: worldPos.z });
       onCommand(selectedBotId, {

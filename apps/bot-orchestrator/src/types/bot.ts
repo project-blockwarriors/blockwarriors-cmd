@@ -35,7 +35,6 @@ export interface NearbyEntity {
 export interface BotState {
   id: string;
   ign: string;
-  token: string;
   status: BotStatus;
   position: BotPosition | null;
   health: BotHealth | null;

@@ -62,7 +62,6 @@ class BotManager {
     const initialState: BotState = {
       id,
       ign,
-      token,
       status: "connecting",
       position: null,
       health: null,
