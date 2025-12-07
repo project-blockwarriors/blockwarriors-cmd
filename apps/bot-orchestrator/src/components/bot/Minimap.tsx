@@ -34,14 +34,13 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   const [waypoint, setWaypoint] = useState<{ x: number; z: number } | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<number | null>(null);
   const didDragRef = useRef(false);
+  const waypointTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Get canvas coordinates accounting for CSS scaling
   const getCanvasCoords = useCallback((e: React.MouseEvent) => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
 
     const rect = canvas.getBoundingClientRect();
-    // Scale from display size to canvas internal size
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
 
@@ -51,7 +50,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     return { x: canvasX, y: canvasY };
   }, []);
 
-  // Calculate center based on all bots or default to world spawn
   const getCenter = () => {
     if (bots.length === 0) return { x: 0, z: 0 };
 
@@ -91,11 +89,9 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     const centerX = width / 2;
     const centerY = height / 2;
 
-    // Clear canvas
     ctx.fillStyle = "#0A0A0A";
     ctx.fillRect(0, 0, width, height);
 
-    // Draw grid
     ctx.strokeStyle = "#1a1a1a";
     ctx.lineWidth = 1;
     const gridSize = 16 * scale;
@@ -114,11 +110,9 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.stroke();
     }
 
-    // Draw axis lines
     ctx.strokeStyle = "#333";
     ctx.lineWidth = 2;
 
-    // X axis (red tint)
     const axisY = centerY + offset.z * scale;
     if (axisY >= 0 && axisY <= height) {
       ctx.strokeStyle = "rgba(255, 100, 100, 0.3)";
@@ -128,7 +122,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.stroke();
     }
 
-    // Z axis (blue tint)
     const axisX = centerX + offset.x * scale;
     if (axisX >= 0 && axisX <= width) {
       ctx.strokeStyle = "rgba(100, 100, 255, 0.3)";
@@ -138,14 +131,12 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.stroke();
     }
 
-    // Draw bots
     bots.forEach((bot, index) => {
       if (!bot.position) return;
 
       const screenX = centerX + (bot.position.x + offset.x) * scale;
       const screenZ = centerY + (bot.position.z + offset.z) * scale;
 
-      // Skip if off screen
       if (screenX < -20 || screenX > width + 20 || screenZ < -20 || screenZ > height + 20) {
         return;
       }
@@ -153,7 +144,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       const isSelected = bot.id === selectedBotId;
       const color = BOT_COLORS[index % BOT_COLORS.length];
 
-      // Draw bot direction indicator
       const yaw = bot.position.yaw || 0;
       const dirLength = isSelected ? 20 : 15;
       const endX = screenX + Math.sin(yaw) * dirLength;
@@ -166,10 +156,8 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.lineTo(endX, endZ);
       ctx.stroke();
 
-      // Draw bot marker
       const radius = isSelected ? 8 : 6;
 
-      // Glow effect for selected
       if (isSelected) {
         ctx.shadowColor = color;
         ctx.shadowBlur = 15;
@@ -182,20 +170,17 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
 
       ctx.shadowBlur = 0;
 
-      // Draw border
       ctx.strokeStyle = isSelected ? "#fff" : "rgba(255,255,255,0.5)";
       ctx.lineWidth = isSelected ? 2 : 1;
       ctx.beginPath();
       ctx.arc(screenX, screenZ, radius, 0, Math.PI * 2);
       ctx.stroke();
 
-      // Draw IGN label
       ctx.fillStyle = "#fff";
       ctx.font = `${isSelected ? "bold " : ""}10px monospace`;
       ctx.textAlign = "center";
       ctx.fillText(bot.ign, screenX, screenZ - radius - 5);
 
-      // Draw coordinates for selected bot
       if (isSelected) {
         ctx.font = "9px monospace";
         ctx.fillStyle = "#999";
@@ -207,27 +192,23 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       }
     });
 
-    // Draw nearby entities for selected bot
     const selectedBot = bots.find((b) => b.id === selectedBotId);
     if (selectedBot?.nearbyEntities) {
       selectedBot.nearbyEntities.forEach((entity) => {
         const screenX = centerX + (entity.position.x + offset.x) * scale;
         const screenZ = centerY + (entity.position.z + offset.z) * scale;
 
-        // Skip if off screen
         if (screenX < -10 || screenX > width + 10 || screenZ < -10 || screenZ > height + 10) {
           return;
         }
 
-        // Different colors for different entity types
-        let entityColor = "#888"; // Default gray
+        let entityColor = "#888";
         if (entity.isPlayer) {
-          entityColor = "#00BFFF"; // Cyan for players
+          entityColor = "#00BFFF";
         } else if (entity.isHostile) {
-          entityColor = "#FF4444"; // Red for hostile
+          entityColor = "#FF4444";
         }
 
-        // Draw entity marker (smaller than bots)
         ctx.fillStyle = entityColor;
         ctx.globalAlpha = 0.7;
         ctx.beginPath();
@@ -235,7 +216,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
         ctx.fill();
         ctx.globalAlpha = 1;
 
-        // Draw entity name on hover area
         ctx.fillStyle = entityColor;
         ctx.font = "8px monospace";
         ctx.textAlign = "center";
@@ -243,12 +223,10 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       });
     }
 
-    // Draw waypoint if set
     if (waypoint) {
       const wpScreenX = centerX + (waypoint.x + offset.x) * scale;
       const wpScreenZ = centerY + (waypoint.z + offset.z) * scale;
 
-      // Pulsing waypoint marker
       ctx.strokeStyle = "#FF6B00";
       ctx.lineWidth = 2;
       ctx.setLineDash([4, 4]);
@@ -257,7 +235,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Cross marker
       ctx.beginPath();
       ctx.moveTo(wpScreenX - 6, wpScreenZ);
       ctx.lineTo(wpScreenX + 6, wpScreenZ);
@@ -265,14 +242,12 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       ctx.lineTo(wpScreenX, wpScreenZ + 6);
       ctx.stroke();
 
-      // Coordinates
       ctx.fillStyle = "#FF6B00";
       ctx.font = "9px monospace";
       ctx.textAlign = "center";
       ctx.fillText(`${Math.floor(waypoint.x)}, ${Math.floor(waypoint.z)}`, wpScreenX, wpScreenZ + 18);
     }
 
-    // Draw scale indicator and mode
     ctx.fillStyle = "#666";
     ctx.font = "10px monospace";
     ctx.textAlign = "left";
@@ -294,16 +269,14 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX, z: e.clientY });
-    didDragRef.current = false; // Reset drag flag
+    didDragRef.current = false;
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    // Handle dragging
     if (isDragging) {
       const dx = (e.clientX - dragStart.x) / scale;
       const dz = (e.clientY - dragStart.z) / scale;
 
-      // If we moved more than a small threshold, mark as dragged
       const distMoved = Math.abs(dx) + Math.abs(dz);
       if (distMoved > 0.5) {
         didDragRef.current = true;
@@ -314,7 +287,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       return;
     }
 
-    // Check for entity hover
     const coords = getCanvasCoords(e);
     if (coords) {
       const entity = getEntityAtPosition(coords.x, coords.y);
@@ -365,9 +337,8 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   }, [bots, selectedBotId, offset, scale]);
 
   const handleClick = (e: React.MouseEvent) => {
-    // Don't process clicks after drag operations
     if (didDragRef.current) {
-      didDragRef.current = false; // Reset for next interaction
+      didDragRef.current = false;
       return;
     }
 
@@ -381,7 +352,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
 
-    // If in move mode and we have a selected bot, move it
     if (moveMode && selectedBotId && onCommand) {
       const worldPos = screenToWorld(clickX, clickY);
       if (worldPos) {
@@ -394,13 +364,18 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
           payload: { x: worldPos.x, y, z: worldPos.z }
         });
 
-        // Clear waypoint after 3 seconds
-        setTimeout(() => setWaypoint(null), 3000);
+        if (waypointTimeoutRef.current) {
+          clearTimeout(waypointTimeoutRef.current);
+        }
+
+        waypointTimeoutRef.current = setTimeout(() => {
+          setWaypoint(null);
+          waypointTimeoutRef.current = null;
+        }, 3000);
       }
       return;
     }
 
-    // Find clicked bot
     for (const bot of bots) {
       if (!bot.position) continue;
 
@@ -416,7 +391,6 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
       }
     }
 
-    // Check if clicked on an entity (for attack)
     const entity = getEntityAtPosition(clickX, clickY);
     if (entity && onCommand && selectedBotId) {
       onCommand(selectedBotId, {
@@ -445,8 +419,16 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
         payload: { x: worldPos.x, y, z: worldPos.z }
       });
 
+      // Clear any existing waypoint timeout
+      if (waypointTimeoutRef.current) {
+        clearTimeout(waypointTimeoutRef.current);
+      }
+
       // Clear waypoint after 3 seconds
-      setTimeout(() => setWaypoint(null), 3000);
+      waypointTimeoutRef.current = setTimeout(() => {
+        setWaypoint(null);
+        waypointTimeoutRef.current = null;
+      }, 3000);
     }
   };
 

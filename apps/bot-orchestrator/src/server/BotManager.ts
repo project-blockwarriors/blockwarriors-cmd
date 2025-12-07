@@ -89,6 +89,19 @@ class BotManager {
     return initialState;
   }
 
+  private cleanupBotIntervals(id: string) {
+    const managedBot = this.bots.get(id);
+    if (!managedBot) return;
+
+    if (managedBot.entityScanInterval) {
+      clearInterval(managedBot.entityScanInterval);
+    }
+    if (managedBot.attackInterval) {
+      clearInterval(managedBot.attackInterval);
+      managedBot.attackInterval = undefined;
+    }
+  }
+
   private setupBotListeners(id: string, bot: Bot, token: string) {
     const managedBot = this.bots.get(id);
     if (!managedBot) return;
@@ -172,12 +185,7 @@ class BotManager {
       if (this.onBotError) {
         this.onBotError(id, err.message);
       }
-
-      // Clean up the bot's interval
-      const managedBot = this.bots.get(id);
-      if (managedBot?.entityScanInterval) {
-        clearInterval(managedBot.entityScanInterval);
-      }
+      this.cleanupBotIntervals(id);
     });
 
     bot.on("kicked", (reason) => {
@@ -191,12 +199,7 @@ class BotManager {
       if (this.onBotError) {
         this.onBotError(id, `Kicked: ${reasonStr}`);
       }
-
-      // Clean up the bot's interval
-      const managedBot = this.bots.get(id);
-      if (managedBot?.entityScanInterval) {
-        clearInterval(managedBot.entityScanInterval);
-      }
+      this.cleanupBotIntervals(id);
     });
 
     bot.on("end", () => {
@@ -204,12 +207,7 @@ class BotManager {
         status: "offline",
         currentAction: "Disconnected",
       });
-
-      // Clean up the bot's interval to prevent memory leak
-      const managedBot = this.bots.get(id);
-      if (managedBot?.entityScanInterval) {
-        clearInterval(managedBot.entityScanInterval);
-      }
+      this.cleanupBotIntervals(id);
     });
 
     bot.on("death", () => {
@@ -419,6 +417,8 @@ class BotManager {
             if (managedBot.attackInterval) {
               clearInterval(managedBot.attackInterval);
               managedBot.attackInterval = undefined;
+              bot.pathfinder.stop();
+              this.updateBotState(id, { currentAction: "Idle" });
             }
           }, 30000);
         }
@@ -437,14 +437,7 @@ class BotManager {
     const managedBot = this.bots.get(id);
     if (!managedBot) return false;
 
-    // Clean up all intervals
-    if (managedBot.entityScanInterval) {
-      clearInterval(managedBot.entityScanInterval);
-    }
-    if (managedBot.attackInterval) {
-      clearInterval(managedBot.attackInterval);
-    }
-
+    this.cleanupBotIntervals(id);
     managedBot.bot.quit();
     this.bots.delete(id);
     return true;

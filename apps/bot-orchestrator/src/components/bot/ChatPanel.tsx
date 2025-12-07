@@ -12,11 +12,13 @@ interface ChatPanelProps {
 }
 
 export function ChatPanel({ messages, botNames }: ChatPanelProps) {
-  const scrollRef = useRef<HTMLDivElement>(null);
+  const viewportRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    // Scroll to bottom when new messages arrive
+    // We need to target the Viewport element, not the Root
+    if (viewportRef.current) {
+      viewportRef.current.scrollTop = viewportRef.current.scrollHeight;
     }
   }, [messages]);
 
@@ -34,7 +36,7 @@ export function ChatPanel({ messages, botNames }: ChatPanelProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="flex-1 overflow-hidden p-0">
-        <ScrollArea className="h-full" ref={scrollRef}>
+        <ScrollArea className="h-full" viewportRef={viewportRef}>
           <div className="p-4 space-y-1">
             {messages.length === 0 ? (
               <div className="text-center text-muted-foreground text-sm py-8">

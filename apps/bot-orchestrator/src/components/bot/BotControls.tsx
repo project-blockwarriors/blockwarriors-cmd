@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,12 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
   const [customCommand, setCustomCommand] = useState("");
   const [isSneaking, setIsSneaking] = useState(false);
   const [isSprinting, setIsSprinting] = useState(false);
+
+  // Reset sneak/sprint state when bot changes
+  useEffect(() => {
+    setIsSneaking(false);
+    setIsSprinting(false);
+  }, [bot?.id]);
 
   if (!bot) {
     return (
