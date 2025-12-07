@@ -19,6 +19,7 @@ interface BotStore {
   error: string | null;
   errorBotId: string | null;
   serverConfig: ServerConfig;
+  socketInitialized: boolean;
 
   // Actions
   setBots: (bots: BotState[]) => void;
@@ -46,6 +47,7 @@ export const useBotStore = create<BotStore>((set, get) => ({
   error: null,
   errorBotId: null,
   serverConfig: { host: "mcpanel.blockwarriors.ai", port: 25565 },
+  socketInitialized: false,
 
   setBots: (bots) => {
     const botMap = new Map<string, BotState>();
@@ -84,11 +86,10 @@ export const useBotStore = create<BotStore>((set, get) => ({
 
   setError: (error) => {
     if (error === null) {
-      const errorBotId = get().errorBotId;
-      if (errorBotId) {
-        console.log("Dismissing error and removing bot:", errorBotId);
-        // Remove the bot from the backend and local state
-        get().deleteBot(errorBotId);
+      const state = get();
+      if (state.errorBotId) {
+        console.log("Dismissing error and removing bot:", state.errorBotId);
+        get().deleteBot(state.errorBotId);
       }
       set({ error: null, errorBotId: null });
     } else {
@@ -115,34 +116,39 @@ export const useBotStore = create<BotStore>((set, get) => ({
   },
 
   initSocket: () => {
+    if (get().socketInitialized) return;
+
     const socket = getSocket();
 
-    socket.on("connect", () => {
+    const registerEvent = <T = any>(event: string, handler: (data: T) => void) => {
+      socket.off(event).on(event, handler);
+    };
+
+    registerEvent("connect", () => {
       set({ isConnected: true, error: null });
     });
 
-    socket.on("disconnect", () => {
+    registerEvent("disconnect", () => {
       set({ isConnected: false });
     });
 
-    socket.on("bots_list", (bots: BotState[]) => {
+    registerEvent<BotState[]>("bots_list", (bots) => {
       get().setBots(bots);
     });
 
-    socket.on("bot_created", (data: { id: string; state: BotState }) => {
+    registerEvent<{ id: string; state: BotState }>("bot_created", (data) => {
       get().updateBot(data.id, data.state);
     });
 
-    socket.on("bot_update", (data: { botId: string; state: BotState }) => {
+    registerEvent<{ botId: string; state: BotState }>("bot_update", (data) => {
       get().updateBot(data.botId, data.state);
     });
 
-    socket.on("bot_removed", (data: { botId: string }) => {
+    registerEvent<{ botId: string }>("bot_removed", (data) => {
       get().removeBot(data.botId);
     });
 
-    socket.on("bot_error", (data: { botId: string; error: string }) => {
-      // Update the bot state to show error
+    registerEvent<{ botId: string; error: string }>("bot_error", (data) => {
       const bot = get().bots.get(data.botId);
       if (bot) {
         get().updateBot(data.botId, { ...bot, status: "error", errorMessage: data.error });
@@ -150,17 +156,19 @@ export const useBotStore = create<BotStore>((set, get) => ({
       set({ error: `Bot ${data.botId}: ${data.error}`, errorBotId: data.botId });
     });
 
-    socket.on("chat_message", (message: ChatMessage) => {
+    registerEvent<ChatMessage>("chat_message", (message) => {
       get().addChatMessage(message);
     });
 
-    socket.on("error", (data: { message: string }) => {
-      set({ error: data.message });
+    registerEvent<{ message: string }>("error", (data) => {
+      set({ error: data.message, errorBotId: null });
     });
 
-    socket.on("server_config", (config: ServerConfig) => {
+    registerEvent<ServerConfig>("server_config", (config) => {
       console.log("Received server_config:", config);
       set({ serverConfig: config });
     });
+
+    set({ socketInitialized: true });
   },
 }));

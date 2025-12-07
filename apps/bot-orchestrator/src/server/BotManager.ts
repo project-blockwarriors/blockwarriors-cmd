@@ -19,6 +19,8 @@ interface ManagedBot {
   movements?: InstanceType<typeof Movements>;
   entityScanInterval?: NodeJS.Timeout;
   attackInterval?: NodeJS.Timeout;
+  attackTimeout?: NodeJS.Timeout;
+  attackSessionId?: number;
 }
 
 const HOSTILE_MOBS = [
@@ -89,6 +91,36 @@ class BotManager {
     return initialState;
   }
 
+  private clearAttackTimers(id: string): void {
+    const managedBot = this.bots.get(id);
+    if (!managedBot) return;
+
+    if (managedBot.attackInterval) {
+      clearInterval(managedBot.attackInterval);
+      managedBot.attackInterval = undefined;
+    }
+    if (managedBot.attackTimeout) {
+      clearTimeout(managedBot.attackTimeout);
+      managedBot.attackTimeout = undefined;
+    }
+    managedBot.attackSessionId = undefined;
+  }
+
+  private stopAllActions(id: string): void {
+    const managedBot = this.bots.get(id);
+    if (!managedBot) return;
+
+    managedBot.bot.pathfinder.stop();
+    managedBot.bot.clearControlStates();
+    this.clearAttackTimers(id);
+    this.updateBotState(id, { currentAction: "Idle" });
+  }
+
+  private isValidAttackSession(id: string, sessionId: number): boolean {
+    const managedBot = this.bots.get(id);
+    return managedBot?.attackSessionId === sessionId;
+  }
+
   private cleanupBotIntervals(id: string) {
     const managedBot = this.bots.get(id);
     if (!managedBot) return;
@@ -96,10 +128,7 @@ class BotManager {
     if (managedBot.entityScanInterval) {
       clearInterval(managedBot.entityScanInterval);
     }
-    if (managedBot.attackInterval) {
-      clearInterval(managedBot.attackInterval);
-      managedBot.attackInterval = undefined;
-    }
+    this.clearAttackTimers(id);
   }
 
   private setupBotListeners(id: string, bot: Bot, token: string) {
@@ -333,16 +362,7 @@ class BotManager {
         break;
 
       case "stop":
-        bot.pathfinder.stop();
-        bot.clearControlStates();
-
-        // Clear any ongoing attack interval
-        if (managedBot.attackInterval) {
-          clearInterval(managedBot.attackInterval);
-          managedBot.attackInterval = undefined;
-        }
-
-        this.updateBotState(id, { currentAction: "Idle" });
+        this.stopAllActions(id);
         break;
 
       case "jump":
@@ -380,11 +400,10 @@ class BotManager {
         const entityId = command.payload?.entityId as number;
         const entityTarget = bot.entities[entityId];
         if (entityTarget && movements) {
-          // Clear any existing attack interval
-          if (managedBot.attackInterval) {
-            clearInterval(managedBot.attackInterval);
-            managedBot.attackInterval = undefined;
-          }
+          this.clearAttackTimers(id);
+
+          const sessionId = Date.now();
+          managedBot.attackSessionId = sessionId;
 
           bot.pathfinder.setMovements(movements);
           bot.pathfinder.setGoal(new goals.GoalFollow(entityTarget, 2), true);
@@ -394,15 +413,15 @@ class BotManager {
             currentAction: `Attacking ${entityName}`
           });
 
-          managedBot.attackInterval = setInterval(() => {
+          const intervalId = setInterval(() => {
+            if (!this.isValidAttackSession(id, sessionId)) {
+              clearInterval(intervalId);
+              return;
+            }
+
             const currentEntity = bot.entities[entityId];
             if (!currentEntity || !bot.entity) {
-              if (managedBot.attackInterval) {
-                clearInterval(managedBot.attackInterval);
-                managedBot.attackInterval = undefined;
-              }
-              bot.pathfinder.stop();
-              this.updateBotState(id, { currentAction: "Idle" });
+              this.stopAllActions(id);
               return;
             }
 
@@ -411,14 +430,11 @@ class BotManager {
               bot.attack(currentEntity);
             }
           }, 500);
+          managedBot.attackInterval = intervalId;
 
-          // Auto-stop attack after 30 seconds
-          setTimeout(() => {
-            if (managedBot.attackInterval) {
-              clearInterval(managedBot.attackInterval);
-              managedBot.attackInterval = undefined;
-              bot.pathfinder.stop();
-              this.updateBotState(id, { currentAction: "Idle" });
+          managedBot.attackTimeout = setTimeout(() => {
+            if (this.isValidAttackSession(id, sessionId)) {
+              this.stopAllActions(id);
             }
           }, 30000);
         }
