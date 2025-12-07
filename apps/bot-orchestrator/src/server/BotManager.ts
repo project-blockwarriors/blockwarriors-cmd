@@ -374,9 +374,6 @@ class BotManager {
       case "sneak":
         const sneaking = command.payload?.enabled as boolean;
         bot.setControlState("sneak", sneaking);
-        this.updateBotState(id, {
-          currentAction: sneaking ? "Sneaking" : "Idle",
-        });
         break;
 
       case "sprint":

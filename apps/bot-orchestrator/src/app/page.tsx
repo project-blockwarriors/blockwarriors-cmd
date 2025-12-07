@@ -153,7 +153,7 @@ export default function Dashboard() {
                       )}
                       {bot.errorMessage && (
                         <div className="text-xs text-destructive mt-1 truncate">
-                          {bot.errorMessage.slice(0, 30)}...
+                          {bot.errorMessage}
                         </div>
                       )}
                     </div>
