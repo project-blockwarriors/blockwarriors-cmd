@@ -2,11 +2,13 @@
 
 import { create } from "zustand";
 import type { BotState, ChatMessage, BotCommand } from "@/types/bot";
+import type { ServerConfig } from "./socket";
 import {
   getSocket,
   createBot as socketCreateBot,
   removeBot as socketRemoveBot,
   sendBotCommand as socketSendCommand,
+  updateServerConfig as socketUpdateServerConfig,
 } from "./socket";
 
 interface BotStore {
@@ -15,6 +17,8 @@ interface BotStore {
   chatMessages: ChatMessage[];
   isConnected: boolean;
   error: string | null;
+  errorBotId: string | null;
+  serverConfig: ServerConfig;
 
   // Actions
   setBots: (bots: BotState[]) => void;
@@ -24,11 +28,13 @@ interface BotStore {
   addChatMessage: (message: ChatMessage) => void;
   setConnected: (connected: boolean) => void;
   setError: (error: string | null) => void;
+  setServerConfig: (config: ServerConfig) => void;
 
   // Socket actions
   createBot: (ign: string, token: string) => void;
   deleteBot: (botId: string) => void;
   sendCommand: (botId: string, command: BotCommand) => void;
+  updateServerConfig: (host: string, port: number) => void;
   initSocket: () => void;
 }
 
@@ -38,6 +44,8 @@ export const useBotStore = create<BotStore>((set, get) => ({
   chatMessages: [],
   isConnected: false,
   error: null,
+  errorBotId: null,
+  serverConfig: { host: "mcpanel.blockwarriors.ai", port: 25565 },
 
   setBots: (bots) => {
     const botMap = new Map<string, BotState>();
@@ -74,7 +82,21 @@ export const useBotStore = create<BotStore>((set, get) => ({
 
   setConnected: (connected) => set({ isConnected: connected }),
 
-  setError: (error) => set({ error }),
+  setError: (error) => {
+    if (error === null) {
+      const errorBotId = get().errorBotId;
+      if (errorBotId) {
+        console.log("Dismissing error and removing bot:", errorBotId);
+        // Remove the bot from the backend and local state
+        get().deleteBot(errorBotId);
+      }
+      set({ error: null, errorBotId: null });
+    } else {
+      set({ error });
+    }
+  },
+
+  setServerConfig: (config) => set({ serverConfig: config }),
 
   createBot: (ign, token) => {
     socketCreateBot(ign, token);
@@ -86,6 +108,10 @@ export const useBotStore = create<BotStore>((set, get) => ({
 
   sendCommand: (botId, command) => {
     socketSendCommand(botId, command);
+  },
+
+  updateServerConfig: (host, port) => {
+    socketUpdateServerConfig(host, port);
   },
 
   initSocket: () => {
@@ -116,7 +142,12 @@ export const useBotStore = create<BotStore>((set, get) => ({
     });
 
     socket.on("bot_error", (data: { botId: string; error: string }) => {
-      set({ error: `Bot ${data.botId}: ${data.error}` });
+      // Update the bot state to show error
+      const bot = get().bots.get(data.botId);
+      if (bot) {
+        get().updateBot(data.botId, { ...bot, status: "error", errorMessage: data.error });
+      }
+      set({ error: `Bot ${data.botId}: ${data.error}`, errorBotId: data.botId });
     });
 
     socket.on("chat_message", (message: ChatMessage) => {
@@ -125,6 +156,11 @@ export const useBotStore = create<BotStore>((set, get) => ({
 
     socket.on("error", (data: { message: string }) => {
       set({ error: data.message });
+    });
+
+    socket.on("server_config", (config: ServerConfig) => {
+      console.log("Received server_config:", config);
+      set({ serverConfig: config });
     });
   },
 }));

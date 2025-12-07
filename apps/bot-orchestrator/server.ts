@@ -6,9 +6,20 @@ import { botManager } from "./src/server/BotManager.js";
 import { v4 as uuidv4 } from "uuid";
 import type { BotCommand, CreateBotRequest, BotState } from "./src/types/bot.js";
 
+// Enable debug logging if needed - set DEBUG env var to enable
+// DEBUG=minecraft-protocol npm run dev
+if (process.env.DEBUG) {
+  console.log(`Debug mode enabled: ${process.env.DEBUG}`);
+}
+
 const dev = process.env.NODE_ENV !== "production";
 const hostname = "localhost";
 const port = parseInt(process.env.PORT || "3001", 10);
+
+let minecraftServerConfig = {
+  host: "mcpanel.blockwarriors.ai",
+  port: 25565,
+};
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -27,13 +38,10 @@ app.prepare().then(() => {
     path: "/api/socketio",
   });
 
-  // Set up bot manager callbacks
   botManager.setCallbacks(
-    // On bot update
     (botId: string, state: BotState) => {
       io.emit("bot_update", { botId, state });
     },
-    // On bot chat
     (botId: string, username: string, message: string) => {
       io.emit("chat_message", {
         botId,
@@ -42,7 +50,6 @@ app.prepare().then(() => {
         timestamp: Date.now(),
       });
     },
-    // On bot error
     (botId: string, error: string) => {
       io.emit("bot_error", { botId, error });
     }
@@ -51,14 +58,19 @@ app.prepare().then(() => {
   io.on("connection", (socket) => {
     console.log("Client connected:", socket.id);
 
-    // Send current bot list on connection
     socket.emit("bots_list", botManager.getAllBots());
+    socket.emit("server_config", minecraftServerConfig);
 
-    // Create new bot
     socket.on("create_bot", async (data: CreateBotRequest) => {
       try {
         const id = uuidv4();
-        const state = await botManager.createBot(id, data.ign, data.token);
+        const state = await botManager.createBot(
+          id,
+          data.ign,
+          data.token,
+          minecraftServerConfig.host,
+          minecraftServerConfig.port
+        );
         socket.emit("bot_created", { id, state });
         io.emit("bots_list", botManager.getAllBots());
       } catch (error) {
@@ -68,7 +80,6 @@ app.prepare().then(() => {
       }
     });
 
-    // Execute bot command
     socket.on(
       "bot_command",
       async (data: { botId: string; command: BotCommand }) => {
@@ -83,7 +94,6 @@ app.prepare().then(() => {
       }
     );
 
-    // Remove bot
     socket.on("remove_bot", (botId: string) => {
       const removed = botManager.removeBot(botId);
       if (removed) {
@@ -92,9 +102,21 @@ app.prepare().then(() => {
       }
     });
 
-    // Get all bots
     socket.on("get_bots", () => {
       socket.emit("bots_list", botManager.getAllBots());
+    });
+
+    socket.on("get_server_config", () => {
+      socket.emit("server_config", minecraftServerConfig);
+    });
+
+    socket.on("update_server_config", (data: { host: string; port: number }) => {
+      minecraftServerConfig = {
+        host: data.host,
+        port: data.port,
+      };
+      io.emit("server_config", minecraftServerConfig);
+      console.log("Server configuration updated:", minecraftServerConfig);
     });
 
     socket.on("disconnect", () => {

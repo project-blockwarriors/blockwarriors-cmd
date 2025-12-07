@@ -42,7 +42,7 @@ export function BotCard({ bot, isSelected, onSelect, onDelete }: BotCardProps) {
   return (
     <Card
       className={cn(
-        "cursor-pointer transition-all hover:border-princeton/50",
+        "cursor-pointer transition-all hover:border-princeton/50 w-full",
         isSelected && "border-princeton glow-orange"
       )}
       onClick={onSelect}

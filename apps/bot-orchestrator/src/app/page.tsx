@@ -6,10 +6,12 @@ import { BotCard } from "@/components/bot/BotCard";
 import { Minimap } from "@/components/bot/Minimap";
 import { BotControls } from "@/components/bot/BotControls";
 import { CreateBotModal } from "@/components/bot/CreateBotModal";
+import { ServerSettingsModal } from "@/components/bot/ServerSettingsModal";
 import { ChatPanel } from "@/components/bot/ChatPanel";
 import { EntityPanel } from "@/components/bot/EntityPanel";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bot, Wifi, WifiOff, AlertCircle } from "lucide-react";
+import { Bot, Wifi, WifiOff, AlertCircle, Trash2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export default function Dashboard() {
   const {
@@ -18,6 +20,7 @@ export default function Dashboard() {
     chatMessages,
     isConnected,
     error,
+    serverConfig,
     selectBot,
     createBot,
     deleteBot,
@@ -36,7 +39,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -52,7 +54,6 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-4">
-            {/* Connection Status */}
             <div className="flex items-center gap-2 text-sm">
               {isConnected ? (
                 <>
@@ -67,18 +68,17 @@ export default function Dashboard() {
               )}
             </div>
 
-            {/* Bot Count */}
             <div className="text-sm text-muted-foreground">
               {botArray.length} bot{botArray.length !== 1 ? "s" : ""} active
             </div>
 
-            {/* Create Bot Button */}
+            <ServerSettingsModal />
+
             <CreateBotModal onCreateBot={createBot} />
           </div>
         </div>
       </header>
 
-      {/* Error Banner */}
       {error && (
         <div className="bg-destructive/10 border-b border-destructive/20 px-4 py-2">
           <div className="container mx-auto flex items-center gap-2 text-sm text-destructive">
@@ -94,42 +94,77 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Main Content */}
       <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="grid grid-cols-12 gap-6 h-[calc(100vh-12rem)]">
-          {/* Left Panel - Bot List */}
-          <div className="col-span-3 h-full flex flex-col">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2">
+        <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-12rem)]">
+          {/* Left sidebar: Compact bot list */}
+          <div className="lg:w-56 flex flex-col shrink-0">
+            <h2 className="text-lg font-medium mb-4 flex items-center gap-2 shrink-0">
               <Bot className="h-5 w-5 text-muted-foreground" />
               Bots
             </h2>
-            <ScrollArea className="flex-1">
-              <div className="space-y-3 pr-4">
+            <ScrollArea className="flex-1 min-h-0">
+              <div className="space-y-2">
                 {botArray.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    <Bot className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                    <p>No bots yet</p>
-                    <p className="text-sm">
-                      Click "Add Bot" to create one
-                    </p>
+                    <Bot className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No bots</p>
                   </div>
                 ) : (
                   botArray.map((bot) => (
-                    <BotCard
+                    <div
                       key={bot.id}
-                      bot={bot}
-                      isSelected={bot.id === selectedBotId}
-                      onSelect={() => selectBot(bot.id)}
-                      onDelete={() => deleteBot(bot.id)}
-                    />
+                      className={cn(
+                        "relative w-full p-3 rounded-lg border transition-all group cursor-pointer",
+                        bot.id === selectedBotId
+                          ? "border-princeton bg-princeton/10"
+                          : "border-border bg-card hover:border-princeton/50"
+                      )}
+                      onClick={() => selectBot(bot.id)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <div
+                            className={cn(
+                              "h-2 w-2 rounded-full",
+                              bot.status === "online" && "bg-status-online animate-pulse",
+                              bot.status === "connecting" && "bg-status-busy",
+                              bot.status === "offline" && "bg-status-offline",
+                              bot.status === "error" && "bg-status-error"
+                            )}
+                          />
+                          <span className="font-medium text-sm">{bot.ign}</span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteBot(bot.id);
+                          }}
+                          className="p-1 hover:bg-destructive/20 rounded transition-colors"
+                          aria-label={`Delete ${bot.ign}`}
+                        >
+                          <Trash2 className="h-3 w-3 text-destructive" />
+                        </button>
+                      </div>
+                      {bot.health && (
+                        <div className="flex gap-2 text-xs">
+                          <span className="text-red-500">❤ {bot.health.health.toFixed(0)}</span>
+                          <span className="text-amber-500">🍖 {bot.health.food}</span>
+                        </div>
+                      )}
+                      {bot.errorMessage && (
+                        <div className="text-xs text-destructive mt-1 truncate">
+                          {bot.errorMessage.slice(0, 30)}...
+                        </div>
+                      )}
+                    </div>
                   ))
                 )}
               </div>
             </ScrollArea>
           </div>
 
-          {/* Center Panel - Minimap */}
-          <div className="col-span-5 h-full">
+          {/* Center: Minimap takes priority */}
+          <div className="flex-1 min-h-[400px] lg:min-h-0">
             <Minimap
               bots={botArray}
               selectedBotId={selectedBotId}
@@ -138,9 +173,9 @@ export default function Dashboard() {
             />
           </div>
 
-          {/* Right Panel - Controls, Entities & Chat */}
-          <div className="col-span-4 h-full flex flex-col gap-3">
-            <div className="flex-1 min-h-0">
+          {/* Right sidebar: Controls and panels */}
+          <div className="lg:w-80 flex flex-col gap-3 shrink-0">
+            <div className="flex-1 min-h-[300px] lg:min-h-0">
               <BotControls
                 bot={selectedBot}
                 onCommand={(cmd) => {
@@ -151,7 +186,7 @@ export default function Dashboard() {
               />
             </div>
             {selectedBot && (
-              <div className="h-48">
+              <div className="h-48 shrink-0">
                 <EntityPanel
                   entities={selectedBot.nearbyEntities || []}
                   onAttack={(entityId) => {
@@ -163,17 +198,16 @@ export default function Dashboard() {
                 />
               </div>
             )}
-            <div className="h-48">
+            <div className="h-48 shrink-0">
               <ChatPanel messages={chatMessages} botNames={botNameMap} />
             </div>
           </div>
         </div>
       </main>
 
-      {/* Footer */}
       <footer className="border-t border-border bg-card/30 py-3">
         <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
-          Bot Orchestrator v1.0.0 | Server: mcpanel.blockwarriors.ai:25565
+          Bot Orchestrator v1.0.0 | Server: {serverConfig.host}:{serverConfig.port}
         </div>
       </footer>
     </div>

@@ -438,8 +438,8 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <CardHeader className="pb-2">
+    <Card className="h-full flex flex-col overflow-hidden">
+      <CardHeader className="pb-2 shrink-0">
         <div className="flex items-center justify-between">
           <CardTitle className="text-lg">World Map</CardTitle>
           <div className="flex items-center gap-1">
@@ -493,7 +493,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
           </div>
         </div>
       </CardHeader>
-      <CardContent className="flex-1 p-2">
+      <CardContent className="flex-1 p-2 min-h-0 overflow-hidden">
         <div className="relative w-full h-full min-h-[300px] rounded-lg overflow-hidden border border-border">
           <canvas
             ref={canvasRef}

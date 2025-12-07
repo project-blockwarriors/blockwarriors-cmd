@@ -10,8 +10,8 @@ import type {
   NearbyEntity,
 } from "@/types/bot";
 
-const SERVER_HOST = "mcpanel.blockwarriors.ai";
-const SERVER_PORT = 25565;
+const DEFAULT_SERVER_HOST = "mcpanel.blockwarriors.ai";
+const DEFAULT_SERVER_PORT = 25565;
 
 interface ManagedBot {
   bot: Bot;
@@ -51,7 +51,7 @@ class BotManager {
     this.onBotError = onError;
   }
 
-  async createBot(id: string, ign: string, token: string): Promise<BotState> {
+  async createBot(id: string, ign: string, token: string, host?: string, port?: number): Promise<BotState> {
     if (this.bots.has(id)) {
       throw new Error(`Bot with id ${id} already exists`);
     }
@@ -70,11 +70,14 @@ class BotManager {
     };
 
     const bot = mineflayer.createBot({
-      host: SERVER_HOST,
-      port: SERVER_PORT,
+      host: host || DEFAULT_SERVER_HOST,
+      port: port || DEFAULT_SERVER_PORT,
       username: ign,
       version: "1.20.6",
       auth: "offline",
+      checkTimeoutInterval: 60000, // Increase timeout check interval to 60s
+      keepAlive: true,
+      hideErrors: false,
     });
 
     const managedBot: ManagedBot = { bot, state: initialState };
@@ -95,23 +98,33 @@ class BotManager {
         currentAction: "Logging in...",
       });
 
-      // Load pathfinder plugin
       bot.loadPlugin(pathfinder);
-      managedBot.movements = new Movements(bot);
+      const movements = new Movements(bot);
+      // Optimize movements for performance
+      movements.canDig = false; // Don't break blocks
+      movements.allowSprinting = true;
+      movements.allowParkour = false; // Disable parkour for stability
+      movements.maxDropDown = 4; // Limit fall distance
+      managedBot.movements = movements;
 
-      // Execute login command after short delay
       setTimeout(() => {
         bot.chat(`/login ${token}`);
         this.updateBotState(id, { currentAction: "Idle" });
       }, 1000);
 
-      // Start entity scanning
+      // Reduce entity scan frequency to ease CPU load
       managedBot.entityScanInterval = setInterval(() => {
         this.scanNearbyEntities(id, bot);
-      }, 1000);
+      }, 2000); // Changed from 1000ms to 2000ms
     });
 
+    // Throttle move updates to reduce network/CPU load
+    let lastMoveUpdate = 0;
     bot.on("move", () => {
+      const now = Date.now();
+      if (now - lastMoveUpdate < 500) return; // Only update position every 500ms
+      lastMoveUpdate = now;
+
       const pos = bot.entity.position;
       const position: BotPosition = {
         x: pos.x,
@@ -158,18 +171,30 @@ class BotManager {
       if (this.onBotError) {
         this.onBotError(id, err.message);
       }
+
+      // Clean up the bot's interval
+      const managedBot = this.bots.get(id);
+      if (managedBot?.entityScanInterval) {
+        clearInterval(managedBot.entityScanInterval);
+      }
     });
 
     bot.on("kicked", (reason) => {
       const reasonStr =
         typeof reason === "string" ? reason : JSON.stringify(reason);
       this.updateBotState(id, {
-        status: "offline",
+        status: "error",
         errorMessage: `Kicked: ${reasonStr}`,
         currentAction: "Disconnected",
       });
       if (this.onBotError) {
         this.onBotError(id, `Kicked: ${reasonStr}`);
+      }
+
+      // Clean up the bot's interval
+      const managedBot = this.bots.get(id);
+      if (managedBot?.entityScanInterval) {
+        clearInterval(managedBot.entityScanInterval);
       }
     });
 
@@ -226,7 +251,7 @@ class BotManager {
       .filter((entity) => {
         if (!entity || entity === bot.entity) return false;
         const distance = entity.position.distanceTo(botPos);
-        return distance <= 32; // Within 32 blocks
+        return distance <= 32;
       })
       .map((entity) => {
         const distance = entity.position.distanceTo(botPos);
@@ -253,7 +278,7 @@ class BotManager {
         };
       })
       .sort((a, b) => a.distance - b.distance)
-      .slice(0, 20); // Limit to 20 nearest entities
+      .slice(0, 20);
 
     this.updateBotState(id, { nearbyEntities });
   }
@@ -291,8 +316,9 @@ class BotManager {
         const player = bot.players[playerName];
         if (player && player.entity && movements) {
           bot.pathfinder.setMovements(movements);
+          // Use larger follow range to reduce pathfinding recalculations
           bot.pathfinder.setGoal(
-            new goals.GoalFollow(player.entity, 2),
+            new goals.GoalFollow(player.entity, 3),
             true
           );
           this.updateBotState(id, {
@@ -342,7 +368,6 @@ class BotManager {
         const entityId = command.payload?.entityId as number;
         const entityTarget = bot.entities[entityId];
         if (entityTarget && movements) {
-          // Move towards and attack the entity
           bot.pathfinder.setMovements(movements);
           bot.pathfinder.setGoal(new goals.GoalFollow(entityTarget, 2), true);
 
@@ -351,7 +376,6 @@ class BotManager {
             currentAction: `Attacking ${entityName}`
           });
 
-          // Attack when in range
           const attackInterval = setInterval(() => {
             const currentEntity = bot.entities[entityId];
             if (!currentEntity || !bot.entity) {
@@ -367,7 +391,6 @@ class BotManager {
             }
           }, 500);
 
-          // Stop after 30 seconds max
           setTimeout(() => {
             clearInterval(attackInterval);
           }, 30000);
@@ -408,5 +431,4 @@ class BotManager {
   }
 }
 
-// Singleton instance
 export const botManager = new BotManager();
