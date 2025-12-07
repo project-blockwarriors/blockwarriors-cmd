@@ -109,7 +109,9 @@ class BotManager {
     const managedBot = this.bots.get(id);
     if (!managedBot) return;
 
-    managedBot.bot.pathfinder.stop();
+    if (managedBot.movements) {
+      managedBot.bot.pathfinder.stop();
+    }
     managedBot.bot.clearControlStates();
     this.clearAttackTimers(id);
     this.updateBotState(id, { currentAction: "Idle" });
