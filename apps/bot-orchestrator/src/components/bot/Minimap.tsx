@@ -33,6 +33,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   const [moveMode, setMoveMode] = useState(false);
   const [waypoint, setWaypoint] = useState<{ x: number; z: number } | null>(null);
   const [hoveredEntity, setHoveredEntity] = useState<number | null>(null);
+  const didDragRef = useRef(false);
 
   // Get canvas coordinates accounting for CSS scaling
   const getCanvasCoords = useCallback((e: React.MouseEvent) => {
@@ -293,6 +294,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX, z: e.clientY });
+    didDragRef.current = false; // Reset drag flag
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -300,6 +302,13 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     if (isDragging) {
       const dx = (e.clientX - dragStart.x) / scale;
       const dz = (e.clientY - dragStart.z) / scale;
+
+      // If we moved more than a small threshold, mark as dragged
+      const distMoved = Math.abs(dx) + Math.abs(dz);
+      if (distMoved > 0.5) {
+        didDragRef.current = true;
+      }
+
       setOffset((prev) => ({ x: prev.x + dx, z: prev.z + dz }));
       setDragStart({ x: e.clientX, z: e.clientY });
       return;
@@ -356,7 +365,11 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
   }, [bots, selectedBotId, offset, scale]);
 
   const handleClick = (e: React.MouseEvent) => {
-    if (isDragging) return;
+    // Don't process clicks after drag operations
+    if (didDragRef.current) {
+      didDragRef.current = false; // Reset for next interaction
+      return;
+    }
 
     const canvas = canvasRef.current;
     if (!canvas) return;
