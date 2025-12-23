@@ -260,6 +260,15 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
 
   }, [bots, selectedBotId, scale, offset, waypoint, moveMode]);
 
+  // Cleanup waypoint timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (waypointTimeoutRef.current) {
+        clearTimeout(waypointTimeoutRef.current);
+      }
+    };
+  }, []);
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? 0.9 : 1.1;
@@ -311,6 +320,29 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     return { x: worldX, z: worldZ };
   }, [scale, offset]);
 
+  // Move bot to a world position and show waypoint
+  const moveBotToPosition = useCallback((worldX: number, worldZ: number) => {
+    if (!selectedBotId || !onCommand) return;
+
+    const selectedBot = bots.find((b) => b.id === selectedBotId);
+    const y = selectedBot?.position?.y ?? 64;
+
+    setWaypoint({ x: worldX, z: worldZ });
+    onCommand(selectedBotId, {
+      type: "goto",
+      payload: { x: worldX, y, z: worldZ }
+    });
+
+    if (waypointTimeoutRef.current) {
+      clearTimeout(waypointTimeoutRef.current);
+    }
+
+    waypointTimeoutRef.current = setTimeout(() => {
+      setWaypoint(null);
+      waypointTimeoutRef.current = null;
+    }, 3000);
+  }, [selectedBotId, onCommand, bots]);
+
   // Check if mouse is over an entity
   const getEntityAtPosition = useCallback((canvasX: number, canvasY: number) => {
     const canvas = canvasRef.current;
@@ -355,23 +387,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
     if (moveMode && selectedBotId && onCommand) {
       const worldPos = screenToWorld(clickX, clickY);
       if (worldPos) {
-        const selectedBot = bots.find((b) => b.id === selectedBotId);
-        const y = selectedBot?.position?.y ?? 64;
-
-        setWaypoint({ x: worldPos.x, z: worldPos.z });
-        onCommand(selectedBotId, {
-          type: "goto",
-          payload: { x: worldPos.x, y, z: worldPos.z }
-        });
-
-        if (waypointTimeoutRef.current) {
-          clearTimeout(waypointTimeoutRef.current);
-        }
-
-        waypointTimeoutRef.current = setTimeout(() => {
-          setWaypoint(null);
-          waypointTimeoutRef.current = null;
-        }, 3000);
+        moveBotToPosition(worldPos.x, worldPos.z);
       }
       return;
     }
@@ -410,25 +426,7 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
 
     const worldPos = screenToWorld(coords.x, coords.y);
     if (worldPos) {
-      const selectedBot = bots.find((b) => b.id === selectedBotId);
-      const y = selectedBot?.position?.y ?? 64;
-
-      setWaypoint({ x: worldPos.x, z: worldPos.z });
-      onCommand(selectedBotId, {
-        type: "goto",
-        payload: { x: worldPos.x, y, z: worldPos.z }
-      });
-
-      // Clear any existing waypoint timeout
-      if (waypointTimeoutRef.current) {
-        clearTimeout(waypointTimeoutRef.current);
-      }
-
-      // Clear waypoint after 3 seconds
-      waypointTimeoutRef.current = setTimeout(() => {
-        setWaypoint(null);
-        waypointTimeoutRef.current = null;
-      }, 3000);
+      moveBotToPosition(worldPos.x, worldPos.z);
     }
   };
 

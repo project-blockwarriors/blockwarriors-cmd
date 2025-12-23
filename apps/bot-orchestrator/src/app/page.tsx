@@ -31,7 +31,8 @@ export default function Dashboard() {
 
   useEffect(() => {
     initSocket();
-  }, [initSocket]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const botArray = Array.from(bots.values());
   const selectedBot = selectedBotId ? bots.get(selectedBotId) || null : null;

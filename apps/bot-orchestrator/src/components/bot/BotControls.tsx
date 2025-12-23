@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,11 +31,36 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
   const [isSneaking, setIsSneaking] = useState(false);
   const [isSprinting, setIsSprinting] = useState(false);
 
-  // Reset sneak/sprint state when bot changes
+  // Track previous bot ID, states, and command for cleanup
+  const prevBotIdRef = useRef<string | null>(null);
+  const prevSneakingRef = useRef(false);
+  const prevSprintingRef = useRef(false);
+  const prevCommandRef = useRef(onCommand);
+
+  // Send stop commands when switching away from a bot, then update refs
   useEffect(() => {
-    setIsSneaking(false);
-    setIsSprinting(false);
-  }, [bot?.id]);
+    const currentBotId = bot?.id || null;
+
+    // Only send cleanup commands if we're switching from one bot to another
+    if (prevBotIdRef.current && prevBotIdRef.current !== currentBotId) {
+      // Use the previous command ref and previous states (before updating refs)
+      if (prevSneakingRef.current) {
+        prevCommandRef.current({ type: "sneak", payload: { enabled: false } });
+      }
+      if (prevSprintingRef.current) {
+        prevCommandRef.current({ type: "sprint", payload: { enabled: false } });
+      }
+      // Reset UI state when switching bots
+      setIsSneaking(false);
+      setIsSprinting(false);
+    }
+
+    // Update ALL refs AFTER cleanup (order matters!)
+    prevBotIdRef.current = currentBotId;
+    prevSneakingRef.current = isSneaking;
+    prevSprintingRef.current = isSprinting;
+    prevCommandRef.current = onCommand;
+  }, [bot?.id, isSneaking, isSprinting, onCommand]);
 
   if (!bot) {
     return (

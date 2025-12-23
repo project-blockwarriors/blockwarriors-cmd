@@ -128,8 +128,22 @@ class BotManager {
 
     if (managedBot.entityScanInterval) {
       clearInterval(managedBot.entityScanInterval);
+      managedBot.entityScanInterval = undefined;
     }
     this.clearAttackTimers(id);
+  }
+
+  private removeBotListeners(bot: Bot): void {
+    bot.removeAllListeners('spawn');
+    bot.removeAllListeners('move');
+    bot.removeAllListeners('health');
+    bot.removeAllListeners('playerCollect');
+    bot.removeAllListeners('message');
+    bot.removeAllListeners('chat');
+    bot.removeAllListeners('error');
+    bot.removeAllListeners('kicked');
+    bot.removeAllListeners('end');
+    bot.removeAllListeners('death');
   }
 
   private setupBotListeners(id: string, bot: Bot, token: string) {
@@ -152,6 +166,7 @@ class BotManager {
       managedBot.movements = movements;
 
       setTimeout(() => {
+        if (!this.bots.has(id)) return;
         bot.chat(`/login ${token}`);
         this.updateBotState(id, { currentAction: "Idle" });
       }, 1000);
@@ -165,6 +180,8 @@ class BotManager {
     // Throttle move updates to reduce network/CPU load
     let lastMoveUpdate = 0;
     bot.on("move", () => {
+      if (!bot.entity) return;
+
       const now = Date.now();
       if (now - lastMoveUpdate < 500) return; // Only update position every 500ms
       lastMoveUpdate = now;
@@ -243,7 +260,7 @@ class BotManager {
     bot.on("death", () => {
       this.updateBotState(id, { currentAction: "Dead - Respawning..." });
       setTimeout(() => {
-        if (bot.entity) {
+        if (this.bots.has(id) && bot.entity) {
           this.updateBotState(id, { currentAction: "Idle" });
         }
       }, 3000);
@@ -368,7 +385,11 @@ class BotManager {
 
       case "jump":
         bot.setControlState("jump", true);
-        setTimeout(() => bot.setControlState("jump", false), 500);
+        setTimeout(() => {
+          if (this.bots.has(id)) {
+            bot.setControlState("jump", false);
+          }
+        }, 500);
         break;
 
       case "sneak":
@@ -388,19 +409,25 @@ class BotManager {
 
       case "attack":
         const target = bot.nearestEntity();
-        if (target) {
-          bot.attack(target);
-          this.updateBotState(id, { currentAction: "Attacking" });
+        if (!target) {
+          this.updateBotState(id, { currentAction: "No target in range" });
+          return;
         }
+        bot.attack(target);
+        this.updateBotState(id, { currentAction: "Attacking" });
         break;
 
       case "attack_entity":
         const entityId = command.payload?.entityId as number;
         const entityTarget = bot.entities[entityId];
-        if (entityTarget && movements) {
+        if (!entityTarget) {
+          this.updateBotState(id, { currentAction: "Entity no longer exists" });
+          return;
+        }
+        if (movements) {
           this.clearAttackTimers(id);
 
-          const sessionId = Date.now();
+          const sessionId = Math.random();
           managedBot.attackSessionId = sessionId;
 
           bot.pathfinder.setMovements(movements);
@@ -452,6 +479,7 @@ class BotManager {
     if (!managedBot) return false;
 
     this.cleanupBotIntervals(id);
+    this.removeBotListeners(managedBot.bot);
     managedBot.bot.quit();
     this.bots.delete(id);
     return true;
