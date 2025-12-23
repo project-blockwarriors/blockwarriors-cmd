@@ -53,9 +53,9 @@ export function CreateBotModal({ onCreateBot }: CreateBotModalProps) {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Bot
+        <Button size="sm" className="px-2 sm:px-3">
+          <Plus className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Add Bot</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

@@ -41,35 +41,35 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen flex flex-col">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-princeton/10 rounded-lg">
-              <Bot className="h-6 w-6 text-princeton" />
+        <div className="container mx-auto px-4 h-14 sm:h-16 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="p-1.5 sm:p-2 bg-princeton/10 rounded-lg shrink-0">
+              <Bot className="h-5 w-5 sm:h-6 sm:w-6 text-princeton" />
             </div>
-            <div>
-              <h1 className="text-xl font-semibold">Bot Orchestrator</h1>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-xl font-semibold truncate">Bot Orchestrator</h1>
+              <p className="text-xs text-muted-foreground hidden sm:block">
                 BlockWarriors Debug Tool
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 sm:gap-4 shrink-0">
+            <div className="flex items-center gap-1 sm:gap-2 text-sm">
               {isConnected ? (
                 <>
                   <Wifi className="h-4 w-4 text-status-online" />
-                  <span className="text-status-online">Connected</span>
+                  <span className="text-status-online hidden sm:inline">Connected</span>
                 </>
               ) : (
                 <>
                   <WifiOff className="h-4 w-4 text-status-offline" />
-                  <span className="text-status-offline">Disconnected</span>
+                  <span className="text-status-offline hidden sm:inline">Disconnected</span>
                 </>
               )}
             </div>
 
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-muted-foreground hidden md:block">
               {botArray.length} bot{botArray.length !== 1 ? "s" : ""} active
             </div>
 
@@ -95,12 +95,12 @@ export default function Dashboard() {
         </div>
       )}
 
-      <main className="flex-1 container mx-auto px-4 py-6">
-        <div className="flex flex-col lg:flex-row gap-4 h-[calc(100vh-12rem)]">
+      <main className="flex-1 container mx-auto px-2 sm:px-4 py-4 sm:py-6">
+        <div className="flex flex-col lg:flex-row gap-3 sm:gap-4 h-auto lg:h-[calc(100vh-12rem)]">
           {/* Left sidebar: Compact bot list */}
           <div className="lg:w-56 flex flex-col shrink-0">
-            <h2 className="text-lg font-medium mb-4 flex items-center gap-2 shrink-0">
-              <Bot className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-base sm:text-lg font-medium mb-3 sm:mb-4 flex items-center gap-2 shrink-0">
+              <Bot className="h-4 w-4 sm:h-5 sm:w-5 text-muted-foreground" />
               Bots
             </h2>
             <ScrollArea className="flex-1 min-h-0">
@@ -165,7 +165,7 @@ export default function Dashboard() {
           </div>
 
           {/* Center: Minimap takes priority */}
-          <div className="flex-1 min-h-[400px] lg:min-h-0">
+          <div className="flex-1 min-h-[250px] sm:min-h-[400px] lg:min-h-0">
             <Minimap
               bots={botArray}
               selectedBotId={selectedBotId}
@@ -175,8 +175,8 @@ export default function Dashboard() {
           </div>
 
           {/* Right sidebar: Controls and panels */}
-          <div className="lg:w-80 flex flex-col gap-3 shrink-0">
-            <div className="flex-1 min-h-[300px] lg:min-h-0">
+          <div className="lg:w-80 flex flex-col gap-2 sm:gap-3 shrink-0">
+            <div className="flex-1 min-h-[200px] sm:min-h-[300px] lg:min-h-0">
               <BotControls
                 bot={selectedBot}
                 onCommand={(cmd) => {
@@ -187,7 +187,7 @@ export default function Dashboard() {
               />
             </div>
             {selectedBot && (
-              <div className="h-48 shrink-0">
+              <div className="h-36 sm:h-48 shrink-0">
                 <EntityPanel
                   entities={selectedBot.nearbyEntities || []}
                   onAttack={(entityId) => {
@@ -199,16 +199,17 @@ export default function Dashboard() {
                 />
               </div>
             )}
-            <div className="h-48 shrink-0">
+            <div className="h-36 sm:h-48 shrink-0">
               <ChatPanel messages={chatMessages} botNames={botNameMap} />
             </div>
           </div>
         </div>
       </main>
 
-      <footer className="border-t border-border bg-card/30 py-3">
-        <div className="container mx-auto px-4 text-center text-xs text-muted-foreground">
-          Bot Orchestrator v1.0.0 | Server: {serverConfig.host}:{serverConfig.port}
+      <footer className="border-t border-border bg-card/30 py-2 sm:py-3">
+        <div className="container mx-auto px-2 sm:px-4 text-center text-[10px] sm:text-xs text-muted-foreground">
+          <span className="hidden sm:inline">Bot Orchestrator v1.0.0 | </span>
+          <span>Server: {serverConfig.host}:{serverConfig.port}</span>
         </div>
       </footer>
     </div>

@@ -432,54 +432,56 @@ export function Minimap({ bots, selectedBotId, onSelectBot, onCommand }: Minimap
 
   return (
     <Card className="h-full flex flex-col overflow-hidden">
-      <CardHeader className="pb-2 shrink-0">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg">World Map</CardTitle>
-          <div className="flex items-center gap-1">
+      <CardHeader className="pb-2 shrink-0 px-3 sm:px-6">
+        <div className="flex items-center justify-between gap-2">
+          <CardTitle className="text-base sm:text-lg shrink-0">World Map</CardTitle>
+          <div className="flex items-center gap-0.5 sm:gap-1 flex-wrap justify-end">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               onClick={() => setScale((s) => Math.min(10, s * 1.2))}
+              title="Zoom in"
             >
-              <ZoomIn className="h-4 w-4" />
+              <ZoomIn className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               onClick={() => setScale((s) => Math.max(0.1, s * 0.8))}
+              title="Zoom out"
             >
-              <ZoomOut className="h-4 w-4" />
+              <ZoomOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 sm:h-8 sm:w-8"
               onClick={centerOnBots}
               title="Center on all bots"
             >
-              <Maximize2 className="h-4 w-4" />
+              <Maximize2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
             </Button>
             {selectedBotId && (
               <>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 sm:h-8 sm:w-8"
                   onClick={centerOnSelected}
                   title="Center on selected"
                 >
-                  <Target className="h-4 w-4" />
+                  <Target className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                 </Button>
                 <Button
                   variant={moveMode ? "default" : "ghost"}
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-7 w-7 sm:h-8 sm:w-8"
                   onClick={() => setMoveMode(!moveMode)}
                   title={moveMode ? "Exit move mode" : "Enter move mode (click to move)"}
                 >
-                  {moveMode ? <MousePointer className="h-4 w-4" /> : <Move className="h-4 w-4" />}
+                  {moveMode ? <MousePointer className="h-3.5 w-3.5 sm:h-4 sm:w-4" /> : <Move className="h-3.5 w-3.5 sm:h-4 sm:w-4" />}
                 </Button>
               </>
             )}

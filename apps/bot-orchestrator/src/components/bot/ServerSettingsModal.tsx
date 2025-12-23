@@ -48,9 +48,9 @@ export function ServerSettingsModal() {
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Settings className="h-4 w-4 mr-2" />
-          Server Settings
+        <Button variant="outline" size="sm" className="px-2 sm:px-3">
+          <Settings className="h-4 w-4 sm:mr-2" />
+          <span className="hidden sm:inline">Server</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">

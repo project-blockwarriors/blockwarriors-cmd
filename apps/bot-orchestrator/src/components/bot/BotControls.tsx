@@ -14,7 +14,6 @@ import {
   MessageSquare,
   Space,
   Eye,
-  Swords,
   Footprints,
 } from "lucide-react";
 
@@ -133,51 +132,42 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
               <h4 className="text-sm font-medium text-muted-foreground">
                 Quick Actions
               </h4>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="grid grid-cols-4 gap-1.5">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onCommand({ type: "stop" })}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center p-0 h-8 w-full"
+                  title="Stop"
                 >
-                  <StopCircle className="h-3 w-3" />
-                  Stop
+                  <StopCircle className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => onCommand({ type: "jump" })}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center p-0 h-8 w-full"
+                  title="Jump"
                 >
-                  <Space className="h-3 w-3" />
-                  Jump
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onCommand({ type: "attack" })}
-                  className="flex items-center gap-1"
-                >
-                  <Swords className="h-3 w-3" />
-                  Attack
+                  <Space className="h-4 w-4" />
                 </Button>
                 <Button
                   variant={isSneaking ? "default" : "outline"}
                   size="sm"
                   onClick={toggleSneak}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center p-0 h-8 w-full"
+                  title="Sneak"
                 >
-                  <Eye className="h-3 w-3" />
-                  Sneak
+                  <Eye className="h-4 w-4" />
                 </Button>
                 <Button
                   variant={isSprinting ? "default" : "outline"}
                   size="sm"
                   onClick={toggleSprint}
-                  className="flex items-center gap-1"
+                  className="flex items-center justify-center p-0 h-8 w-full"
+                  title="Sprint"
                 >
-                  <Footprints className="h-3 w-3" />
-                  Sprint
+                  <Footprints className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -187,7 +177,7 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
               <h4 className="text-sm font-medium text-muted-foreground">
                 Navigate To
               </h4>
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2">
                 <Input
                   type="number"
                   placeholder="X"
@@ -195,7 +185,7 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
                   onChange={(e) =>
                     setGotoCoords({ ...gotoCoords, x: e.target.value })
                   }
-                  className="w-20"
+                  className="flex-1 min-w-0"
                 />
                 <Input
                   type="number"
@@ -204,7 +194,7 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
                   onChange={(e) =>
                     setGotoCoords({ ...gotoCoords, y: e.target.value })
                   }
-                  className="w-20"
+                  className="flex-1 min-w-0"
                 />
                 <Input
                   type="number"
@@ -213,7 +203,7 @@ export function BotControls({ bot, onCommand }: BotControlsProps) {
                   onChange={(e) =>
                     setGotoCoords({ ...gotoCoords, z: e.target.value })
                   }
-                  className="w-20"
+                  className="flex-1 min-w-0"
                 />
                 <Button
                   variant="default"
