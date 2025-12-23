@@ -127,4 +127,7 @@ app.prepare().then(() => {
   httpServer.listen(port, () => {
     console.log(`> Bot Orchestrator ready on http://${hostname}:${port}`);
   });
+}).catch((error) => {
+  console.error("Failed to prepare Next.js app:", error);
+  process.exit(1);
 });
