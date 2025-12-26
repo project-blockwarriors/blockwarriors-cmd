@@ -12,6 +12,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import ai.blockwarriors.beacon.util.ApiResponseParser;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -210,7 +212,15 @@ public class MatchTelemetryService {
             }
             reader.close();
 
-            JSONObject matchData = new JSONObject(response.toString());
+            // Parse with standardized format using ApiResponseParser
+            ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(
+                response.toString(), "Get match status for " + matchId);
+            
+            if (!result.isSuccess()) {
+                return null;
+            }
+            
+            JSONObject matchData = result.getData();
             return matchData.optString("match_status", null);
         } catch (Exception e) {
             LOGGER.warning("Error getting match status for " + matchId + ": " + e.getMessage());

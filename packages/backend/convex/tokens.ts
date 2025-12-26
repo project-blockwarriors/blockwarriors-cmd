@@ -166,6 +166,54 @@ export const markTokenAsUsed = mutation({
   },
 });
 
+// Clear token usage when a player disconnects before match starts
+// Only clears if match is in "Waiting" status - Convex handles the status check
+// This allows the token to be reused by the same player or another player
+export const clearTokenUsage = mutation({
+  args: {
+    playerId: v.string(), // Minecraft UUID
+    matchId: v.id("matches"),
+  },
+  handler: async (ctx, args) => {
+    // Get the match and check status
+    const match = await ctx.db.get(args.matchId);
+    if (!match) {
+      return { success: false, error: "Match not found" };
+    }
+
+    // Only clear tokens if match is in "Waiting" status
+    if (match.match_status !== "Waiting") {
+      return {
+        success: false,
+        error: `Cannot clear token: match is in ${match.match_status} status`,
+      };
+    }
+
+    // Find the token used by this player in this match
+    const tokens = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .collect();
+
+    const playerToken = tokens.find((t) => t.user_id === args.playerId);
+
+    if (!playerToken) {
+      return {
+        success: false,
+        error: "No token found for player in this match",
+      };
+    }
+
+    // Clear the user_id and ign so token can be reused
+    await ctx.db.patch(playerToken._id, {
+      user_id: undefined,
+      ign: undefined,
+    });
+
+    return { success: true };
+  },
+});
+
 // Deactivate all tokens for a match
 // Called when a match ends (Finished or Terminated)
 export const deactivateMatchTokens = mutation({

@@ -1,0 +1,38 @@
+{
+  "gameTypes": {
+    "pvp": {
+      "id": "pvp",
+      "name": "Normal PvP",
+      "description": "Classic player versus player combat",
+      "tokensPerTeam": 1,
+      "players": "1v1"
+    },
+    "bedwars": {
+      "id": "bedwars",
+      "name": "Bed Wars",
+      "description": "Protect your bed and destroy others",
+      "tokensPerTeam": 4,
+      "players": "4v4"
+    },
+    "ctf": {
+      "id": "ctf",
+      "name": "Capture the Flag",
+      "description": "Strategic team-based gameplay",
+      "tokensPerTeam": 5,
+      "players": "5v5"
+    }
+  },
+  "matchStatuses": ["Queuing", "Waiting", "Playing", "Finished", "Terminated"],
+  "matchModes": {
+    "practice": {
+      "id": "practice",
+      "name": "Practice",
+      "description": "Casual matches for testing and learning"
+    },
+    "ranked": {
+      "id": "ranked",
+      "name": "Ranked",
+      "description": "Competitive matches that affect team ELO"
+    }
+  }
+}

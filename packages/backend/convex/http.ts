@@ -7,6 +7,42 @@ import { Id } from "./_generated/dataModel";
 const http = httpRouter();
 
 /**
+ * Standardized API Response Format
+ * 
+ * All responses follow the format:
+ * - Success: { success: true, data: T }
+ * - Error:   { success: false, error: string }
+ * 
+ * This ensures consistent handling across all clients (Next.js, Beacon plugin, etc.)
+ */
+
+/**
+ * Create a success response with the standardized format
+ */
+function successResponse<T>(data: T, status = 200): Response {
+  return new Response(
+    JSON.stringify({ success: true, data }),
+    {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
+
+/**
+ * Create an error response with the standardized format
+ */
+function errorResponse(error: string, status = 400): Response {
+  return new Response(
+    JSON.stringify({ success: false, error }),
+    {
+      status,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
+}
+
+/**
  * Verify bearer token for server-to-server authentication (Minecraft beacon <-> Convex)
  * Returns true if the token is valid, false otherwise.
  */
@@ -22,17 +58,12 @@ function verifyBearerToken(request: Request): boolean {
  * Helper to return 401 Unauthorized response
  */
 function unauthorizedResponse(): Response {
-  return new Response(
-    JSON.stringify({ error: "Unauthorized. Invalid or missing bearer token." }),
-    {
-      status: 401,
-      headers: { "Content-Type": "application/json" },
-    }
-  );
+  return errorResponse("Unauthorized. Invalid or missing bearer token.", 401);
 }
 
 authComponent.registerRoutes(http, createAuth);
 
+// GET /hello - Health check endpoint
 http.route({
   path: "/hello",
   method: "GET",
@@ -53,45 +84,21 @@ http.route({
     // Get authenticated user
     const user = await authComponent.getAuthUser(ctx);
     if (!user) {
-      return new Response(
-        JSON.stringify({
-          error: "Not authenticated. Please log in to create a match.",
-        }),
-        {
-          status: 401,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse("Not authenticated. Please log in to create a match.", 401);
     }
 
     let body: any;
     try {
       body = await request.json();
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid JSON in request body",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse("Invalid JSON in request body");
     }
 
     const { match_type, mode } = body;
 
     // Validate required fields
     if (!match_type || !mode) {
-      return new Response(
-        JSON.stringify({
-          error: "Missing required fields: match_type, mode",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse("Missing required fields: match_type, mode");
     }
 
     try {
@@ -119,32 +126,14 @@ http.route({
       });
 
       if (!match) {
-        return new Response(
-          JSON.stringify({ error: "Failed to retrieve created match" }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse("Failed to retrieve created match", 500);
       }
 
-      return new Response(JSON.stringify(match), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(match);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-
-      return new Response(
-        JSON.stringify({
-          error: `Failed to create match: ${errorMessage}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(`Failed to create match: ${errorMessage}`, 500);
     }
   }),
 });
@@ -169,16 +158,10 @@ http.route({
         });
 
         if (!match) {
-          return new Response(JSON.stringify({ error: "Match not found" }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          });
+          return errorResponse("Match not found", 404);
         }
 
-        return new Response(JSON.stringify(match), {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        });
+        return successResponse(match);
       } catch (error) {
         // Handle invalid ID format - return 404 instead of 500
         const errorMessage =
@@ -190,21 +173,10 @@ http.route({
           (error instanceof Error && error.name === "ArgumentValidationError");
 
         if (isValidationError) {
-          return new Response(JSON.stringify({ error: "Match not found" }), {
-            status: 404,
-            headers: { "Content-Type": "application/json" },
-          });
+          return errorResponse("Match not found", 404);
         }
 
-        return new Response(
-          JSON.stringify({
-            error: `Failed to get match: ${errorMessage}`,
-          }),
-          {
-            status: 500,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse(`Failed to get match: ${errorMessage}`, 500);
       }
     }
 
@@ -214,23 +186,11 @@ http.route({
         status: status || undefined,
       });
 
-      return new Response(JSON.stringify(matches), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(matches);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-
-      return new Response(
-        JSON.stringify({
-          error: `Failed to list matches: ${errorMessage}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(`Failed to list matches: ${errorMessage}`, 500);
     }
   }),
 });
@@ -251,30 +211,14 @@ http.route({
     try {
       body = await request.json();
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: "Invalid JSON in request body",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse("Invalid JSON in request body");
     }
 
     const { match_id } = body;
 
     // Validate required fields
     if (!match_id) {
-      return new Response(
-        JSON.stringify({
-          error: "Missing required field: match_id",
-        }),
-        {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse("Missing required field: match_id");
     }
 
     try {
@@ -287,10 +231,7 @@ http.route({
         }
       );
 
-      return new Response(JSON.stringify(result), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -300,21 +241,10 @@ http.route({
         errorMessage.includes("Match not found") ||
         errorMessage.includes("not in Queuing status")
       ) {
-        return new Response(JSON.stringify({ error: errorMessage }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return errorResponse(errorMessage);
       }
 
-      return new Response(
-        JSON.stringify({
-          error: `Failed to acknowledge match: ${errorMessage}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(`Failed to acknowledge match: ${errorMessage}`, 500);
     }
   }),
 });
@@ -331,38 +261,31 @@ http.route({
       return unauthorizedResponse();
     }
 
+    let body: any;
     try {
-      const body = await request.json();
-      const { match_id, match_status, match_state, winner_player_id } = body;
+      body = await request.json();
+    } catch (error) {
+      return errorResponse("Invalid JSON in request body");
+    }
 
-      if (!match_id) {
-        return new Response(
-          JSON.stringify({ error: "Missing match_id in request body" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
+    const { match_id, match_status, match_state, winner_player_id } = body;
 
-      // At least one field must be provided
-      if (
-        match_status === undefined &&
-        match_state === undefined &&
-        winner_player_id === undefined
-      ) {
-        return new Response(
-          JSON.stringify({
-            error:
-              "Must provide at least one of: match_status, match_state, winner_player_id",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
+    if (!match_id) {
+      return errorResponse("Missing match_id in request body");
+    }
 
+    // At least one field must be provided
+    if (
+      match_status === undefined &&
+      match_state === undefined &&
+      winner_player_id === undefined
+    ) {
+      return errorResponse(
+        "Must provide at least one of: match_status, match_state, winner_player_id"
+      );
+    }
+
+    try {
       // Update match
       await ctx.runMutation(api.matches.updateMatch, {
         matchId: match_id as Id<"matches">,
@@ -377,16 +300,10 @@ http.route({
       });
 
       if (!match) {
-        return new Response(JSON.stringify({ error: "Match not found" }), {
-          status: 404,
-          headers: { "Content-Type": "application/json" },
-        });
+        return errorResponse("Match not found", 404);
       }
 
-      return new Response(JSON.stringify(match), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(match);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -396,26 +313,15 @@ http.route({
         errorMessage.includes("Invalid status transition") ||
         errorMessage.includes("Match not found")
       ) {
-        return new Response(JSON.stringify({ error: errorMessage }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
+        return errorResponse(errorMessage);
       }
 
-      return new Response(
-        JSON.stringify({
-          error: `Failed to update match: ${errorMessage}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return errorResponse(`Failed to update match: ${errorMessage}`, 500);
     }
   }),
 });
 
-// GET /matches/{_id}/readiness - Check if match is ready (all tokens used)
+// GET /matches/readiness - Check if match is ready (all tokens used)
 http.route({
   path: "/matches/readiness",
   method: "GET",
@@ -430,38 +336,23 @@ http.route({
       const matchId = url.searchParams.get("match_id");
 
       if (!matchId) {
-        return new Response(
-          JSON.stringify({ error: "Missing match_id parameter" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse("Missing match_id parameter");
       }
 
       const readiness = await ctx.runQuery(api.tokens.checkMatchReadiness, {
         matchId: matchId as Id<"matches">,
       });
 
-      return new Response(JSON.stringify(readiness), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(readiness);
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: `Failed to check match readiness: ${error instanceof Error ? error.message : "Unknown error"}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to check match readiness: ${errorMessage}`, 500);
     }
   }),
 });
 
-// GET /matches/{_id}/tokens - Get all tokens for a match
+// GET /matches/tokens - Get all tokens for a match
 http.route({
   path: "/matches/tokens",
   method: "GET",
@@ -476,33 +367,18 @@ http.route({
       const matchId = url.searchParams.get("match_id");
 
       if (!matchId) {
-        return new Response(
-          JSON.stringify({ error: "Missing match_id parameter" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse("Missing match_id parameter");
       }
 
       const tokens = await ctx.runQuery(api.tokens.getTokensByMatchId, {
         matchId: matchId as Id<"matches">,
       });
 
-      return new Response(JSON.stringify(tokens), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      return successResponse(tokens);
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          error: `Failed to get tokens: ${error instanceof Error ? error.message : "Unknown error"}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to get tokens: ${errorMessage}`, 500);
     }
   }),
 });
@@ -517,24 +393,24 @@ http.route({
       return unauthorizedResponse();
     }
 
+    let body: any;
     try {
-      const body = await request.json();
-      const { token, playerId, ign } = body as {
-        token?: string;
-        playerId?: string;
-        ign?: string;
-      };
+      body = await request.json();
+    } catch (error) {
+      return errorResponse("Invalid JSON in request body");
+    }
 
-      if (!token || !playerId) {
-        return new Response(
-          JSON.stringify({ error: "Missing required fields: token, playerId" }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
-      }
+    const { token, playerId, ign } = body as {
+      token?: string;
+      playerId?: string;
+      ign?: string;
+    };
 
+    if (!token || !playerId) {
+      return errorResponse("Missing required fields: token, playerId");
+    }
+
+    try {
       // Log token for debugging (first 8 chars only for security)
       const tokenPreview =
         token.length > 8 ? token.substring(0, 8) + "..." : token;
@@ -548,16 +424,7 @@ http.route({
       });
 
       if (!validation || !validation.valid) {
-        return new Response(
-          JSON.stringify({
-            status: "bad",
-            error: validation?.error || "Token validation failed",
-          }),
-          {
-            status: 200,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse(validation?.error || "Token validation failed");
       }
 
       // Mark token as used
@@ -568,40 +435,62 @@ http.route({
       });
 
       if (!validation.matchId) {
-        return new Response(
-          JSON.stringify({
-            status: "bad",
-            error: "Match ID not found for token",
-          }),
-          {
-            status: 400,
-            headers: { "Content-Type": "application/json" },
-          }
-        );
+        return errorResponse("Match ID not found for token");
       }
 
-      return new Response(
-        JSON.stringify({
-          status: "ok",
-          matchId: validation.matchId.toString(),
-          gameTeamId: validation.gameTeamId?.toString(),
-        }),
-        {
-          status: 200,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      return successResponse({
+        matchId: validation.matchId.toString(),
+        gameTeamId: validation.gameTeamId?.toString(),
+      });
     } catch (error) {
-      return new Response(
-        JSON.stringify({
-          status: "bad",
-          error: `Failed to process login: ${error instanceof Error ? error.message : "Unknown error"}`,
-        }),
-        {
-          status: 500,
-          headers: { "Content-Type": "application/json" },
-        }
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to process login: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// POST /tokens/clear - Clear token usage when player disconnects before match starts
+// Only clears if match is in "Waiting" status - allows token to be reused
+http.route({
+  path: "/tokens/clear",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return errorResponse("Invalid JSON in request body");
+    }
+
+    const { player_id, match_id } = body;
+
+    if (!player_id || !match_id) {
+      return errorResponse("Missing required fields: player_id, match_id");
+    }
+
+    try {
+      const result = await ctx.runMutation(api.tokens.clearTokenUsage, {
+        playerId: player_id,
+        matchId: match_id as Id<"matches">,
+      });
+
+      if (!result.success) {
+        // Return the error but with 200 status - this is expected behavior
+        // (e.g., match is not in "Waiting" status)
+        return successResponse(result);
+      }
+
+      return successResponse(result);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to clear token: ${errorMessage}`, 500);
     }
   }),
 });

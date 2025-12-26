@@ -7,6 +7,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import ai.blockwarriors.beacon.constants.GameConfig;
+import ai.blockwarriors.beacon.util.ApiResponseParser;
 import ai.blockwarriors.commands.debug.CreateMatchCommand;
 
 import java.io.BufferedReader;
@@ -76,7 +78,7 @@ public class MatchPollingService {
                 String matchStatus = match.optString("match_status", "");
 
                 // Handle Queuing matches - need acknowledgment
-                if ("Queuing".equals(matchStatus)) {
+                if (GameConfig.STATUS_QUEUING.equals(matchStatus)) {
                     // Acknowledge the match - this generates tokens and updates status to "Waiting"
                     // Convex determines tokens_per_team from the match's match_type
                     if (!acknowledgeMatch(matchId)) {
@@ -85,12 +87,12 @@ public class MatchPollingService {
                     }
                     LOGGER.info("Acknowledged match " + matchId + " and generated tokens");
                     // After acknowledgment, status becomes "Waiting", so check readiness now
-                    matchStatus = "Waiting"; // Update status for immediate readiness check
+                    matchStatus = GameConfig.STATUS_WAITING; // Update status for immediate readiness check
                     // Fall through to check readiness
                 }
 
                 // Handle Waiting matches - check readiness and start if ready
-                if ("Waiting".equals(matchStatus)) {
+                if (GameConfig.STATUS_WAITING.equals(matchStatus)) {
                     // Check if match is ready (all tokens used)
                     JSONObject readiness = checkMatchReadiness(matchId);
 
@@ -133,7 +135,7 @@ public class MatchPollingService {
 
                 // Handle Playing matches - if website clicked Begin Game but match hasn't
                 // started yet
-                if ("Playing".equals(matchStatus)) {
+                if (GameConfig.STATUS_PLAYING.equals(matchStatus)) {
                     // Check if match has actually started (registered in MatchManager)
                     // If not, start it now
                     boolean matchStarted = false;
@@ -177,103 +179,40 @@ public class MatchPollingService {
     private List<JSONObject> fetchQueuedMatches() {
         List<JSONObject> allMatches = new ArrayList<>();
 
-        // Fetch Queuing matches (need acknowledgment)
-        try {
-            String urlString = convexSiteUrl + "/matches?status=Queuing";
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/json");
+        // Fetch matches for each status we care about
+        String[] statuses = { GameConfig.STATUS_QUEUING, GameConfig.STATUS_WAITING, GameConfig.STATUS_PLAYING };
+        
+        for (String status : statuses) {
+            try {
+                String urlString = convexSiteUrl + "/matches?status=" + status;
+                URL url = new URL(urlString);
+                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                conn.setRequestMethod("GET");
+                conn.setRequestProperty("Content-Type", "application/json");
 
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                JSONArray matchesArray;
-                try {
-                    matchesArray = new JSONArray(response.toString());
-                    for (int i = 0; i < matchesArray.length(); i++) {
-                        allMatches.add(matchesArray.getJSONObject(i));
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    BufferedReader reader = new BufferedReader(
+                            new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
                     }
-                } catch (JSONException e) {
-                    LOGGER.warning("Failed to parse Queuing matches JSON: " + e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.warning("Error fetching Queuing matches: " + e.getMessage());
-        }
+                    reader.close();
 
-        // Fetch Waiting matches (need readiness check)
-        try {
-            String urlString = convexSiteUrl + "/matches?status=Waiting";
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                JSONArray matchesArray;
-                try {
-                    matchesArray = new JSONArray(response.toString());
-                    for (int i = 0; i < matchesArray.length(); i++) {
-                        allMatches.add(matchesArray.getJSONObject(i));
+                    // Parse with standardized format
+                    ApiResponseParser.ArrayResult result = ApiResponseParser.parseArray(response.toString(), "Fetch " + status + " matches");
+                    if (result.isSuccess()) {
+                        JSONArray matchesArray = result.getData();
+                        for (int i = 0; i < matchesArray.length(); i++) {
+                            allMatches.add(matchesArray.getJSONObject(i));
+                        }
                     }
-                } catch (JSONException e) {
-                    LOGGER.warning("Failed to parse Waiting matches JSON: " + e.getMessage());
                 }
+            } catch (Exception e) {
+                LOGGER.warning("Error fetching " + status + " matches: " + e.getMessage());
             }
-        } catch (Exception e) {
-            LOGGER.warning("Error fetching Waiting matches: " + e.getMessage());
-        }
-
-        // Fetch Playing matches (may need to be started if website clicked Begin Game)
-        try {
-            String urlString = convexSiteUrl + "/matches?status=Playing";
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode == 200) {
-                BufferedReader reader = new BufferedReader(
-                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                reader.close();
-
-                JSONArray matchesArray;
-                try {
-                    matchesArray = new JSONArray(response.toString());
-                    for (int i = 0; i < matchesArray.length(); i++) {
-                        allMatches.add(matchesArray.getJSONObject(i));
-                    }
-                } catch (JSONException e) {
-                    LOGGER.warning("Failed to parse Playing matches JSON: " + e.getMessage());
-                }
-            }
-        } catch (Exception e) {
-            LOGGER.warning("Error fetching Playing matches: " + e.getMessage());
         }
 
         return allMatches;
@@ -328,14 +267,20 @@ public class MatchPollingService {
             }
             reader.close();
 
-            // Verify acknowledgment was successful
-            JSONObject result = new JSONObject(response.toString());
-            if (result.has("tokens")) {
-                LOGGER.info("Successfully acknowledged match " + matchId + " and generated tokens");
+            // Parse with standardized format
+            ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(response.toString(), "Acknowledge match " + matchId);
+            if (result.isSuccess()) {
+                JSONObject data = result.getData();
+                if (data != null && data.has("tokens")) {
+                    LOGGER.info("Successfully acknowledged match " + matchId + " and generated tokens");
+                } else {
+                    LOGGER.info("Acknowledged match " + matchId);
+                }
+                return true;
             } else {
-                LOGGER.warning("Acknowledgment response missing tokens for match " + matchId);
+                LOGGER.warning("Acknowledgment failed for match " + matchId + ": " + result.getError());
+                return false;
             }
-            return true;
         } catch (Exception e) {
             LOGGER.severe("Error acknowledging match " + matchId + ": " + e.getMessage());
             e.printStackTrace();
@@ -367,7 +312,9 @@ public class MatchPollingService {
             }
             reader.close();
 
-            return new JSONObject(response.toString());
+            // Parse with standardized format
+            ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(response.toString(), "Check match readiness " + matchId);
+            return result.isSuccess() ? result.getData() : null;
         } catch (Exception e) {
             LOGGER.severe("Error checking match readiness: " + e.getMessage());
             e.printStackTrace();
@@ -432,7 +379,21 @@ public class MatchPollingService {
                 errorReader.close();
                 LOGGER.warning("Error response: " + errorResponse.toString());
             } else {
-                LOGGER.info("Updated match " + matchId + " status to " + status);
+                // Read success response
+                BufferedReader reader = new BufferedReader(
+                        new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8));
+                StringBuilder response = new StringBuilder();
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    response.append(line);
+                }
+                reader.close();
+                
+                // Verify success with standardized format
+                ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(response.toString(), "Update match status " + matchId);
+                if (result.isSuccess()) {
+                    LOGGER.info("Updated match " + matchId + " status to " + status);
+                }
             }
         } catch (Exception e) {
             LOGGER.severe("Error updating match status: " + e.getMessage());
@@ -468,9 +429,14 @@ public class MatchPollingService {
             }
             reader.close();
 
-            JSONArray tokensArray = new JSONArray(response.toString());
+            // Parse with standardized format
+            ApiResponseParser.ArrayResult result = ApiResponseParser.parseArray(response.toString(), "Get players for match " + matchId);
+            if (!result.isSuccess()) {
+                return players;
+            }
 
             // For each token that has a user_id (playerId), find that player
+            JSONArray tokensArray = result.getData();
             for (int i = 0; i < tokensArray.length(); i++) {
                 JSONObject token = tokensArray.getJSONObject(i);
                 if (token.has("user_id") && !token.isNull("user_id")) {
@@ -591,7 +557,14 @@ public class MatchPollingService {
             }
             reader.close();
 
-            JSONArray tokensArray = new JSONArray(response.toString());
+            // Parse with standardized format
+            ApiResponseParser.ArrayResult tokensResult = ApiResponseParser.parseArray(response.toString(), "Get tokens for match " + matchId);
+            if (!tokensResult.isSuccess()) {
+                result.put("blue", blueTokens);
+                result.put("red", redTokens);
+                return result;
+            }
+            JSONArray tokensArray = tokensResult.getData();
 
             // Get match info to determine team assignments
             String matchUrlString = convexSiteUrl + "/matches?id=" + matchId;
@@ -611,9 +584,13 @@ public class MatchPollingService {
                 }
                 matchReader.close();
 
-                JSONObject match = new JSONObject(matchResponse.toString());
-                blueTeamId = match.getString("blue_team_id");
-                redTeamId = match.getString("red_team_id");
+                // Parse with standardized format
+                ApiResponseParser.ObjectResult matchResult = ApiResponseParser.parseObject(matchResponse.toString(), "Get match " + matchId);
+                if (matchResult.isSuccess()) {
+                    JSONObject match = matchResult.getData();
+                    blueTeamId = match.getString("blue_team_id");
+                    redTeamId = match.getString("red_team_id");
+                }
             }
 
             // Group tokens by team
@@ -665,9 +642,14 @@ public class MatchPollingService {
             }
             reader.close();
 
-            JSONArray tokensArray = new JSONArray(response.toString());
+            // Parse with standardized format
+            ApiResponseParser.ArrayResult result = ApiResponseParser.parseArray(response.toString(), "Get token mapping for match " + matchId);
+            if (!result.isSuccess()) {
+                return tokenToPlayerId;
+            }
 
             // Map token to playerId (user_id field)
+            JSONArray tokensArray = result.getData();
             for (int i = 0; i < tokensArray.length(); i++) {
                 JSONObject token = tokensArray.getJSONObject(i);
                 if (token.has("user_id") && !token.isNull("user_id")) {
@@ -706,8 +688,10 @@ public class MatchPollingService {
                     return;
                 }
 
-                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName() +
-                        " in world " + worldName);
+                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName());
+
+                // Update match status to "Playing"
+                updateMatchStatus(matchId, "Playing");
 
                 // Register match with match manager
                 if (matchManager != null) {

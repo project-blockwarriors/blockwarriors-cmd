@@ -10,8 +10,9 @@
     "deploy": "convex deploy",
     "test:http": "tsx test-http-routes.ts"
   },
-  "dependencies": {
+"dependencies": {
     "@convex-dev/better-auth": "^0.9.6",
+    "@packages/shared": "*",
     "convex": "^1.28.2"
   },
   "devDependencies": {

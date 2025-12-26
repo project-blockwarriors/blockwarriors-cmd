@@ -2,6 +2,11 @@ import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id, Doc } from "./_generated/dataModel";
 import { v4 as uuidv4 } from "uuid";
+import {
+  getTokensPerTeam,
+  isValidStatusTransition,
+  isTerminalStatus,
+} from "@packages/shared";
 
 // Create a new match
 export const createMatch = mutation({
@@ -114,26 +119,7 @@ export const getMatchWithTokens = query({
   },
 });
 
-// Valid match status values
-const VALID_STATUSES = [
-  "Queuing",
-  "Waiting",
-  "Playing",
-  "Finished",
-  "Terminated",
-] as const;
-
-// Validate status transition
-function isValidStatusTransition(
-  currentStatus: string,
-  newStatus: string
-): boolean {
-  // Can't go backwards from terminal states
-  if (currentStatus === "Finished" || currentStatus === "Terminated") {
-    return false;
-  }
-  return VALID_STATUSES.includes(newStatus as any);
-}
+// Note: MATCH_STATUSES and isValidStatusTransition are imported from @packages/shared
 
 // Update match status
 export const updateMatchStatus = mutation({
@@ -236,7 +222,7 @@ export const updateMatch = mutation({
 
     // Deactivate all tokens when match ends (Finished or Terminated)
     const newStatus = updates.match_status;
-    if (newStatus === "Finished" || newStatus === "Terminated") {
+    if (newStatus && isTerminalStatus(newStatus)) {
       for (const token of tokens) {
         if (token.is_active) {
           await ctx.db.patch(token._id, {
@@ -303,13 +289,8 @@ export const acknowledgeMatchAndGenerateTokens = mutation({
       );
     }
 
-    // Determine tokens per team from match_type (source of truth)
-    const tokensPerTeamMap: Record<string, number> = {
-      pvp: 1,
-      bedwars: 4,
-      ctf: 5,
-    };
-    const tokensPerTeam = tokensPerTeamMap[match.match_type] || 1;
+    // Determine tokens per team from match_type using shared config
+    const tokensPerTeam = getTokensPerTeam(match.match_type);
 
     if (tokensPerTeam < 1) {
       throw new Error(

@@ -28,6 +28,8 @@ public class Plugin extends JavaPlugin {
     private MatchPollingService matchPollingService;
     private MatchTelemetryService matchTelemetryService;
     private MatchManager matchManager;
+    private String convexSiteUrl;
+    private String convexHttpSecret;
 
     public Set<UUID> getBypassedPlayers() {
         return bypassedPlayers;
@@ -41,6 +43,14 @@ public class Plugin extends JavaPlugin {
         return matchManager;
     }
 
+    public String getConvexSiteUrl() {
+        return convexSiteUrl;
+    }
+
+    public String getConvexHttpSecret() {
+        return convexHttpSecret;
+    }
+
     @Override
     public void onEnable() {
         LOGGER.info("beacon enabled");
@@ -49,11 +59,11 @@ public class Plugin extends JavaPlugin {
         saveDefaultConfig();
 
         // Load Convex configuration from config.yml
-        String convexUrl = getConfig().getString("convex-site-url", "https://abundant-ferret-667.convex.site");
-        String convexHttpSecret = getConfig().getString("convex-http-secret", "");
+        convexSiteUrl = getConfig().getString("convex-site-url", "https://abundant-ferret-667.convex.site");
+        convexHttpSecret = getConfig().getString("convex-http-secret", "");
 
         // Allow environment variable override (useful for development)
-        convexUrl = System.getenv().getOrDefault("CONVEX_SITE_URL", convexUrl);
+        convexSiteUrl = System.getenv().getOrDefault("CONVEX_SITE_URL", convexSiteUrl);
         convexHttpSecret = System.getenv().getOrDefault("CONVEX_HTTP_SECRET", convexHttpSecret);
 
         if (convexHttpSecret.isEmpty() || convexHttpSecret.equals("your-secret-here")) {
@@ -61,16 +71,16 @@ public class Plugin extends JavaPlugin {
         }
 
         // Initialize match manager
-        matchManager = new MatchManager(this, convexUrl, convexHttpSecret);
+        matchManager = new MatchManager(this, convexSiteUrl, convexHttpSecret);
 
         // Initialize match telemetry service
-        matchTelemetryService = new MatchTelemetryService(this, convexUrl, convexHttpSecret);
+        matchTelemetryService = new MatchTelemetryService(this, convexSiteUrl, convexHttpSecret);
 
         // Link telemetry service to match manager
         matchManager.setTelemetryService(matchTelemetryService);
 
         // Initialize login command with Convex URL and secret
-        loginCommand = new LoginCommand(loggedInPlayers, convexUrl, convexHttpSecret);
+        loginCommand = new LoginCommand(loggedInPlayers, convexSiteUrl, convexHttpSecret);
 
         // Register command executors
         registerCommand("login", loginCommand);
@@ -86,10 +96,10 @@ public class Plugin extends JavaPlugin {
         getServer().getPluginManager().registerEvents(new ai.blockwarriors.events.WorldEventListener(), this);
 
         // Initialize and start match polling service
-        matchPollingService = new MatchPollingService(this, convexUrl, convexHttpSecret);
+        matchPollingService = new MatchPollingService(this, convexSiteUrl, convexHttpSecret);
         matchPollingService.setMatchManager(matchManager);
         matchPollingService.start();
-        LOGGER.info("MatchPollingService started with Convex URL: " + convexUrl);
+        LOGGER.info("MatchPollingService started with Convex URL: " + convexSiteUrl);
 
         // Start match telemetry service (already initialized above)
         matchTelemetryService.start();

@@ -12,11 +12,15 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
+
+import ai.blockwarriors.beacon.util.ApiResponseParser;
 
 public class LoginCommand implements CommandExecutor {
 
@@ -24,6 +28,9 @@ public class LoginCommand implements CommandExecutor {
     private final String convexSiteUrl;
     private final String convexHttpSecret;
     private static final Logger LOGGER = Logger.getLogger("beacon");
+    
+    // Track which match each player logged into (for token clearing on disconnect)
+    private final Map<UUID, String> playerMatchIds = new ConcurrentHashMap<>();
 
     public LoginCommand(Set<UUID> loggedInPlayersInput, String convexSiteUrl, String convexHttpSecret) {
         loggedInPlayers = loggedInPlayersInput;
@@ -102,19 +109,36 @@ public class LoginCommand implements CommandExecutor {
                     }
                     reader.close();
 
-                    JSONObject responseJson = new JSONObject(response.toString());
-                    String status = responseJson.getString("status");
+                    // Parse with standardized format using ApiResponseParser
+                    ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(
+                        response.toString(), "Validate token for " + player.getName());
+                    
+                    final boolean success = result.isSuccess();
+                    final String error = success ? null : result.getError();
+                    final String matchId;
+                    
+                    if (success) {
+                        JSONObject data = result.getData();
+                        matchId = data != null ? data.optString("matchId", null) : null;
+                    } else {
+                        matchId = null;
+                    }
 
                     // Handle response on main thread
                     new BukkitRunnable() {
                         @Override
                         public void run() {
-                            if (status.equals("ok")) {
-                                LOGGER.info("Successfully logged in player " + player.getName());
+                            if (success) {
+                                LOGGER.info("Successfully logged in player " + player.getName() + 
+                                    (matchId != null ? " for match " + matchId : ""));
                                 player.sendMessage("Successfully logged in.");
                                 loggedInPlayers.add(player.getUniqueId());
+                                
+                                // Track the match this player logged into
+                                if (matchId != null) {
+                                    playerMatchIds.put(player.getUniqueId(), matchId);
+                                }
                             } else {
-                                String error = responseJson.optString("error", "Invalid token");
                                 LOGGER.warning("Failed to log in player " + player.getName() + ": " + error);
                                 player.sendMessage("Failed to log in: " + error);
                                 player.kickPlayer("Failed to log in: " + error);
@@ -141,5 +165,14 @@ public class LoginCommand implements CommandExecutor {
 
     public void removeLoggedInPlayer(UUID playerUUID) {
         loggedInPlayers.remove(playerUUID);
+        playerMatchIds.remove(playerUUID);
+    }
+    
+    /**
+     * Get the match ID that a player logged into.
+     * Used for clearing tokens when player disconnects during "Waiting" status.
+     */
+    public String getMatchIdForPlayer(UUID playerUUID) {
+        return playerMatchIds.get(playerUUID);
     }
 }
