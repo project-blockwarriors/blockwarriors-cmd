@@ -34,6 +34,9 @@ public class CreateMatchCommand implements CommandExecutor {
             WorldCreator creator = new WorldCreator(worldName);
             creator.type(WorldType.FLAT);
             creator.generateStructures(false); // No structures like villages
+            // Specify flat world generator settings to avoid "No key layers" warning
+            // Format: minecraft:bedrock,2*minecraft:dirt,minecraft:grass_block;minecraft:plains
+            creator.generatorSettings("{\"layers\":[{\"block\":\"minecraft:bedrock\",\"height\":1},{\"block\":\"minecraft:stone\",\"height\":2},{\"block\":\"minecraft:grass_block\",\"height\":1}],\"biome\":\"minecraft:plains\"}");
             
             World world = creator.createWorld();
             
