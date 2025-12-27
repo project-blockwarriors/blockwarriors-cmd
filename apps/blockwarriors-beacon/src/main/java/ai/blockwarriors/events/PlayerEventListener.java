@@ -210,11 +210,9 @@ public class PlayerEventListener implements Listener {
                         JSONObject data = result.optJSONObject("data");
                         if (data != null && data.optBoolean("success", false)) {
                             LOGGER.info("Cleared token for player " + playerId + " in match " + matchId);
-                        } else {
-                            // Token not cleared (likely match not in "Waiting" status) - this is expected
-                            String error = data != null ? data.optString("error", "") : "";
-                            LOGGER.info("Token not cleared for player " + playerId + ": " + error);
                         }
+                        // If token wasn't cleared, it's expected (match not in "Waiting" status)
+                        // No need to log - this is normal for finished/playing matches
                     }
                 } else {
                     LOGGER.warning("Failed to clear token: HTTP " + responseCode);
