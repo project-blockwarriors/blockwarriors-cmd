@@ -6,40 +6,48 @@ import org.bukkit.Material;
 import org.bukkit.Statistic;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
+import ai.blockwarriors.beacon.util.ConvexClient;
+import ai.blockwarriors.beacon.util.ConvexResponseParser;
+
 import java.util.*;
 import java.util.logging.Logger;
 
 /**
- * Service that tracks player telemetry data for active matches and updates match state
- * Based on logic from warrior-telemetry plugin
+ * Service that tracks player telemetry data for active matches and updates match state.
+ * 
+ * API calls accept arrays to minimize Convex usage:
+ * - Fetch match statuses for all active matches
+ * - Update match states
  */
 public class MatchTelemetryService {
     private static final Logger LOGGER = Logger.getLogger("beacon");
-    private final JavaPlugin plugin;
-    private final String convexSiteUrl;
-    private final String convexHttpSecret;
-    private final Map<String, Set<UUID>> activeMatches = new HashMap<>(); // matchId -> Set of player UUIDs
-    private final Map<UUID, String> playerToMatch = new HashMap<>(); // player UUID -> matchId
-    private int taskId = -1;
     private static final long UPDATE_INTERVAL_TICKS = 20L; // Update every second (20 ticks)
+
+    /**
+     * Per-match tracking state.
+     */
+    private static class MatchState {
+        final Set<UUID> playerIds = new HashSet<>();
+        JSONObject finalTelemetry; // captured at moment of match end, sent on next update
+    }
+
+    private final JavaPlugin plugin;
+    private final ConvexClient convexClient;
+    private final Map<String, MatchState> matches = new HashMap<>();
+    private final Map<UUID, String> playerToMatch = new HashMap<>(); // reverse lookup
+    private int taskId = -1;
 
     public MatchTelemetryService(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
-        this.convexSiteUrl = convexSiteUrl;
-        this.convexHttpSecret = convexHttpSecret;
+        this.convexClient = new ConvexClient(convexSiteUrl, convexHttpSecret);
     }
+
+    // ==================== Lifecycle ====================
 
     public void start() {
         if (taskId != -1) {
@@ -47,14 +55,13 @@ public class MatchTelemetryService {
             return;
         }
 
-        LOGGER.info("Starting MatchTelemetryService with Convex URL: " + convexSiteUrl);
+        LOGGER.info("Starting MatchTelemetryService with Convex URL: " + convexClient.getBaseUrl());
 
-        // Run the telemetry update task periodically
         taskId = Bukkit.getScheduler().runTaskTimerAsynchronously(
-            plugin,
-            this::updateMatchStates,
-            0L, // Start immediately
-            UPDATE_INTERVAL_TICKS
+                plugin,
+                this::updateLoop,
+                0L,
+                UPDATE_INTERVAL_TICKS
         ).getTaskId();
     }
 
@@ -66,26 +73,28 @@ public class MatchTelemetryService {
         }
     }
 
+    // ==================== Player Registration ====================
+
     /**
-     * Register a player as being in a match
+     * Register a player as being in a match.
      */
     public void registerPlayerInMatch(UUID playerId, String matchId) {
-        activeMatches.computeIfAbsent(matchId, k -> new HashSet<>()).add(playerId);
+        matches.computeIfAbsent(matchId, k -> new MatchState()).playerIds.add(playerId);
         playerToMatch.put(playerId, matchId);
         LOGGER.info("Registered player " + playerId + " in match " + matchId);
     }
 
     /**
-     * Unregister a player from their match
+     * Unregister a player from their match.
      */
     public void unregisterPlayer(UUID playerId) {
         String matchId = playerToMatch.remove(playerId);
         if (matchId != null) {
-            Set<UUID> players = activeMatches.get(matchId);
-            if (players != null) {
-                players.remove(playerId);
-                if (players.isEmpty()) {
-                    activeMatches.remove(matchId);
+            MatchState state = matches.get(matchId);
+            if (state != null) {
+                state.playerIds.remove(playerId);
+                if (state.playerIds.isEmpty()) {
+                    matches.remove(matchId);
                 }
             }
             LOGGER.info("Unregistered player " + playerId + " from match " + matchId);
@@ -93,136 +102,151 @@ public class MatchTelemetryService {
     }
 
     /**
-     * Get the match ID for a player
+     * Get the match ID for a player.
      */
     public String getMatchIdForPlayer(UUID playerId) {
         return playerToMatch.get(playerId);
     }
 
     /**
-     * Check if a player is in an active match
+     * Check if a player is in an active match.
      */
     public boolean isPlayerInMatch(UUID playerId) {
         return playerToMatch.containsKey(playerId);
     }
 
+    // ==================== Main Update Loop ====================
+
     /**
-     * Send final match state update before match ends
-     * This should be called right before marking match as Finished
-     * @param deadPlayerId UUID of the player who died (to set health to 0)
+     * Main telemetry update loop.
+     * 
+     * Flow:
+     * 1. Fetch status for all active matches
+     * 2. Filter out finished/terminated matches
+     * 3. Collect telemetry for remaining matches
+     * 4. Update match states
      */
-    public void sendFinalMatchState(String matchId, String winnerPlayerId, UUID deadPlayerId) {
-        Set<UUID> playerIds = activeMatches.get(matchId);
-        if (playerIds == null || playerIds.isEmpty()) {
-            LOGGER.warning("Cannot send final state for match " + matchId + " - no players registered");
+    private void updateLoop() {
+        try {
+            if (matches.isEmpty()) {
+                return; // Nothing to update
+            }
+
+            // 1. Fetch statuses for all active matches
+            List<String> activeMatchIds = new ArrayList<>(matches.keySet());
+            Map<String, String> matchStatuses = fetchMatchStatuses(activeMatchIds);
+
+            // 2. Determine which matches to update vs remove
+            List<MatchStateUpdate> updates = new ArrayList<>();
+            List<String> matchesToRemove = new ArrayList<>();
+
+            for (String matchId : activeMatchIds) {
+                MatchState state = matches.get(matchId);
+                if (state == null || state.playerIds.isEmpty()) {
+                    continue;
+                }
+
+                // Final telemetry captured at death - send it and stop tracking
+                if (state.finalTelemetry != null) {
+                    LOGGER.info("Sending final telemetry for match " + matchId);
+                    updates.add(new MatchStateUpdate(matchId, state.finalTelemetry));
+                    matchesToRemove.add(matchId);
+                    continue;
+                }
+
+                String status = matchStatuses.get(matchId);
+
+                // Match not found or no longer playing - stop tracking
+                if (status == null || "Finished".equals(status) || "Terminated".equals(status)) {
+                    matchesToRemove.add(matchId);
+                    continue;
+                }
+
+                // Collect regular telemetry for active match
+                updates.add(new MatchStateUpdate(matchId, collectMatchTelemetry(matchId, state.playerIds)));
+            }
+
+            // 3. Clean up finished matches
+            for (String matchId : matchesToRemove) {
+                MatchState state = matches.remove(matchId);
+                if (state != null) {
+                    for (UUID playerId : state.playerIds) {
+                        playerToMatch.remove(playerId);
+                    }
+                }
+            }
+
+            // 4. Send updates
+            if (!updates.isEmpty()) {
+                sendMatchUpdates(updates);
+            }
+
+        } catch (Exception e) {
+            LOGGER.severe("Error in telemetry update loop: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Container for a single match state update.
+     */
+    private static class MatchStateUpdate {
+        final String matchId;
+        final JSONObject matchState;
+
+        MatchStateUpdate(String matchId, JSONObject matchState) {
+            this.matchId = matchId;
+            this.matchState = matchState;
+        }
+    }
+
+    // ==================== Final State ====================
+
+    /**
+     * Capture and queue final match telemetry to be sent in the next update loop.
+     * Must be called on the main thread during death event, before respawn.
+     *
+     * @param matchId        The match ID
+     * @param winnerPlayerId The player ID of the winner (can be null)
+     */
+    public void queueFinalMatchState(String matchId, String winnerPlayerId) {
+        MatchState state = matches.get(matchId);
+        if (state == null) {
+            LOGGER.warning("Cannot queue final state for match " + matchId + " - not tracked");
             return;
         }
 
-        try {
-            // Collect final telemetry data
-            JSONObject finalMatchState = collectMatchTelemetry(matchId, playerIds, deadPlayerId);
-            
-            // Add winner information to final state
-            if (winnerPlayerId != null) {
-                finalMatchState.put("winner", winnerPlayerId);
-            }
-            finalMatchState.put("matchEnded", true);
-            finalMatchState.put("finalState", true);
-
-            LOGGER.info("Sending final match state for match " + matchId + " (dead player: " + (deadPlayerId != null ? deadPlayerId.toString() : "none") + ")");
-            
-            // Send final state update
-            updateMatchState(matchId, finalMatchState);
-        } catch (Exception e) {
-            LOGGER.severe("Error sending final match state for " + matchId + ": " + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    /**
-     * Update match states for all active matches
-     */
-    private void updateMatchStates() {
-        try {
-            // Create a copy of entries to avoid concurrent modification
-            List<Map.Entry<String, Set<UUID>>> entries = new ArrayList<>(activeMatches.entrySet());
-            
-            for (Map.Entry<String, Set<UUID>> entry : entries) {
-                String matchId = entry.getKey();
-                Set<UUID> playerIds = entry.getValue();
-
-                // Check if match is finished - skip updates for finished matches
-                String matchStatus = getMatchStatus(matchId);
-                if (matchStatus == null) {
-                    // Match not found or error - remove from active matches
-                    LOGGER.warning("Match " + matchId + " not found, removing from active matches");
-                    activeMatches.remove(matchId);
-                    continue;
+        // Capture telemetry NOW - during death event, dead player's health is still 0
+        JSONObject telemetry = collectMatchTelemetry(matchId, state.playerIds);
+        
+        // Log captured health values for verification
+        JSONArray players = telemetry.optJSONArray("players");
+        if (players != null) {
+            for (int i = 0; i < players.length(); i++) {
+                JSONObject p = players.optJSONObject(i);
+                if (p != null) {
+                    LOGGER.info("Final telemetry captured: " + p.optString("ign") + 
+                            " health=" + p.optDouble("health", -1));
                 }
-                
-                if ("Finished".equals(matchStatus) || "Terminated".equals(matchStatus)) {
-                    // Match is finished - stop updating and remove from active matches
-                    LOGGER.info("Match " + matchId + " is " + matchStatus + ", stopping telemetry updates");
-                    activeMatches.remove(matchId);
-                    // Unregister all players from this match
-                    for (UUID playerId : new HashSet<>(playerIds)) {
-                        unregisterPlayer(playerId);
-                    }
-                    continue;
-                }
-
-                // Collect telemetry data for all players in this match
-                JSONObject matchState = collectMatchTelemetry(matchId, playerIds);
-
-                // Update match state via HTTP route
-                updateMatchState(matchId, matchState);
             }
-        } catch (Exception e) {
-            LOGGER.severe("Error updating match states: " + e.getMessage());
-            e.printStackTrace();
         }
+        
+        // Add final state flags
+        if (winnerPlayerId != null) {
+            telemetry.put("winner", winnerPlayerId);
+        }
+        telemetry.put("matchEnded", true);
+        telemetry.put("finalState", true);
+        
+        state.finalTelemetry = telemetry;
     }
 
-    /**
-     * Get match status from Convex
-     * Returns null if match not found or error occurred
-     */
-    private String getMatchStatus(String matchId) {
-        try {
-            String urlString = convexSiteUrl + "/matches?id=" + matchId;
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("GET");
-            conn.setRequestProperty("Content-Type", "application/json");
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                return null;
-            }
-
-            BufferedReader reader = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8)
-            );
-            StringBuilder response = new StringBuilder();
-            String line;
-            while ((line = reader.readLine()) != null) {
-                response.append(line);
-            }
-            reader.close();
-
-            JSONObject matchData = new JSONObject(response.toString());
-            return matchData.optString("match_status", null);
-        } catch (Exception e) {
-            LOGGER.warning("Error getting match status for " + matchId + ": " + e.getMessage());
-            return null;
-        }
-    }
+    // ==================== Telemetry Collection ====================
 
     /**
-     * Collect telemetry data for all players in a match
-     * @param deadPlayerId If provided, this player's health will be set to 0 (for final state)
+     * Collect telemetry data for all players in a match.
      */
-    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds, UUID deadPlayerId) {
+    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds) {
         try {
             JSONObject matchState = new JSONObject();
             matchState.put("timestamp", System.currentTimeMillis());
@@ -233,15 +257,7 @@ public class MatchTelemetryService {
             for (UUID playerId : playerIds) {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player != null && player.isOnline()) {
-                    JSONObject playerData = collectPlayerTelemetry(player);
-                    
-                    // If this is the dead player, explicitly set health to 0
-                    if (deadPlayerId != null && playerId.equals(deadPlayerId)) {
-                        playerData.put("health", 0.0);
-                        LOGGER.info("Setting health to 0 for dead player " + player.getName() + " in final state");
-                    }
-                    
-                    players.put(playerData);
+                    players.put(collectPlayerTelemetry(player));
                 }
             }
 
@@ -253,83 +269,44 @@ public class MatchTelemetryService {
             return new JSONObject();
         }
     }
-    
-    /**
-     * Collect telemetry data for all players in a match (overload without dead player)
-     */
-    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds) {
-        return collectMatchTelemetry(matchId, playerIds, null);
-    }
 
     /**
-     * Collect telemetry data for a single player
-     * Based on updatePlayerScoreboard from WarriorEventListener
+     * Collect telemetry data for a single player.
      */
     private JSONObject collectPlayerTelemetry(Player player) {
         try {
             JSONObject playerData = new JSONObject();
             Location loc = player.getLocation();
 
-        // Basic info
-        playerData.put("playerId", player.getUniqueId().toString());
-        playerData.put("ign", player.getName());
+            // Basic info
+            playerData.put("playerId", player.getUniqueId().toString());
+            playerData.put("ign", player.getName());
 
-        // Health & Food
-        double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
-        playerData.put("health", player.getHealth());
-        playerData.put("maxHealth", maxHealth);
-        playerData.put("foodLevel", player.getFoodLevel());
+            // Health & Food
+            double maxHealth = player.getAttribute(Attribute.GENERIC_MAX_HEALTH).getValue();
+            playerData.put("health", player.getHealth());
+            playerData.put("maxHealth", maxHealth);
+            playerData.put("foodLevel", player.getFoodLevel());
 
-        // Position
-        JSONObject position = new JSONObject();
-        position.put("x", loc.getX());
-        position.put("y", loc.getY());
-        position.put("z", loc.getZ());
-        position.put("world", loc.getWorld().getName());
-        playerData.put("position", position);
+            // Position
+            JSONObject position = new JSONObject();
+            position.put("x", loc.getX());
+            position.put("y", loc.getY());
+            position.put("z", loc.getZ());
+            position.put("world", loc.getWorld().getName());
+            playerData.put("position", position);
 
-        // Equipment
-        JSONObject equipment = new JSONObject();
-        
-        ItemStack mainHand = player.getInventory().getItemInMainHand();
-        equipment.put("mainHand", (mainHand != null && !mainHand.getType().equals(Material.AIR))
-            ? formatItemName(mainHand.getType()) : "None");
+            // Equipment
+            playerData.put("equipment", collectEquipmentData(player));
 
-        ItemStack helmet = player.getInventory().getHelmet();
-        equipment.put("helmet", (helmet != null && !helmet.getType().equals(Material.AIR))
-            ? formatItemName(helmet.getType()) : "None");
+            // Combat Stats
+            playerData.put("kills", player.getStatistic(Statistic.PLAYER_KILLS));
+            playerData.put("deaths", player.getStatistic(Statistic.DEATHS));
 
-        ItemStack chestplate = player.getInventory().getChestplate();
-        equipment.put("chestplate", (chestplate != null && !chestplate.getType().equals(Material.AIR))
-            ? formatItemName(chestplate.getType()) : "None");
+            // Nearby players count
+            playerData.put("nearbyPlayers", countNearbyPlayers(player));
 
-        ItemStack leggings = player.getInventory().getLeggings();
-        equipment.put("leggings", (leggings != null && !leggings.getType().equals(Material.AIR))
-            ? formatItemName(leggings.getType()) : "None");
-
-        ItemStack boots = player.getInventory().getBoots();
-        equipment.put("boots", (boots != null && !boots.getType().equals(Material.AIR))
-            ? formatItemName(boots.getType()) : "None");
-
-        playerData.put("equipment", equipment);
-
-        // Combat Stats
-        playerData.put("kills", player.getStatistic(Statistic.PLAYER_KILLS));
-        playerData.put("deaths", player.getStatistic(Statistic.DEATHS));
-
-        // Nearby players count
-        int nearbyCount = 0;
-        for (Player nearbyPlayer : Bukkit.getOnlinePlayers()) {
-            if (!nearbyPlayer.equals(player) && nearbyPlayer.getWorld().equals(player.getWorld())) {
-                double distance = nearbyPlayer.getLocation().distance(player.getLocation());
-                if (distance <= 20.0) {
-                    nearbyCount++;
-                }
-            }
-        }
-        playerData.put("nearbyPlayers", nearbyCount);
-
-        return playerData;
+            return playerData;
         } catch (JSONException e) {
             LOGGER.severe("Error collecting player telemetry: " + e.getMessage());
             e.printStackTrace();
@@ -337,63 +314,106 @@ public class MatchTelemetryService {
         }
     }
 
-    /**
-     * Format item name from Material enum
-     * Based on formatItemName from WarriorEventListener
-     */
+    private JSONObject collectEquipmentData(Player player) {
+        JSONObject equipment = new JSONObject();
+
+        equipment.put("mainHand", formatItem(player.getInventory().getItemInMainHand()));
+        equipment.put("helmet", formatItem(player.getInventory().getHelmet()));
+        equipment.put("chestplate", formatItem(player.getInventory().getChestplate()));
+        equipment.put("leggings", formatItem(player.getInventory().getLeggings()));
+        equipment.put("boots", formatItem(player.getInventory().getBoots()));
+
+        return equipment;
+    }
+
+    private String formatItem(org.bukkit.inventory.ItemStack item) {
+        if (item == null || item.getType().equals(Material.AIR)) {
+            return "None";
+        }
+        return formatItemName(item.getType());
+    }
+
     private String formatItemName(Material material) {
         String name = material.name().replace("_", " ").toLowerCase();
         String[] words = name.split(" ");
         StringBuilder formatted = new StringBuilder();
         for (String word : words) {
-            if (formatted.length() > 0) formatted.append(" ");
+            if (formatted.length() > 0) {
+                formatted.append(" ");
+            }
             formatted.append(Character.toUpperCase(word.charAt(0))).append(word.substring(1));
         }
         String result = formatted.toString();
-        // Truncate if too long
         return result.length() > 15 ? result.substring(0, 12) + "..." : result;
     }
 
-    /**
-     * Update match state via HTTP route
-     */
-    private void updateMatchState(String matchId, JSONObject matchState) {
-        try {
-            String urlString = convexSiteUrl + "/matches/update";
-            URL url = new URL(urlString);
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
-            conn.setDoOutput(true);
-
-            JSONObject requestBody = new JSONObject();
-            requestBody.put("match_id", matchId); // Use match_id (with underscore) as expected by HTTP route
-            requestBody.put("match_state", matchState);
-
-            try (OutputStream os = conn.getOutputStream()) {
-                byte[] input = requestBody.toString().getBytes(StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
-            }
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                LOGGER.warning("Failed to update match state for " + matchId + ": HTTP " + responseCode);
-                BufferedReader errorReader = new BufferedReader(
-                    new InputStreamReader(conn.getErrorStream(), StandardCharsets.UTF_8)
-                );
-                StringBuilder errorResponse = new StringBuilder();
-                String line;
-                while ((line = errorReader.readLine()) != null) {
-                    errorResponse.append(line);
+    private int countNearbyPlayers(Player player) {
+        int count = 0;
+        for (Player nearbyPlayer : Bukkit.getOnlinePlayers()) {
+            if (!nearbyPlayer.equals(player) && nearbyPlayer.getWorld().equals(player.getWorld())) {
+                double distance = nearbyPlayer.getLocation().distance(player.getLocation());
+                if (distance <= 20.0) {
+                    count++;
                 }
-                errorReader.close();
-                LOGGER.warning("Error response: " + errorResponse.toString());
             }
-        } catch (Exception e) {
-            LOGGER.severe("Error updating match state: " + e.getMessage());
-            e.printStackTrace();
+        }
+        return count;
+    }
+
+    // ==================== API Calls ====================
+
+    /**
+     * Fetch match statuses.
+     * Returns map of matchId -> status (null if match not found).
+     */
+    private Map<String, String> fetchMatchStatuses(List<String> matchIds) {
+        Map<String, String> results = new HashMap<>();
+
+        if (matchIds.isEmpty()) {
+            return results;
+        }
+
+        String matchIdsParam = String.join(",", matchIds);
+
+        ConvexResponseParser.ObjectResult result = convexClient.getObject(
+                "/matches/info?match_ids=" + matchIdsParam, true,
+                "Fetch " + matchIds.size() + " match statuses");
+
+        if (!result.isSuccess()) {
+            return results;
+        }
+
+        JSONObject data = result.getData();
+        for (String matchId : matchIds) {
+            JSONObject matchInfo = data.optJSONObject(matchId);
+            if (matchInfo != null) {
+                results.put(matchId, matchInfo.optString("match_status", null));
+            }
+        }
+
+        return results;
+    }
+
+    /**
+     * Send updates for match states. Accepts 1 or more updates in a single request.
+     */
+    private void sendMatchUpdates(List<MatchStateUpdate> updates) {
+        JSONArray updatesArray = new JSONArray();
+        for (MatchStateUpdate update : updates) {
+            JSONObject updateObj = new JSONObject();
+            updateObj.put("match_id", update.matchId);
+            updateObj.put("match_state", update.matchState);
+            updatesArray.put(updateObj);
+        }
+
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("updates", updatesArray);
+
+        ConvexResponseParser.ObjectResult result = convexClient.postObject(
+                "/matches/update", requestBody, "Update " + updates.size() + " match states");
+
+        if (!result.isSuccess()) {
+            LOGGER.warning("Failed to update match states: " + result.getError());
         }
     }
 }
-
