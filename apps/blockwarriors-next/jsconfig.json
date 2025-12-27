@@ -1,10 +1,7 @@
 {
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"],
-      "@packages/backend/*": ["../../packages/backend/*"],
-      "@packages/shared": ["../../packages/shared/src/index.ts"],
-      "@packages/shared/*": ["../../packages/shared/src/*"]
+      "@/*": ["./src/*"]
     }
   }
 }
