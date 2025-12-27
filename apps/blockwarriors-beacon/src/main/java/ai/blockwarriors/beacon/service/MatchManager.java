@@ -5,6 +5,10 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.json.JSONArray;
+import org.json.JSONObject;
+
+import ai.blockwarriors.beacon.util.ConvexClient;
 
 import java.util.*;
 import java.util.logging.Logger;
@@ -15,8 +19,7 @@ import java.util.logging.Logger;
 public class MatchManager {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private final JavaPlugin plugin;
-    private final String convexSiteUrl;
-    private final String convexHttpSecret;
+    private final ConvexClient convexClient;
     private MatchTelemetryService telemetryService;
     
     // Map match ID to world name
@@ -30,8 +33,7 @@ public class MatchManager {
 
     public MatchManager(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
-        this.convexSiteUrl = convexSiteUrl;
-        this.convexHttpSecret = convexHttpSecret;
+        this.convexClient = new ConvexClient(convexSiteUrl, convexHttpSecret);
     }
 
     public void setTelemetryService(MatchTelemetryService telemetryService) {
@@ -78,9 +80,8 @@ public class MatchManager {
 
     /**
      * End a match - update status, delete world, kick players
-     * @param deadPlayerId UUID of the player who died (to set health to 0 in final state)
      */
-    public void endMatch(String matchId, String winnerPlayerId, UUID deadPlayerId) {
+    public void endMatch(String matchId, String winnerPlayerId) {
         String worldName = matchWorlds.get(matchId);
         Set<UUID> playerIds = matchPlayers.get(matchId);
         
@@ -89,7 +90,7 @@ public class MatchManager {
             return;
         }
 
-        LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ", dead player: " + (deadPlayerId != null ? deadPlayerId.toString() : "none") + ")");
+        LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ")");
 
         // Capture and queue final telemetry NOW while player states are valid
         if (telemetryService != null) {
@@ -138,49 +139,24 @@ public class MatchManager {
 
     /**
      * Update match status and winner in Convex
-     * @param matchId The match ID
-     * @param status The new match status
-     * @param winnerPlayerId The Minecraft UUID of the winning player (nullable)
      */
     private void updateMatchStatus(String matchId, String status, String winnerPlayerId) {
-        try {
-            java.net.URL url = new java.net.URL(convexSiteUrl + "/matches/update");
-            java.net.HttpURLConnection conn = (java.net.HttpURLConnection) url.openConnection();
-            conn.setRequestMethod("POST");
-            conn.setRequestProperty("Content-Type", "application/json");
-            conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
-            conn.setDoOutput(true);
+        JSONObject update = new JSONObject();
+        update.put("match_id", matchId);
+        update.put("match_status", status);
+        if (winnerPlayerId != null) {
+            update.put("winner_player_id", winnerPlayerId);
+        }
 
-            // Build the update object
-            org.json.JSONObject update = new org.json.JSONObject();
-            update.put("match_id", matchId);
-            update.put("match_status", status);
-            if (winnerPlayerId != null) {
-                update.put("winner_player_id", winnerPlayerId);
-            }
+        JSONArray updates = new JSONArray();
+        updates.put(update);
 
-            // Wrap in updates array as expected by the API
-            org.json.JSONArray updates = new org.json.JSONArray();
-            updates.put(update);
-            
-            org.json.JSONObject requestBody = new org.json.JSONObject();
-            requestBody.put("updates", updates);
+        JSONObject requestBody = new JSONObject();
+        requestBody.put("updates", updates);
 
-            try (java.io.OutputStream os = conn.getOutputStream()) {
-                byte[] input = requestBody.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
-                os.write(input, 0, input.length);
-            }
-
-            int responseCode = conn.getResponseCode();
-            if (responseCode != 200) {
-                LOGGER.warning("Failed to update match status: HTTP " + responseCode);
-            } else {
-                LOGGER.info("Updated match " + matchId + " status to " + status + 
+        if (convexClient.postSuccess("/matches/update", requestBody, "Update match " + matchId + " to " + status)) {
+            LOGGER.info("Updated match " + matchId + " status to " + status +
                     (winnerPlayerId != null ? " with winner " + winnerPlayerId : ""));
-            }
-        } catch (Exception e) {
-            LOGGER.severe("Error updating match status: " + e.getMessage());
-            e.printStackTrace();
         }
     }
 

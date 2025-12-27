@@ -148,8 +148,7 @@ public class PlayerEventListener implements Listener {
                     }
                     
                     // End the match with the remaining player as winner
-                    // Pass the quitting player's UUID as the "dead player" for final state
-                    plugin.getMatchManager().endMatch(matchId, winnerId != null ? winnerId.toString() : null, playerId);
+                    plugin.getMatchManager().endMatch(matchId, winnerId != null ? winnerId.toString() : null);
                 }
             }
             
