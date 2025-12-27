@@ -121,10 +121,11 @@ http.route({
       });
 
       // Get the created match to return full details
-      const match = await ctx.runQuery(api.matches.getMatchById, {
-        matchId: matchId,
+      const results = await ctx.runQuery(api.matches.getMatches, {
+        matchIds: [matchId],
       });
 
+      const match = results[matchId];
       if (!match) {
         return errorResponse("Failed to retrieve created match", 500);
       }
@@ -153,10 +154,11 @@ http.route({
     // If id parameter is provided, get single match
     if (matchId && matchId.trim() !== "") {
       try {
-        const match = await ctx.runQuery(api.matches.getMatchById, {
-          matchId: matchId as Id<"matches">,
+        const results = await ctx.runQuery(api.matches.getMatches, {
+          matchIds: [matchId as Id<"matches">],
         });
 
+        const match = results[matchId];
         if (!match) {
           return errorResponse("Match not found", 404);
         }
@@ -249,9 +251,8 @@ http.route({
   }),
 });
 
-// POST /matches/update - Update match status, state, and/or winner
-// Since Convex doesn't support path parameters, we use a different path
-// and include the match ID in the request body
+// POST /matches/update - Update one or more matches
+// Accepts { updates: [{ match_id, match_status?, match_state?, winner_player_id? }, ...] }
 http.route({
   path: "/matches/update",
   method: "POST",
@@ -268,60 +269,59 @@ http.route({
       return errorResponse("Invalid JSON in request body");
     }
 
-    const { match_id, match_status, match_state, winner_player_id } = body;
+    const { updates } = body;
 
-    if (!match_id) {
-      return errorResponse("Missing match_id in request body");
+    if (!updates || !Array.isArray(updates) || updates.length === 0) {
+      return errorResponse("Missing or empty 'updates' array in request body");
     }
 
-    // At least one field must be provided
-    if (
-      match_status === undefined &&
-      match_state === undefined &&
-      winner_player_id === undefined
-    ) {
-      return errorResponse(
-        "Must provide at least one of: match_status, match_state, winner_player_id"
-      );
+    // Validate each update has match_id and at least one field to update
+    for (const update of updates) {
+      if (!update.match_id) {
+        return errorResponse("Each update must have 'match_id'");
+      }
+      if (
+        update.match_status === undefined &&
+        update.match_state === undefined &&
+        update.winner_player_id === undefined
+      ) {
+        return errorResponse(
+          "Each update must have at least one of: match_status, match_state, winner_player_id"
+        );
+      }
     }
 
     try {
-      // Update match
-      await ctx.runMutation(api.matches.updateMatch, {
-        matchId: match_id as Id<"matches">,
-        matchStatus: match_status,
-        matchState: match_state,
-        winnerPlayerId: winner_player_id,
+      // Transform to mutation args (snake_case -> camelCase)
+      const mutationUpdates = updates.map(
+        (u: {
+          match_id: string;
+          match_status?: string;
+          match_state?: any;
+          winner_player_id?: string;
+        }) => ({
+          matchId: u.match_id as Id<"matches">,
+          matchStatus: u.match_status,
+          matchState: u.match_state,
+          winnerPlayerId: u.winner_player_id,
+        })
+      );
+
+      const result = await ctx.runMutation(api.matches.updateMatches, {
+        updates: mutationUpdates,
       });
 
-      // Get updated match to return
-      const match = await ctx.runQuery(api.matches.getMatchById, {
-        matchId: match_id as Id<"matches">,
-      });
-
-      if (!match) {
-        return errorResponse("Match not found", 404);
-      }
-
-      return successResponse(match);
+      return successResponse(result);
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-
-      // Check if it's a validation error
-      if (
-        errorMessage.includes("Invalid status transition") ||
-        errorMessage.includes("Match not found")
-      ) {
-        return errorResponse(errorMessage);
-      }
-
-      return errorResponse(`Failed to update match: ${errorMessage}`, 500);
+      return errorResponse(`Failed to update matches: ${errorMessage}`, 500);
     }
   }),
 });
 
-// GET /matches/readiness - Check if match is ready (all tokens used)
+// GET /matches/readiness - Check readiness for one or more matches
+// Query: ?match_ids=id1,id2,id3
 http.route({
   path: "/matches/readiness",
   method: "GET",
@@ -331,16 +331,21 @@ http.route({
       return unauthorizedResponse();
     }
 
+    const url = new URL(request.url);
+    const matchIdsParam = url.searchParams.get("match_ids");
+
+    if (!matchIdsParam || matchIdsParam.trim() === "") {
+      return errorResponse("Missing 'match_ids' query parameter");
+    }
+
+    const matchIds = matchIdsParam.split(",").filter((id) => id.trim() !== "");
+    if (matchIds.length === 0) {
+      return errorResponse("Empty 'match_ids' parameter");
+    }
+
     try {
-      const url = new URL(request.url);
-      const matchId = url.searchParams.get("match_id");
-
-      if (!matchId) {
-        return errorResponse("Missing match_id parameter");
-      }
-
-      const readiness = await ctx.runQuery(api.tokens.checkMatchReadiness, {
-        matchId: matchId as Id<"matches">,
+      const readiness = await ctx.runQuery(api.tokens.checkReadiness, {
+        matchIds: matchIds.map((id) => id as Id<"matches">),
       });
 
       return successResponse(readiness);
@@ -352,7 +357,8 @@ http.route({
   }),
 });
 
-// GET /matches/tokens - Get all tokens for a match
+// GET /matches/tokens - Get tokens for one or more matches
+// Query: ?match_ids=id1,id2,id3
 http.route({
   path: "/matches/tokens",
   method: "GET",
@@ -362,16 +368,21 @@ http.route({
       return unauthorizedResponse();
     }
 
+    const url = new URL(request.url);
+    const matchIdsParam = url.searchParams.get("match_ids");
+
+    if (!matchIdsParam || matchIdsParam.trim() === "") {
+      return errorResponse("Missing 'match_ids' query parameter");
+    }
+
+    const matchIds = matchIdsParam.split(",").filter((id) => id.trim() !== "");
+    if (matchIds.length === 0) {
+      return errorResponse("Empty 'match_ids' parameter");
+    }
+
     try {
-      const url = new URL(request.url);
-      const matchId = url.searchParams.get("match_id");
-
-      if (!matchId) {
-        return errorResponse("Missing match_id parameter");
-      }
-
-      const tokens = await ctx.runQuery(api.tokens.getTokensByMatchId, {
-        matchId: matchId as Id<"matches">,
+      const tokens = await ctx.runQuery(api.tokens.getTokens, {
+        matchIds: matchIds.map((id) => id as Id<"matches">),
       });
 
       return successResponse(tokens);
@@ -379,6 +390,43 @@ http.route({
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
       return errorResponse(`Failed to get tokens: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// GET /matches/info - Get one or more matches by IDs
+// Query: ?match_ids=id1,id2,id3
+http.route({
+  path: "/matches/info",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
+    const url = new URL(request.url);
+    const matchIdsParam = url.searchParams.get("match_ids");
+
+    if (!matchIdsParam || matchIdsParam.trim() === "") {
+      return errorResponse("Missing 'match_ids' query parameter");
+    }
+
+    const matchIds = matchIdsParam.split(",").filter((id) => id.trim() !== "");
+    if (matchIds.length === 0) {
+      return errorResponse("Empty 'match_ids' parameter");
+    }
+
+    try {
+      const matches = await ctx.runQuery(api.matches.getMatches, {
+        matchIds: matchIds.map((id) => id as Id<"matches">),
+      });
+
+      return successResponse(matches);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to get matches: ${errorMessage}`, 500);
     }
   }),
 });

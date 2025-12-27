@@ -39,87 +39,116 @@ export const validateToken = query({
   },
 });
 
-// Get all tokens for a match
-export const getTokensByMatchId = query({
+/**
+ * Get tokens for one or more matches.
+ * Accepts an array of match IDs and returns tokens grouped by match ID.
+ */
+export const getTokens = query({
   args: {
-    matchId: v.id("matches"),
+    matchIds: v.array(v.id("matches")),
   },
   handler: async (ctx, args) => {
-    const tokens = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
-      .collect();
+    const results: Record<
+      string,
+      Array<{
+        token_id: string;
+        token: string;
+        user_id?: string;
+        ign?: string;
+        match_id: string;
+        game_team_id: string;
+        bot_id?: string;
+        created_at: number;
+        expires_at: number;
+        is_active: boolean;
+      }>
+    > = {};
 
-    return tokens.map((token) => ({
-      token_id: token._id,
-      token: token.token,
-      user_id: token.user_id,
-      ign: token.ign,
-      match_id: token.match_id,
-      game_team_id: token.game_team_id,
-      bot_id: token.bot_id,
-      created_at: token.created_at,
-      expires_at: token.expires_at,
-      is_active: token.is_active,
-    }));
+    for (const matchId of args.matchIds) {
+      const tokens = await ctx.db
+        .query("game_tokens")
+        .withIndex("by_match_id", (q) => q.eq("match_id", matchId))
+        .collect();
+
+      results[matchId] = tokens.map((token) => ({
+        token_id: token._id,
+        token: token.token,
+        user_id: token.user_id,
+        ign: token.ign,
+        match_id: token.match_id,
+        game_team_id: token.game_team_id,
+        bot_id: token.bot_id,
+        created_at: token.created_at,
+        expires_at: token.expires_at,
+        is_active: token.is_active,
+      }));
+    }
+
+    return results;
   },
 });
 
-// Check if a match is ready (all tokens have been used)
-// A token is considered "used" if it has a user_id set (Minecraft UUID)
-export const checkMatchReadiness = query({
+/**
+ * Check readiness for one or more matches.
+ * A match is ready when all tokens have been used (have user_id set).
+ * Accepts an array of match IDs and returns readiness info for each.
+ */
+export const checkReadiness = query({
   args: {
-    matchId: v.id("matches"),
+    matchIds: v.array(v.id("matches")),
   },
   handler: async (ctx, args) => {
-    const match = await ctx.db.get(args.matchId);
-    if (!match) {
-      return {
-        ready: false,
-        totalTokens: 0,
-        usedTokens: 0,
-        error: "Match not found",
+    const results: Record<
+      string,
+      {
+        ready: boolean;
+        totalTokens: number;
+        usedTokens: number;
+        error?: string;
+      }
+    > = {};
+
+    for (const matchId of args.matchIds) {
+      const match = await ctx.db.get(matchId);
+      if (!match) {
+        results[matchId] = {
+          ready: false,
+          totalTokens: 0,
+          usedTokens: 0,
+          error: "Match not found",
+        };
+        continue;
+      }
+
+      const tokens = await ctx.db
+        .query("game_tokens")
+        .withIndex("by_match_id", (q) => q.eq("match_id", matchId))
+        .collect();
+
+      if (tokens.length === 0) {
+        results[matchId] = {
+          ready: false,
+          totalTokens: 0,
+          usedTokens: 0,
+          error: "No tokens found for match",
+        };
+        continue;
+      }
+
+      const usedTokens = tokens.filter(
+        (token) => token.user_id !== undefined && token.user_id !== null
+      );
+      const totalTokens = tokens.length;
+      const ready = usedTokens.length === totalTokens;
+
+      results[matchId] = {
+        ready,
+        totalTokens,
+        usedTokens: usedTokens.length,
       };
     }
 
-    const tokens = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
-      .collect();
-
-    if (tokens.length === 0) {
-      return {
-        ready: false,
-        totalTokens: 0,
-        usedTokens: 0,
-        error: "No tokens found for match",
-      };
-    }
-
-    // Count tokens that have been used (have user_id set)
-    const usedTokens = tokens.filter(
-      (token) => token.user_id !== undefined && token.user_id !== null
-    );
-    const totalTokens = tokens.length;
-    const ready = usedTokens.length === totalTokens;
-
-    // Group tokens by team
-    const blueTeamTokens = tokens.filter(
-      (token) => token.game_team_id === match.blue_team_id
-    );
-    const redTeamTokens = tokens.filter(
-      (token) => token.game_team_id === match.red_team_id
-    );
-
-    return {
-      ready,
-      totalTokens,
-      usedTokens: usedTokens.length,
-      blueTeamTokens: blueTeamTokens.length,
-      redTeamTokens: redTeamTokens.length,
-      blueTeamUsed: blueTeamTokens.filter((t) => t.user_id).length,
-      redTeamUsed: redTeamTokens.filter((t) => t.user_id).length,
-    };
+    return results;
   },
 });
 

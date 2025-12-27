@@ -36,29 +36,53 @@ export const createMatch = mutation({
   },
 });
 
-// Get match by ID
-export const getMatchById = query({
+/**
+ * Get one or more matches by IDs.
+ * Accepts an array of match IDs and returns match data for each.
+ */
+export const getMatches = query({
   args: {
-    matchId: v.id("matches"),
+    matchIds: v.array(v.id("matches")),
   },
   handler: async (ctx, args) => {
-    const match = await ctx.db.get(args.matchId);
-    if (!match) {
-      return null;
+    const results: Record<
+      string,
+      {
+        match_id: string;
+        match_type: string;
+        match_status: string;
+        match_elo?: number;
+        winner_team_id?: string;
+        blue_team_id: string;
+        red_team_id: string;
+        mode: string;
+        expires_at: number;
+        match_state?: any;
+      } | null
+    > = {};
+
+    for (const matchId of args.matchIds) {
+      const match = await ctx.db.get(matchId);
+      if (!match) {
+        results[matchId] = null;
+        continue;
+      }
+
+      results[matchId] = {
+        match_id: match._id,
+        match_type: match.match_type,
+        match_status: match.match_status,
+        match_elo: match.match_elo,
+        winner_team_id: match.winner_team_id,
+        blue_team_id: match.blue_team_id,
+        red_team_id: match.red_team_id,
+        mode: match.mode,
+        expires_at: match.expires_at,
+        match_state: match.match_state,
+      };
     }
 
-    return {
-      match_id: match._id,
-      match_type: match.match_type,
-      match_status: match.match_status,
-      match_elo: match.match_elo,
-      winner_team_id: match.winner_team_id,
-      blue_team_id: match.blue_team_id,
-      red_team_id: match.red_team_id,
-      mode: match.mode,
-      expires_at: match.expires_at,
-      match_state: match.match_state,
-    };
+    return results;
   },
 });
 
@@ -121,118 +145,109 @@ export const getMatchWithTokens = query({
 
 // Note: MATCH_STATUSES and isValidStatusTransition are imported from @packages/shared
 
-// Update match status
-export const updateMatchStatus = mutation({
+/**
+ * Update one or more matches - supports status, state, and winner updates.
+ * Accepts an array of updates (length 1 or more) for DRY, unified API.
+ */
+export const updateMatches = mutation({
   args: {
-    matchId: v.id("matches"),
-    status: v.string(),
+    updates: v.array(
+      v.object({
+        matchId: v.id("matches"),
+        matchStatus: v.optional(v.string()),
+        matchState: v.optional(v.any()),
+        winnerPlayerId: v.optional(v.string()),
+      })
+    ),
   },
   handler: async (ctx, args) => {
-    const match = await ctx.db.get(args.matchId);
-    if (!match) {
-      throw new Error("Match not found");
-    }
+    const results: { matchId: string; success: boolean; error?: string }[] = [];
 
-    if (!isValidStatusTransition(match.match_status, args.status)) {
-      throw new Error(
-        `Invalid status transition from ${match.match_status} to ${args.status}`
-      );
-    }
-
-    await ctx.db.patch(args.matchId, {
-      match_status: args.status,
-    });
-    return { success: true };
-  },
-});
-
-// Update match state
-export const updateMatchState = mutation({
-  args: {
-    matchId: v.id("matches"),
-    matchState: v.any(),
-  },
-  handler: async (ctx, args) => {
-    const match = await ctx.db.get(args.matchId);
-    if (!match) {
-      throw new Error("Match not found");
-    }
-
-    await ctx.db.patch(args.matchId, {
-      match_state: args.matchState,
-    });
-    return { success: true };
-  },
-});
-
-// Update match status, state, and/or winner
-export const updateMatch = mutation({
-  args: {
-    matchId: v.id("matches"),
-    matchStatus: v.optional(v.string()),
-    matchState: v.optional(v.any()),
-    winnerPlayerId: v.optional(v.string()), // Minecraft UUID of the winning player
-  },
-  handler: async (ctx, args) => {
-    const match = await ctx.db.get(args.matchId);
-    if (!match) {
-      throw new Error("Match not found");
-    }
-
-    const updates: {
-      match_status?: string;
-      match_state?: any;
-      winner_team_id?: Id<"game_teams">;
-    } = {};
-
-    if (args.matchStatus !== undefined) {
-      if (!isValidStatusTransition(match.match_status, args.matchStatus)) {
-        throw new Error(
-          `Invalid status transition from ${match.match_status} to ${args.matchStatus}`
-        );
-      }
-      updates.match_status = args.matchStatus;
-    }
-
-    if (args.matchState !== undefined) {
-      updates.match_state = args.matchState;
-    }
-
-    // If winner player ID is provided, look up their team
-    const tokens = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
-      .collect();
-
-    if (args.winnerPlayerId !== undefined) {
-      const winnerToken = tokens.find(
-        (token) => token.user_id === args.winnerPlayerId
-      );
-
-      if (winnerToken) {
-        updates.winner_team_id = winnerToken.game_team_id;
-      } else {
-        console.warn(
-          `Could not find token for winner player ${args.winnerPlayerId} in match ${args.matchId}`
-        );
-      }
-    }
-
-    await ctx.db.patch(args.matchId, updates);
-
-    // Deactivate all tokens when match ends (Finished or Terminated)
-    const newStatus = updates.match_status;
-    if (newStatus && isTerminalStatus(newStatus)) {
-      for (const token of tokens) {
-        if (token.is_active) {
-          await ctx.db.patch(token._id, {
-            is_active: false,
+    for (const update of args.updates) {
+      try {
+        const match = await ctx.db.get(update.matchId);
+        if (!match) {
+          results.push({
+            matchId: update.matchId,
+            success: false,
+            error: "Match not found",
           });
+          continue;
         }
+
+        const patchData: {
+          match_status?: string;
+          match_state?: any;
+          winner_team_id?: Id<"game_teams">;
+        } = {};
+
+        // Validate and set status
+        if (update.matchStatus !== undefined) {
+          if (!isValidStatusTransition(match.match_status, update.matchStatus)) {
+            results.push({
+              matchId: update.matchId,
+              success: false,
+              error: `Invalid status transition from ${match.match_status} to ${update.matchStatus}`,
+            });
+            continue;
+          }
+          patchData.match_status = update.matchStatus;
+        }
+
+        // Set match state
+        if (update.matchState !== undefined) {
+          patchData.match_state = update.matchState;
+        }
+
+        // Look up winner's team if provided
+        if (update.winnerPlayerId !== undefined) {
+          const tokens = await ctx.db
+            .query("game_tokens")
+            .withIndex("by_match_id", (q) => q.eq("match_id", update.matchId))
+            .collect();
+
+          const winnerToken = tokens.find(
+            (token) => token.user_id === update.winnerPlayerId
+          );
+
+          if (winnerToken) {
+            patchData.winner_team_id = winnerToken.game_team_id;
+          } else {
+            console.warn(
+              `Could not find token for winner player ${update.winnerPlayerId} in match ${update.matchId}`
+            );
+          }
+        }
+
+        await ctx.db.patch(update.matchId, patchData);
+
+        // Deactivate all tokens when match ends (Finished or Terminated)
+        if (patchData.match_status && isTerminalStatus(patchData.match_status)) {
+          const tokens = await ctx.db
+            .query("game_tokens")
+            .withIndex("by_match_id", (q) => q.eq("match_id", update.matchId))
+            .collect();
+
+          for (const token of tokens) {
+            if (token.is_active) {
+              await ctx.db.patch(token._id, { is_active: false });
+            }
+          }
+        }
+
+        results.push({ matchId: update.matchId, success: true });
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : "Unknown error";
+        results.push({
+          matchId: update.matchId,
+          success: false,
+          error: errorMessage,
+        });
       }
     }
 
-    return { success: true };
+    return { results };
   },
 });
 

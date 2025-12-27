@@ -20,7 +20,7 @@ import java.util.logging.Logger;
 
 import org.json.JSONObject;
 
-import ai.blockwarriors.beacon.util.ApiResponseParser;
+import ai.blockwarriors.beacon.util.ConvexResponseParser;
 
 public class LoginCommand implements CommandExecutor {
 
@@ -109,8 +109,8 @@ public class LoginCommand implements CommandExecutor {
                     }
                     reader.close();
 
-                    // Parse with standardized format using ApiResponseParser
-                    ApiResponseParser.ObjectResult result = ApiResponseParser.parseObject(
+                    // Parse with standardized format using ConvexResponseParser
+                    ConvexResponseParser.ObjectResult result = ConvexResponseParser.parseObject(
                         response.toString(), "Validate token for " + player.getName());
                     
                     final boolean success = result.isSuccess();

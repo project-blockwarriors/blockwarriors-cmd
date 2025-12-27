@@ -91,9 +91,9 @@ public class MatchManager {
 
         LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ", dead player: " + (deadPlayerId != null ? deadPlayerId.toString() : "none") + ")");
 
-        // Send final match state before marking as finished
+        // Capture and queue final telemetry NOW while player states are valid
         if (telemetryService != null) {
-            telemetryService.sendFinalMatchState(matchId, winnerPlayerId, deadPlayerId);
+            telemetryService.queueFinalMatchState(matchId, winnerPlayerId);
         }
 
         // Update match status to Finished and set the winner
@@ -151,12 +151,20 @@ public class MatchManager {
             conn.setRequestProperty("Authorization", "Bearer " + convexHttpSecret);
             conn.setDoOutput(true);
 
-            org.json.JSONObject requestBody = new org.json.JSONObject();
-            requestBody.put("match_id", matchId);
-            requestBody.put("match_status", status);
+            // Build the update object
+            org.json.JSONObject update = new org.json.JSONObject();
+            update.put("match_id", matchId);
+            update.put("match_status", status);
             if (winnerPlayerId != null) {
-                requestBody.put("winner_player_id", winnerPlayerId);
+                update.put("winner_player_id", winnerPlayerId);
             }
+
+            // Wrap in updates array as expected by the API
+            org.json.JSONArray updates = new org.json.JSONArray();
+            updates.put(update);
+            
+            org.json.JSONObject requestBody = new org.json.JSONObject();
+            requestBody.put("updates", updates);
 
             try (java.io.OutputStream os = conn.getOutputStream()) {
                 byte[] input = requestBody.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);

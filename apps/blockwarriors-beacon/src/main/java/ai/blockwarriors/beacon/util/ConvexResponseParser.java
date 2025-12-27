@@ -7,19 +7,35 @@ import org.json.JSONObject;
 import java.util.logging.Logger;
 
 /**
- * Utility class for parsing standardized API responses from Convex.
+ * Parser for Convex HTTP API responses.
  * 
- * All responses follow the format:
+ * Convex HTTP routes return responses in this standardized format:
  * - Success: { "success": true, "data": T }
  * - Error:   { "success": false, "error": string }
  * 
- * This ensures consistent handling across all beacon services.
+ * This parser extracts the data or error from these responses.
+ * For high-level API calls, use {@link ConvexClient} which combines
+ * this parser with {@link HttpClient}.
+ * 
+ * Direct usage example:
+ * <pre>
+ * String responseBody = ... // from Convex HTTP call
+ * ConvexResponseParser.ObjectResult result = ConvexResponseParser.parseObject(responseBody, "Fetch match");
+ * if (result.isSuccess()) {
+ *     JSONObject data = result.getData();
+ * } else {
+ *     String error = result.getError();
+ * }
+ * </pre>
+ * 
+ * @see ConvexClient
+ * @see HttpClient
  */
-public class ApiResponseParser {
+public class ConvexResponseParser {
     private static final Logger LOGGER = Logger.getLogger("beacon");
 
     /**
-     * Result of parsing an API response that expects an object in the data field.
+     * Result of parsing a Convex response that expects an object in the data field.
      */
     public static class ObjectResult {
         private final boolean success;
@@ -54,7 +70,7 @@ public class ApiResponseParser {
     }
 
     /**
-     * Result of parsing an API response that expects an array in the data field.
+     * Result of parsing a Convex response that expects an array in the data field.
      */
     public static class ArrayResult {
         private final boolean success;
@@ -89,7 +105,7 @@ public class ApiResponseParser {
     }
 
     /**
-     * Parse API response with standardized format: { success: boolean, data/error }
+     * Parse Convex response with format: { success: boolean, data/error }
      * Returns the data object if successful.
      * 
      * @param responseBody The raw response body as a string
@@ -101,7 +117,7 @@ public class ApiResponseParser {
             JSONObject response = new JSONObject(responseBody);
 
             if (!response.has("success")) {
-                String error = "Invalid API response: missing 'success' field";
+                String error = "Invalid Convex response: missing 'success' field";
                 LOGGER.warning(context + " - " + error);
                 return ObjectResult.error(error);
             }
@@ -109,7 +125,7 @@ public class ApiResponseParser {
             boolean success = response.getBoolean("success");
             if (!success) {
                 String error = response.optString("error", "Unknown error");
-                LOGGER.warning(context + " API error: " + error);
+                LOGGER.warning(context + " error: " + error);
                 return ObjectResult.error(error);
             }
 
@@ -128,7 +144,7 @@ public class ApiResponseParser {
                     return ObjectResult.success(new JSONObject());
                 }
             }
-            
+
             // Empty success (no data field)
             return ObjectResult.success(new JSONObject());
         } catch (JSONException e) {
@@ -139,7 +155,7 @@ public class ApiResponseParser {
     }
 
     /**
-     * Parse API response that returns an array in the data field.
+     * Parse Convex response that returns an array in the data field.
      * Returns the array if successful.
      * 
      * @param responseBody The raw response body as a string
@@ -151,7 +167,7 @@ public class ApiResponseParser {
             JSONObject response = new JSONObject(responseBody);
 
             if (!response.has("success")) {
-                String error = "Invalid API response: missing 'success' field";
+                String error = "Invalid Convex response: missing 'success' field";
                 LOGGER.warning(context + " - " + error);
                 return ArrayResult.error(error);
             }
@@ -159,14 +175,14 @@ public class ApiResponseParser {
             boolean success = response.getBoolean("success");
             if (!success) {
                 String error = response.optString("error", "Unknown error");
-                LOGGER.warning(context + " API error: " + error);
+                LOGGER.warning(context + " error: " + error);
                 return ArrayResult.error(error);
             }
 
             if (response.has("data")) {
                 return ArrayResult.success(response.getJSONArray("data"));
             }
-            
+
             // Empty success (no data field)
             return ArrayResult.success(new JSONArray());
         } catch (JSONException e) {
@@ -177,7 +193,7 @@ public class ApiResponseParser {
     }
 
     /**
-     * Quick check if a response indicates success without fully parsing data.
+     * Quick check if a Convex response indicates success without fully parsing data.
      * Useful for operations where you only need to know if it succeeded.
      * 
      * @param responseBody The raw response body as a string
@@ -193,7 +209,7 @@ public class ApiResponseParser {
     }
 
     /**
-     * Extract error message from a response.
+     * Extract error message from a Convex response.
      * Returns null if the response is successful or cannot be parsed.
      * 
      * @param responseBody The raw response body as a string
