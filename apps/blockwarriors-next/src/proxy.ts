@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { getToken } from '@/lib/auth-server';
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const path = new URL(request.url).pathname;
 
   // Skip middleware for API routes, static files, and Next.js internals
