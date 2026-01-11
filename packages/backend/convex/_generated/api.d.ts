@@ -13,6 +13,7 @@ import type * as crons from "../crons.js";
 import type * as gameTeams from "../gameTeams.js";
 import type * as http from "../http.js";
 import type * as matches from "../matches.js";
+import type * as seed from "../seed.js";
 import type * as settings from "../settings.js";
 import type * as teams from "../teams.js";
 import type * as tokens from "../tokens.js";
@@ -41,6 +42,7 @@ declare const fullApi: ApiFromModules<{
   gameTeams: typeof gameTeams;
   http: typeof http;
   matches: typeof matches;
+  seed: typeof seed;
   settings: typeof settings;
   teams: typeof teams;
   tokens: typeof tokens;
