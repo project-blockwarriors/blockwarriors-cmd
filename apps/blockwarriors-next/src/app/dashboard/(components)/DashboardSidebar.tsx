@@ -8,6 +8,7 @@ import {
   Trophy,
   Users,
   User,
+  Swords,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
@@ -135,6 +136,12 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
                 Leaderboard
+              </div>
+            </NavButton>
+            <NavButton href="/dashboard/tournaments" hasCompletedSetup={hasCompletedSetup}>
+              <div className="flex items-center gap-2">
+                <Swords className="h-4 w-4" />
+                Tournaments
               </div>
             </NavButton>
             <NavButton href="/dashboard/practice" hasCompletedSetup={hasCompletedSetup}>

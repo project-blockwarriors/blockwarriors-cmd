@@ -16,6 +16,8 @@ import type * as matches from "../matches.js";
 import type * as settings from "../settings.js";
 import type * as teams from "../teams.js";
 import type * as tokens from "../tokens.js";
+import type * as tournamentMatches from "../tournamentMatches.js";
+import type * as tournaments from "../tournaments.js";
 import type * as userProfiles from "../userProfiles.js";
 import type * as waitlist from "../waitlist.js";
 
@@ -42,6 +44,8 @@ declare const fullApi: ApiFromModules<{
   settings: typeof settings;
   teams: typeof teams;
   tokens: typeof tokens;
+  tournamentMatches: typeof tournamentMatches;
+  tournaments: typeof tournaments;
   userProfiles: typeof userProfiles;
   waitlist: typeof waitlist;
 }>;
