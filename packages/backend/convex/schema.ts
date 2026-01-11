@@ -10,6 +10,10 @@ export default defineSchema({
     institution: v.string(),
     geographic_location: v.string(),
     team_id: v.optional(v.id("teams")),
+    profile_image_id: v.optional(v.id("_storage")),
+    bio: v.optional(v.string()),
+    minecraft_username: v.optional(v.string()),
+    discord_username: v.optional(v.string()),
     updated_at: v.number(),
   })
     .index("by_user_id", ["user_id"])
@@ -23,6 +27,10 @@ export default defineSchema({
     team_wins: v.number(),
     team_losses: v.number(),
     game_team_id: v.optional(v.string()),
+    team_image_id: v.optional(v.id("_storage")),
+    description: v.optional(v.string()),
+    created_at: v.optional(v.number()),
+    disbanded_at: v.optional(v.number()), // Track when team was disbanded
   })
     .index("by_leader_id", ["leader_id"])
     .index("by_team_elo", ["team_elo"])
