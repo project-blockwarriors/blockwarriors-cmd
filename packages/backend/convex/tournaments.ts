@@ -729,6 +729,37 @@ export const updateTournament = mutation({
       return { success: false, error: "Can only update tournament during registration phase" };
     }
 
+    // Validate team limits before updating
+    const newMinTeams = args.minTeams ?? tournament.min_teams;
+    const newMaxTeams = args.maxTeams ?? tournament.max_teams;
+
+    if (args.minTeams !== undefined && args.minTeams < 2) {
+      return { success: false, error: "Minimum teams must be at least 2" };
+    }
+
+    if (newMaxTeams < newMinTeams) {
+      return { success: false, error: "Maximum teams must not be less than minimum teams" };
+    }
+
+    if (args.gamesPerMatch !== undefined && args.gamesPerMatch < 1) {
+      return { success: false, error: "Games per match must be at least 1" };
+    }
+
+    // Check against current participant count
+    const participants = await ctx.db
+      .query("tournament_participants")
+      .withIndex("by_tournament_id", (q) =>
+        q.eq("tournament_id", args.tournamentId)
+      )
+      .collect();
+
+    if (args.maxTeams !== undefined && participants.length > args.maxTeams) {
+      return { 
+        success: false, 
+        error: `Cannot reduce max teams below current participant count (${participants.length})` 
+      };
+    }
+
     // Build update object
     const updates: Partial<{
       name: string;

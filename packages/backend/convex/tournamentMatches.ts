@@ -389,14 +389,7 @@ export const createTournamentGame = mutation({
       return { success: false, error: "Tournament match is already completed or cancelled" };
     }
 
-    // Check if we've already reached the required games
-    const totalGames = tournamentMatch.team1_games_won + tournamentMatch.team2_games_won;
-    const maxGames = tournamentMatch.games_required * 2 - 1; // Best of N
-    if (totalGames >= maxGames) {
-      return { success: false, error: "Maximum games already played" };
-    }
-
-    // Check if match is already decided
+    // Check if match is already decided (one team has won enough games)
     if (
       tournamentMatch.team1_games_won >= tournamentMatch.games_required ||
       tournamentMatch.team2_games_won >= tournamentMatch.games_required
@@ -453,6 +446,17 @@ export const recordGameResult = mutation({
     const tournamentMatch = await ctx.db.get(args.tournamentMatchId);
     if (!tournamentMatch) {
       return { success: false, tournamentMatchCompleted: false, error: "Tournament match not found" };
+    }
+
+    // Verify both teams exist (no byes)
+    // A "bye" is when a team advances automatically without playing,
+    // typically occurs in tournaments with odd numbers of teams
+    if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
+      return { 
+        success: false, 
+        tournamentMatchCompleted: false, 
+        error: "Cannot record result for match with bye" 
+      };
     }
 
     // Verify game is part of this tournament match
