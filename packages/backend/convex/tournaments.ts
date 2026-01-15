@@ -732,14 +732,13 @@ export const updateTournament = mutation({
     // Validate team limits before updating
     const newMinTeams = args.minTeams ?? tournament.min_teams;
     const newMaxTeams = args.maxTeams ?? tournament.max_teams;
-    const newGamesPerMatch = args.gamesPerMatch ?? tournament.games_per_match;
 
     if (args.minTeams !== undefined && args.minTeams < 2) {
       return { success: false, error: "Minimum teams must be at least 2" };
     }
 
     if (newMaxTeams < newMinTeams) {
-      return { success: false, error: "Maximum teams must be greater than or equal to minimum teams" };
+      return { success: false, error: "Maximum teams must not be less than minimum teams" };
     }
 
     if (args.gamesPerMatch !== undefined && args.gamesPerMatch < 1) {

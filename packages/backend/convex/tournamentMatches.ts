@@ -449,6 +449,8 @@ export const recordGameResult = mutation({
     }
 
     // Verify both teams exist (no byes)
+    // A "bye" is when a team advances automatically without playing,
+    // typically occurs in tournaments with odd numbers of teams
     if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
       return { 
         success: false, 
