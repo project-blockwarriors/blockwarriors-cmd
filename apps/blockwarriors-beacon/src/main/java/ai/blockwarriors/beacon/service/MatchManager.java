@@ -9,8 +9,10 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import ai.blockwarriors.beacon.game.BaseGame;
+import ai.blockwarriors.beacon.game.DisconnectPolicy;
 import ai.blockwarriors.beacon.game.DisconnectReason;
 import ai.blockwarriors.beacon.game.DisconnectResult;
+import ai.blockwarriors.beacon.game.GracePeriodTracker;
 import ai.blockwarriors.beacon.util.ConvexClient;
 
 import java.util.*;
@@ -24,6 +26,7 @@ public class MatchManager {
     private final JavaPlugin plugin;
     private final ConvexClient convexClient;
     private MatchTelemetryService telemetryService;
+    private final GracePeriodTracker gracePeriodTracker;
     
     // Map match ID to world name
     private final Map<String, String> matchWorlds = new HashMap<>();
@@ -40,10 +43,18 @@ public class MatchManager {
     public MatchManager(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexClient = new ConvexClient(convexSiteUrl, convexHttpSecret);
+        this.gracePeriodTracker = new GracePeriodTracker(plugin);
     }
 
     public void setTelemetryService(MatchTelemetryService telemetryService) {
         this.telemetryService = telemetryService;
+    }
+    
+    /**
+     * Get the grace period tracker for disconnect handling.
+     */
+    public GracePeriodTracker getGracePeriodTracker() {
+        return gracePeriodTracker;
     }
 
     /**
@@ -135,6 +146,9 @@ public class MatchManager {
         }
 
         LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ")");
+        
+        // Clear any active grace periods for this match
+        gracePeriodTracker.clearMatch(matchId);
 
         // Call game cleanup if we have a game instance
         if (game != null) {
@@ -276,13 +290,88 @@ public class MatchManager {
         // Delegate to game
         DisconnectResult result = game.handlePlayerDisconnect(playerId, reason);
         
-        // Handle result
-        if (result == DisconnectResult.FORFEIT || result == DisconnectResult.GAME_CANCELLED) {
-            UUID winnerId = game.getWinnerId();
-            endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+        // Handle result based on game's decision
+        switch (result) {
+            case FORFEIT:
+            case GAME_CANCELLED:
+                // Game ended immediately
+                gracePeriodTracker.clearMatch(matchId);
+                UUID winnerId = game.getWinnerId();
+                endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+                break;
+                
+            case GRACE_PERIOD:
+                // Start grace period tracking
+                DisconnectPolicy policy = game.getDisconnectPolicy();
+                gracePeriodTracker.startGracePeriod(
+                    playerId, 
+                    matchId, 
+                    policy.getGracePeriodSeconds(),
+                    reason,
+                    this::handleGracePeriodTimeout
+                );
+                
+                // Notify telemetry about the disconnect
+                if (telemetryService != null) {
+                    telemetryService.recordDisconnectEvent(matchId, playerId, reason, result, 
+                            policy.getGracePeriodSeconds());
+                }
+                break;
+                
+            case CONTINUE:
+                // Game continues, just record the disconnect
+                if (telemetryService != null) {
+                    telemetryService.recordDisconnectEvent(matchId, playerId, reason, result, 0);
+                }
+                break;
         }
 
         return result;
+    }
+    
+    /**
+     * Handle grace period timeout - player didn't reconnect in time.
+     * Called from GracePeriodTracker on the main thread.
+     */
+    private void handleGracePeriodTimeout(UUID playerId) {
+        String matchId = getMatchIdForPlayer(playerId);
+        if (matchId == null) {
+            LOGGER.warning("Grace period timeout for player not in match: " + playerId);
+            return;
+        }
+        
+        BaseGame game = matchGames.get(matchId);
+        if (game == null) {
+            LOGGER.warning("Grace period timeout but no game for match: " + matchId);
+            return;
+        }
+        
+        LOGGER.info("Grace period timeout for player " + playerId + " in match " + matchId);
+        
+        // Treat timeout as forfeit - get opponents as winners
+        List<UUID> opponents = game.getOpponents(playerId);
+        UUID winnerId = !opponents.isEmpty() ? opponents.get(0) : null;
+        
+        // Broadcast to remaining players
+        for (UUID pid : game.getPlayers()) {
+            if (!pid.equals(playerId)) {
+                Player p = Bukkit.getPlayer(pid);
+                if (p != null && p.isOnline()) {
+                    p.sendMessage("§a" + getPlayerName(playerId) + " did not reconnect in time. You win!");
+                }
+            }
+        }
+        
+        // End the match
+        endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+    }
+    
+    /**
+     * Get player name by UUID, with fallback.
+     */
+    private String getPlayerName(UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        return player != null ? player.getName() : playerId.toString().substring(0, 8);
     }
 
     /**
@@ -292,17 +381,55 @@ public class MatchManager {
      * @return true if reconnect was handled by the game
      */
     public boolean delegatePlayerReconnect(UUID playerId) {
-        String matchId = getMatchIdForPlayer(playerId);
-        if (matchId == null) {
+        // Check if player was in a grace period
+        if (!gracePeriodTracker.isInGracePeriod(playerId)) {
             return false;
         }
-
+        
+        GracePeriodTracker.DisconnectInfo info = gracePeriodTracker.getDisconnectInfo(playerId);
+        if (info == null) {
+            return false;
+        }
+        
+        String matchId = info.matchId;
         BaseGame game = matchGames.get(matchId);
         if (game == null) {
+            gracePeriodTracker.cancelGracePeriod(playerId);
             return false;
         }
 
-        return game.handlePlayerReconnect(playerId);
+        // Cancel the grace period timeout
+        gracePeriodTracker.cancelGracePeriod(playerId);
+        
+        // Delegate to game for reconnection handling
+        boolean handled = game.handlePlayerReconnect(playerId);
+        
+        if (handled) {
+            LOGGER.info("Player " + playerId + " successfully reconnected to match " + matchId);
+            
+            // Notify telemetry about the reconnect
+            if (telemetryService != null) {
+                telemetryService.recordReconnectEvent(matchId, playerId);
+            }
+        }
+        
+        return handled;
+    }
+    
+    /**
+     * Check if a player is in a grace period (disconnected but can reconnect).
+     */
+    public boolean isPlayerInGracePeriod(UUID playerId) {
+        return gracePeriodTracker.isInGracePeriod(playerId);
+    }
+    
+    /**
+     * Get the match ID for a player who is in a grace period.
+     * Returns null if player is not in a grace period.
+     */
+    public String getGracePeriodMatchId(UUID playerId) {
+        GracePeriodTracker.DisconnectInfo info = gracePeriodTracker.getDisconnectInfo(playerId);
+        return info != null ? info.matchId : null;
     }
 
     /**

@@ -58,23 +58,27 @@ public class SimulateReconnectCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         
-        // Check if player is in a match
-        String matchId = matchManager.getMatchIdForPlayer(targetPlayer.getUniqueId());
-        if (matchId == null) {
-            player.sendMessage("§c" + targetPlayer.getName() + " is not registered in an active match.");
+        // Check if player is in a grace period (disconnected but can reconnect)
+        if (!matchManager.isPlayerInGracePeriod(targetPlayer.getUniqueId())) {
+            // Also check if they're in a match but not in grace period
+            String matchId = matchManager.getMatchIdForPlayer(targetPlayer.getUniqueId());
+            if (matchId != null) {
+                BaseGame game = matchManager.getGameForMatch(matchId);
+                if (game != null && game.isPlayerDisconnected(targetPlayer.getUniqueId())) {
+                    player.sendMessage("§e" + targetPlayer.getName() + " §7is marked as disconnected but not in grace period.");
+                    player.sendMessage("§7Their grace period may have expired or they used instant forfeit.");
+                    return true;
+                }
+            }
+            player.sendMessage("§e" + targetPlayer.getName() + " §7is not in a grace period.");
+            player.sendMessage("§7Use §e/simulatedisconnect §7first to simulate disconnect.");
             return true;
         }
         
+        String matchId = matchManager.getGracePeriodMatchId(targetPlayer.getUniqueId());
         BaseGame game = matchManager.getGameForMatch(matchId);
         if (game == null) {
-            player.sendMessage("§cNo game instance found (legacy match?).");
-            return true;
-        }
-        
-        // Check if player is actually in disconnected state
-        if (!game.isPlayerDisconnected(targetPlayer.getUniqueId())) {
-            player.sendMessage("§e" + targetPlayer.getName() + " §7is not in disconnected state.");
-            player.sendMessage("§7Use §e/simulatedisconnect §7first to simulate disconnect.");
+            player.sendMessage("§cNo game instance found for match " + matchId);
             return true;
         }
         

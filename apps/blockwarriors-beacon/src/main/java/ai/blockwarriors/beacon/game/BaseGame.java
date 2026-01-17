@@ -305,7 +305,7 @@ public abstract class BaseGame {
      * @param playerId Player to find opponents for
      * @return List of opponent UUIDs
      */
-    protected List<UUID> getOpponents(UUID playerId) {
+    public List<UUID> getOpponents(UUID playerId) {
         if (blueTeam.contains(playerId)) {
             return new ArrayList<>(redTeam);
         } else if (redTeam.contains(playerId)) {

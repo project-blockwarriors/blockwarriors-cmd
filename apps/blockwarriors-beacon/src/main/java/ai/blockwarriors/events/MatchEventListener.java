@@ -6,6 +6,8 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
 import ai.blockwarriors.beacon.game.DisconnectReason;
@@ -79,7 +81,18 @@ public class MatchEventListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGH)
     public void onPlayerQuit(PlayerQuitEvent event) {
-        Player player = event.getPlayer();
+        handlePlayerDisconnect(event.getPlayer(), DisconnectReason.QUIT);
+    }
+    
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerKick(PlayerKickEvent event) {
+        handlePlayerDisconnect(event.getPlayer(), DisconnectReason.KICK);
+    }
+    
+    /**
+     * Common handler for player disconnects (quit or kick).
+     */
+    private void handlePlayerDisconnect(Player player, DisconnectReason reason) {
         UUID playerId = player.getUniqueId();
 
         // Check if player is in an active match
@@ -92,10 +105,10 @@ public class MatchEventListener implements Listener {
             return;
         }
 
-        LOGGER.info("Player " + player.getName() + " disconnected from match " + matchId);
+        LOGGER.info("Player " + player.getName() + " disconnected from match " + matchId + " (reason: " + reason + ")");
 
         // Try to delegate to game instance first
-        DisconnectResult result = matchManager.delegatePlayerDisconnect(playerId, DisconnectReason.QUIT);
+        DisconnectResult result = matchManager.delegatePlayerDisconnect(playerId, reason);
         if (result != null) {
             LOGGER.info("Disconnect handled by game instance: " + result);
             return; // Game handled it
@@ -119,6 +132,31 @@ public class MatchEventListener implements Listener {
 
         // End the match with the other player as winner
         matchManager.endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+    }
+    
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        UUID playerId = player.getUniqueId();
+        
+        // Check if player was in a grace period (disconnected but can reconnect)
+        if (!matchManager.isPlayerInGracePeriod(playerId)) {
+            return;
+        }
+        
+        String matchId = matchManager.getGracePeriodMatchId(playerId);
+        LOGGER.info("Player " + player.getName() + " rejoined during grace period for match " + matchId);
+        
+        // Try to handle reconnection
+        boolean handled = matchManager.delegatePlayerReconnect(playerId);
+        
+        if (handled) {
+            player.sendMessage("§aWelcome back! You have reconnected to your match.");
+            LOGGER.info("Player " + player.getName() + " successfully reconnected to match " + matchId);
+        } else {
+            player.sendMessage("§cFailed to reconnect to match. The match may have ended.");
+            LOGGER.warning("Player " + player.getName() + " failed to reconnect to match " + matchId);
+        }
     }
 }
 
