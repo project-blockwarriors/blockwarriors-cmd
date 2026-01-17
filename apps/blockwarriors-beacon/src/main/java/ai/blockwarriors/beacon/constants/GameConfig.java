@@ -19,6 +19,9 @@ public final class GameConfig {
     // ==================== Game Types ====================
     
     public static final String GAME_TYPE_PVP = "pvp";
+    public static final String GAME_TYPE_SKY_TILES = "sky_tiles";
+    public static final String GAME_TYPE_WOOL_WARS = "wool_wars";
+    public static final String GAME_TYPE_BRIDGE = "bridge";
     public static final String GAME_TYPE_BEDWARS = "bedwars";
     public static final String GAME_TYPE_CTF = "ctf";
     
@@ -27,6 +30,9 @@ public final class GameConfig {
      */
     public static final String[] GAME_TYPES = {
         GAME_TYPE_PVP,
+        GAME_TYPE_SKY_TILES,
+        GAME_TYPE_WOOL_WARS,
+        GAME_TYPE_BRIDGE,
         GAME_TYPE_BEDWARS,
         GAME_TYPE_CTF
     };
@@ -35,6 +41,9 @@ public final class GameConfig {
     // Note: These values should match the backend, but the backend is the source of truth
     
     public static final int PVP_TOKENS_PER_TEAM = 1;
+    public static final int SKY_TILES_TOKENS_PER_TEAM = 1;
+    public static final int WOOL_WARS_TOKENS_PER_TEAM = 4;
+    public static final int BRIDGE_TOKENS_PER_TEAM = 1;
     public static final int BEDWARS_TOKENS_PER_TEAM = 4;
     public static final int CTF_TOKENS_PER_TEAM = 5;
     
@@ -46,6 +55,12 @@ public final class GameConfig {
         switch (gameType) {
             case GAME_TYPE_PVP:
                 return PVP_TOKENS_PER_TEAM;
+            case GAME_TYPE_SKY_TILES:
+                return SKY_TILES_TOKENS_PER_TEAM;
+            case GAME_TYPE_WOOL_WARS:
+                return WOOL_WARS_TOKENS_PER_TEAM;
+            case GAME_TYPE_BRIDGE:
+                return BRIDGE_TOKENS_PER_TEAM;
             case GAME_TYPE_BEDWARS:
                 return BEDWARS_TOKENS_PER_TEAM;
             case GAME_TYPE_CTF:
@@ -53,6 +68,38 @@ public final class GameConfig {
             default:
                 return 1; // Default to 1 for unknown types
         }
+    }
+    
+    // ==================== Arena Defaults ====================
+    
+    /**
+     * Get the default arena name for a game type
+     */
+    public static String getDefaultArena(String gameType) {
+        switch (gameType) {
+            case GAME_TYPE_PVP:
+                return "pvp";
+            case GAME_TYPE_SKY_TILES:
+                return "sky_tiles";
+            case GAME_TYPE_WOOL_WARS:
+                return "wool_wars";
+            case GAME_TYPE_BRIDGE:
+                return "bridge";
+            default:
+                return "pvp"; // Default to pvp arena
+        }
+    }
+    
+    /**
+     * Check if a game type is valid
+     */
+    public static boolean isValidGameType(String gameType) {
+        for (String type : GAME_TYPES) {
+            if (type.equals(gameType)) {
+                return true;
+            }
+        }
+        return false;
     }
     
     // ==================== Match Statuses ====================
