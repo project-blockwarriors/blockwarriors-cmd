@@ -17,3 +17,27 @@ commands:
     description: Bypass login requirement (operators only)
     usage: /bypass [player]
     permission: beacon.bypass
+  testgame:
+    description: Start a local test match without Convex
+    usage: /testgame <game_type> [player1] [player2]
+    permission: beacon.debug
+  setarena:
+    description: Load an arena for testing
+    usage: /setarena <arena_name|list|reload>
+    permission: beacon.debug
+  endgame:
+    description: Force end the current game
+    usage: /endgame [winner|blue|red|none]
+    permission: beacon.debug
+  triggerobjective:
+    description: Simulate a game objective event
+    usage: /triggerobjective <objective_type> [player] [key=value...]
+    permission: beacon.debug
+  simulatedisconnect:
+    description: Simulate player disconnect for testing
+    usage: /simulatedisconnect <player> [reason]
+    permission: beacon.debug
+  simulatereconnect:
+    description: Simulate player reconnect during grace period
+    usage: /simulatereconnect <player>
+    permission: beacon.debug
