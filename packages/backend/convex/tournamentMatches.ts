@@ -1,4 +1,5 @@
-import { query, mutation } from "./_generated/server";
+import { requireUserId } from "./auth";
+import { query, mutation, internalMutation, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 
@@ -366,22 +367,34 @@ export const getTeamTournamentMatches = query({
  * Create a game within a tournament match
  * This creates an actual game match that will be played in Minecraft
  */
-export const createTournamentGame = mutation({
-  args: {
-    tournamentMatchId: v.id("tournament_matches"),
-    matchType: v.string(),
-    mode: v.string(),
-  },
-  returns: v.object({
-    success: v.boolean(),
-    matchId: v.optional(v.id("matches")),
-    error: v.optional(v.string()),
-  }),
-  handler: async (ctx, args) => {
+async function createTournamentGameImpl(
+  ctx: MutationCtx,
+  args: { tournamentMatchId: Id<"tournament_matches">; matchType: string; mode: string; userId?: string }
+) {
     // Get tournament match
     const tournamentMatch = await ctx.db.get(args.tournamentMatchId);
     if (!tournamentMatch) {
       return { success: false, error: "Tournament match not found" };
+    }
+
+    if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
+      return { success: false, error: "Tournament match teams are not set" };
+    }
+
+    if (args.userId) {
+      const userTeamId = await getUserTeamId(ctx, args.userId);
+      if (!userTeamId) {
+        return { success: false, error: "You must be on a team to start a game" };
+      }
+      if (
+        userTeamId !== tournamentMatch.team1_id &&
+        userTeamId !== tournamentMatch.team2_id
+      ) {
+        return {
+          success: false,
+          error: "You can only start games for your team's matches",
+        };
+      }
     }
 
     // Check match status
@@ -429,7 +442,34 @@ export const createTournamentGame = mutation({
     });
 
     return { success: true, matchId };
+}
+
+export const createTournamentGame = mutation({
+  args: {
+    tournamentMatchId: v.id("tournament_matches"),
+    matchType: v.string(),
+    mode: v.string(),
+    userId: v.optional(v.string()),
   },
+  returns: v.object({
+    success: v.boolean(),
+    matchId: v.optional(v.id("matches")),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await requireUserId(ctx, args.userId);
+    return createTournamentGameImpl(ctx, { ...args, userId });
+  },
+});
+
+// Only the bearer-authenticated Minecraft HTTP route may bypass user membership.
+export const createTournamentGameForServer = internalMutation({
+  args: {
+    tournamentMatchId: v.id("tournament_matches"),
+    matchType: v.string(),
+    mode: v.string(),
+  },
+  handler: createTournamentGameImpl,
 });
 
 /**

@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
 import { authComponent, createAuth } from "./auth";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
@@ -792,7 +792,7 @@ http.route({
 
     try {
       const result = await ctx.runMutation(
-        api.tournamentMatches.createTournamentGame,
+        internal.tournamentMatches.createTournamentGameForServer,
         {
           tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
           matchType: match_type || "auto",

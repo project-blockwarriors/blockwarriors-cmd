@@ -58,3 +58,12 @@ export const validateAuthToken = query({
 
 // Export auth component for use in other Convex functions
 // export { authComponent, createAuth };
+
+/** Verify a caller-supplied profile ID against the authenticated Better Auth user. */
+export async function requireUserId(ctx: GenericCtx<DataModel>, expectedUserId?: string) {
+  const user = await authComponent.getAuthUser(ctx);
+  if (!user || (expectedUserId !== undefined && user._id !== expectedUserId)) {
+    throw new Error("Unauthorized");
+  }
+  return user._id;
+}
