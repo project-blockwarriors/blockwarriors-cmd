@@ -11,10 +11,18 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import ai.blockwarriors.commands.LoginCommand;
 import ai.blockwarriors.commands.debug.CreateMatchCommand;
+import ai.blockwarriors.commands.debug.EndGameCommand;
 import ai.blockwarriors.commands.debug.ListLoggedInCommand;
+import ai.blockwarriors.commands.debug.SetArenaCommand;
+import ai.blockwarriors.commands.debug.SimulateDisconnectCommand;
+import ai.blockwarriors.commands.debug.SimulateReconnectCommand;
+import ai.blockwarriors.commands.debug.TestGameCommand;
+import ai.blockwarriors.commands.debug.TriggerObjectiveCommand;
 import ai.blockwarriors.events.PlayerEventListener;
 import ai.blockwarriors.beacon.arena.ArenaManager;
+import ai.blockwarriors.beacon.constants.GameConfig;
 import ai.blockwarriors.beacon.game.GameRegistry;
+import ai.blockwarriors.beacon.game.impl.PvPGame;
 import ai.blockwarriors.beacon.service.MatchPollingService;
 import ai.blockwarriors.beacon.service.MatchTelemetryService;
 import ai.blockwarriors.beacon.service.MatchManager;
@@ -91,10 +99,24 @@ public class Plugin extends JavaPlugin {
         // Link telemetry service to match manager
         matchManager.setTelemetryService(matchTelemetryService);
 
-        // Initialize GameRegistry (game types will be registered by individual game plugins/modules)
-        GameRegistry.getInstance();
+        // Initialize GameRegistry and register game types
+        GameRegistry registry = GameRegistry.getInstance();
+        
+        // Register PvP game type with metadata
+        registry.registerGame(
+            GameConfig.GAME_TYPE_PVP,
+            PvPGame::new,
+            GameRegistry.GameMetadata.builder()
+                .displayName("Normal PvP")
+                .description("Classic 1v1 player versus player combat")
+                .playersPerTeam(1)
+                .teamCount(2)
+                .defaultArena("pvp")
+                .build()
+        );
+        
         LOGGER.info("GameRegistry initialized. Registered game types: " + 
-                   GameRegistry.getInstance().getRegisteredTypes());
+                   registry.getRegisteredTypes());
 
         // Initialize login command with Convex URL and secret
         loginCommand = new LoginCommand(loggedInPlayers, convexSiteUrl, convexHttpSecret);
@@ -104,6 +126,43 @@ public class Plugin extends JavaPlugin {
         registerCommand("creatematch", new CreateMatchCommand());
         registerCommand("listloggedin", new ListLoggedInCommand(loggedInPlayers));
         registerCommand("bypass", new ai.blockwarriors.commands.BypassCommand(bypassedPlayers));
+        
+        // Register debug commands
+        TestGameCommand testGameCommand = new TestGameCommand(this);
+        registerCommand("testgame", testGameCommand);
+        if (getCommand("testgame") != null) {
+            getCommand("testgame").setTabCompleter(testGameCommand);
+        }
+        
+        SetArenaCommand setArenaCommand = new SetArenaCommand(this);
+        registerCommand("setarena", setArenaCommand);
+        if (getCommand("setarena") != null) {
+            getCommand("setarena").setTabCompleter(setArenaCommand);
+        }
+        
+        EndGameCommand endGameCommand = new EndGameCommand(this);
+        registerCommand("endgame", endGameCommand);
+        if (getCommand("endgame") != null) {
+            getCommand("endgame").setTabCompleter(endGameCommand);
+        }
+        
+        TriggerObjectiveCommand triggerObjectiveCommand = new TriggerObjectiveCommand(this);
+        registerCommand("triggerobjective", triggerObjectiveCommand);
+        if (getCommand("triggerobjective") != null) {
+            getCommand("triggerobjective").setTabCompleter(triggerObjectiveCommand);
+        }
+        
+        SimulateDisconnectCommand simulateDisconnectCommand = new SimulateDisconnectCommand(this);
+        registerCommand("simulatedisconnect", simulateDisconnectCommand);
+        if (getCommand("simulatedisconnect") != null) {
+            getCommand("simulatedisconnect").setTabCompleter(simulateDisconnectCommand);
+        }
+        
+        SimulateReconnectCommand simulateReconnectCommand = new SimulateReconnectCommand(this);
+        registerCommand("simulatereconnect", simulateReconnectCommand);
+        if (getCommand("simulatereconnect") != null) {
+            getCommand("simulatereconnect").setTabCompleter(simulateReconnectCommand);
+        }
 
         // Register event listeners
         getServer().getPluginManager()
