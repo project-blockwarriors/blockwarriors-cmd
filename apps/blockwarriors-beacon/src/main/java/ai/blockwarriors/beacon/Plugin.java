@@ -96,8 +96,9 @@ public class Plugin extends JavaPlugin {
         // Initialize match telemetry service
         matchTelemetryService = new MatchTelemetryService(this, convexSiteUrl, convexHttpSecret);
 
-        // Link telemetry service to match manager
+        // Link telemetry service and match manager bidirectionally
         matchManager.setTelemetryService(matchTelemetryService);
+        matchTelemetryService.setMatchManager(matchManager);
 
         // Initialize GameRegistry and register game types
         GameRegistry registry = GameRegistry.getInstance();
