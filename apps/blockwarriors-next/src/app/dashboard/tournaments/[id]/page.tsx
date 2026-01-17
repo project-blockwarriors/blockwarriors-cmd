@@ -66,6 +66,10 @@ export default function TournamentDetailPage() {
     api.tournaments.getTournament,
     tournamentId ? { tournamentId: tournamentId as Id<'tournaments'> } : 'skip'
   );
+  const creatorProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    tournament?.created_by ? { userId: tournament.created_by } : 'skip'
+  );
 
   // Fetch participants
   const participants = useQuery(
@@ -452,6 +456,20 @@ export default function TournamentDetailPage() {
                 </span>
               )}
             </div>
+            {creatorProfile && (
+              <div className="text-sm text-muted-foreground mt-2">
+                Created by{' '}
+                <span className="text-white">
+                  {creatorProfile.first_name} {creatorProfile.last_name}
+                </span>
+                {creatorProfile.institution && (
+                  <span> • {creatorProfile.institution}</span>
+                )}
+                {creatorProfile.team?.team_name && (
+                  <span> • {creatorProfile.team.team_name}</span>
+                )}
+              </div>
+            )}
           </div>
         </div>
 

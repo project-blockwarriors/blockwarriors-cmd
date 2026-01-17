@@ -31,6 +31,13 @@ export default function TournamentMatchPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const userProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    session?.user?.id ? { userId: session.user.id } : 'skip'
+  );
+
+  const userTeamId = userProfile?.team?.id;
+
   // Fetch tournament match
   const tournamentMatch = useQuery(
     api.tournamentMatches.getTournamentMatch,
@@ -60,6 +67,7 @@ export default function TournamentMatchPage() {
         tournamentMatchId: matchId as Id<'tournament_matches'>,
         matchType: 'pvp', // Default to PvP, could be configurable
         mode: 'ranked', // Tournament matches are ranked
+        userId: session.user.id,
       });
 
       if (!result.success) {
@@ -106,12 +114,17 @@ export default function TournamentMatchPage() {
   const maxGames = getMaxGamesInMatch(tournamentMatch.games_required);
   const totalGamesPlayed =
     tournamentMatch.team1_games_won + tournamentMatch.team2_games_won;
+  const isUserTeamInMatch =
+    Boolean(userTeamId) &&
+    (tournamentMatch.team1_id === userTeamId ||
+      tournamentMatch.team2_id === userTeamId);
   const canCreateGame =
     tournamentMatch.status !== 'completed' &&
     tournamentMatch.status !== 'cancelled' &&
     totalGamesPlayed < maxGames &&
     tournamentMatch.team1_games_won < tournamentMatch.games_required &&
-    tournamentMatch.team2_games_won < tournamentMatch.games_required;
+    tournamentMatch.team2_games_won < tournamentMatch.games_required &&
+    isUserTeamInMatch;
 
   return (
     <motion.div

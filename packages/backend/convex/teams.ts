@@ -3,6 +3,27 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 
+const MAX_TEAM_MEMBERS = 5;
+
+async function getTeamMemberCount(ctx: any, teamId: Id<"teams">) {
+  const members = await ctx.db
+    .query("user_profiles")
+    .withIndex("by_team_id", (q: any) => q.eq("team_id", teamId))
+    .collect();
+  return members.length;
+}
+
+async function getUserTeamId(
+  ctx: any,
+  userId: string
+): Promise<Id<"teams"> | null> {
+  const profile = await ctx.db
+    .query("user_profiles")
+    .withIndex("by_user_id", (q: any) => q.eq("user_id", userId))
+    .first();
+  return profile?.team_id ?? null;
+}
+
 // Get all teams with their members
 export const getAllTeamsWithMembers = query({
   args: {},
@@ -417,12 +438,97 @@ export const joinTeam = mutation({
       throw new Error("You are already a member of a team");
     }
 
+    const memberCount = await getTeamMemberCount(ctx, args.teamId);
+    if (memberCount >= MAX_TEAM_MEMBERS) {
+      throw new Error("Team is full");
+    }
+
+    const existingRequest = await ctx.db
+      .query("team_join_requests")
+      .withIndex("by_team_id_and_user_id", (q: any) =>
+        q.eq("team_id", args.teamId).eq("user_id", args.userId)
+      )
+      .first();
+
+    if (existingRequest) {
+      throw new Error("You already have a pending join request");
+    }
+
     const now = Date.now();
-    await ctx.db.patch(userProfile._id, {
+    await ctx.db.insert("team_join_requests", {
       team_id: args.teamId,
-      updated_at: now,
+      user_id: args.userId,
+      requested_at: now,
     });
 
+    return { success: true };
+  },
+});
+
+// Get a user's pending join request for a team
+export const getJoinRequestForTeam = query({
+  args: {
+    teamId: v.id("teams"),
+    userId: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      _id: v.id("team_join_requests"),
+      team_id: v.id("teams"),
+      user_id: v.string(),
+      requested_at: v.number(),
+    }),
+    v.null()
+  ),
+  handler: async (ctx, args) => {
+    const currentTeamId = await getUserTeamId(ctx, args.userId);
+    if (currentTeamId) {
+      return null;
+    }
+
+    const request = await ctx.db
+      .query("team_join_requests")
+      .withIndex("by_team_id_and_user_id", (q: any) =>
+        q.eq("team_id", args.teamId).eq("user_id", args.userId)
+      )
+      .first();
+
+    if (!request) {
+      return null;
+    }
+
+    return {
+      _id: request._id,
+      team_id: request.team_id,
+      user_id: request.user_id,
+      requested_at: request.requested_at,
+    };
+  },
+});
+
+// Cancel a pending join request
+export const cancelJoinRequest = mutation({
+  args: {
+    teamId: v.id("teams"),
+    userId: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const request = await ctx.db
+      .query("team_join_requests")
+      .withIndex("by_team_id_and_user_id", (q: any) =>
+        q.eq("team_id", args.teamId).eq("user_id", args.userId)
+      )
+      .first();
+
+    if (!request) {
+      return { success: true };
+    }
+
+    await ctx.db.delete(request._id);
     return { success: true };
   },
 });
@@ -638,10 +744,139 @@ export const disbandTeam = mutation({
       await ctx.storage.delete(team.team_image_id);
     }
 
+    // Delete any pending join requests
+    const joinRequests = await ctx.db
+      .query("team_join_requests")
+      .withIndex("by_team_id", (q) => q.eq("team_id", args.teamId))
+      .collect();
+    await Promise.all(joinRequests.map((request) => ctx.db.delete(request._id)));
+
     // Delete the team
     await ctx.db.delete(args.teamId);
 
     return { success: true, forfeitedTournaments };
+  },
+});
+
+// Get join requests for a team (any team member can view)
+export const getTeamJoinRequests = query({
+  args: {
+    teamId: v.id("teams"),
+    userId: v.string(),
+  },
+  returns: v.array(
+    v.object({
+      _id: v.id("team_join_requests"),
+      team_id: v.id("teams"),
+      user_id: v.string(),
+      requested_at: v.number(),
+      first_name: v.string(),
+      last_name: v.string(),
+      institution: v.optional(v.string()),
+      profile_image_url: v.optional(v.string()),
+    })
+  ),
+  handler: async (ctx, args) => {
+    const userTeamId = await getUserTeamId(ctx, args.userId);
+    if (!userTeamId || userTeamId !== args.teamId) {
+      return [];
+    }
+
+    const requests = await ctx.db
+      .query("team_join_requests")
+      .withIndex("by_team_id", (q) => q.eq("team_id", args.teamId))
+      .collect();
+
+    const requestsWithProfiles = await Promise.all(
+      requests.map(async (request) => {
+        const profile = await ctx.db
+          .query("user_profiles")
+          .withIndex("by_user_id", (q: any) => q.eq("user_id", request.user_id))
+          .first();
+
+        let profileImageUrl = null;
+        if (profile?.profile_image_id) {
+          profileImageUrl = await ctx.storage.getUrl(profile.profile_image_id);
+        }
+
+        return {
+          _id: request._id,
+          team_id: request.team_id,
+          user_id: request.user_id,
+          requested_at: request.requested_at,
+          first_name: profile?.first_name ?? "Unknown",
+          last_name: profile?.last_name ?? "User",
+          institution: profile?.institution,
+          profile_image_url: profileImageUrl ?? undefined,
+        };
+      })
+    );
+
+    return requestsWithProfiles;
+  },
+});
+
+// Accept or decline a join request (any team member can respond)
+export const respondToJoinRequest = mutation({
+  args: {
+    requestId: v.id("team_join_requests"),
+    userId: v.string(),
+    action: v.union(v.literal("accept"), v.literal("decline")),
+  },
+  returns: v.object({
+    success: v.boolean(),
+    error: v.optional(v.string()),
+  }),
+  handler: async (ctx, args) => {
+    const request = await ctx.db.get(args.requestId);
+    if (!request) {
+      return { success: false, error: "Join request not found" };
+    }
+
+    const userTeamId = await getUserTeamId(ctx, args.userId);
+    if (!userTeamId || userTeamId !== request.team_id) {
+      return { success: false, error: "You are not a member of this team" };
+    }
+
+    if (args.action === "decline") {
+      await ctx.db.delete(args.requestId);
+      return { success: true };
+    }
+
+    const team = await ctx.db.get(request.team_id);
+    if (!team) {
+      await ctx.db.delete(args.requestId);
+      return { success: false, error: "Team not found" };
+    }
+
+    const requesterProfile = await ctx.db
+      .query("user_profiles")
+      .withIndex("by_user_id", (q: any) => q.eq("user_id", request.user_id))
+      .first();
+
+    if (!requesterProfile) {
+      await ctx.db.delete(args.requestId);
+      return { success: false, error: "User profile not found" };
+    }
+
+    if (requesterProfile.team_id) {
+      await ctx.db.delete(args.requestId);
+      return { success: false, error: "User is already on a team" };
+    }
+
+    const memberCount = await getTeamMemberCount(ctx, request.team_id);
+    if (memberCount >= MAX_TEAM_MEMBERS) {
+      return { success: false, error: "Team is full" };
+    }
+
+    const now = Date.now();
+    await ctx.db.patch(requesterProfile._id, {
+      team_id: request.team_id,
+      updated_at: now,
+    });
+    await ctx.db.delete(args.requestId);
+
+    return { success: true };
   },
 });
 

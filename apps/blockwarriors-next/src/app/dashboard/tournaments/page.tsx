@@ -19,6 +19,7 @@ import {
   type TournamentStatus,
   type TournamentFormat,
 } from '@/lib/tournament-constants';
+import { authClient } from '@/lib/auth-client';
 
 type FilterType = 'all' | 'official' | 'my';
 
@@ -27,12 +28,35 @@ export default function TournamentsPage() {
     'all'
   );
   const [typeFilter, setTypeFilter] = useState<FilterType>('all');
+  const { data: session } = authClient.useSession();
+  const userId = session?.user?.id;
 
   // Fetch tournaments based on filter
-  const tournaments = useQuery(api.tournaments.listTournaments, {
-    status: statusFilter === 'all' ? undefined : statusFilter,
-    isOfficial: typeFilter === 'official' ? true : undefined,
-  });
+  const tournaments = useQuery(
+    api.tournaments.listTournaments,
+    typeFilter === 'my'
+      ? 'skip'
+      : {
+          status: statusFilter === 'all' ? undefined : statusFilter,
+          isOfficial: typeFilter === 'official' ? true : undefined,
+        }
+  );
+  const myTournaments = useQuery(
+    api.tournaments.getMyTournaments,
+    typeFilter === 'my' && userId ? { userId } : 'skip'
+  );
+  const baseTournaments =
+    typeFilter === 'my' ? myTournaments ?? [] : tournaments ?? [];
+  const filteredTournaments =
+    statusFilter === 'all'
+      ? baseTournaments
+      : baseTournaments.filter((tournament) => {
+          return tournament.status === statusFilter;
+        });
+  const isLoading =
+    typeFilter === 'my'
+      ? Boolean(userId && myTournaments === undefined)
+      : tournaments === undefined;
 
   // Get status badge color
   const getStatusBadge = (status: TournamentStatus) => {
@@ -144,20 +168,22 @@ export default function TournamentsPage() {
       </div>
 
       {/* Tournament Grid */}
-      {tournaments === undefined ? (
+      {isLoading ? (
         <div className="flex items-center justify-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
-      ) : tournaments.length === 0 ? (
+      ) : filteredTournaments.length === 0 ? (
         <div className="bg-black/40 backdrop-blur-md rounded-lg p-12 border border-white/10 text-center">
           <TrophyIcon className="w-16 h-16 text-gray-600 mx-auto mb-4" />
           <h3 className="text-xl font-semibold text-white mb-2">
             No tournaments found
           </h3>
           <p className="text-gray-400 mb-6">
-            {statusFilter !== 'all' || typeFilter !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Be the first to create a tournament!'}
+            {typeFilter === 'my' && !userId
+              ? 'Sign in to view your tournaments'
+              : statusFilter !== 'all' || typeFilter !== 'all'
+                ? 'Try adjusting your filters'
+                : 'Be the first to create a tournament!'}
           </p>
           <Link href="/dashboard/tournaments/create">
             <Button>Create Tournament</Button>
@@ -165,7 +191,7 @@ export default function TournamentsPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {tournaments.map((tournament) => (
+          {filteredTournaments.map((tournament) => (
             <Link
               key={tournament._id}
               href={`/dashboard/tournaments/${tournament._id}`}

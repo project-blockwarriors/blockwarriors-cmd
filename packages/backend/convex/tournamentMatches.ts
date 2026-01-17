@@ -371,6 +371,7 @@ export const createTournamentGame = mutation({
     tournamentMatchId: v.id("tournament_matches"),
     matchType: v.string(),
     mode: v.string(),
+    userId: v.optional(v.string()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -382,6 +383,26 @@ export const createTournamentGame = mutation({
     const tournamentMatch = await ctx.db.get(args.tournamentMatchId);
     if (!tournamentMatch) {
       return { success: false, error: "Tournament match not found" };
+    }
+
+    if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
+      return { success: false, error: "Tournament match teams are not set" };
+    }
+
+    if (args.userId) {
+      const userTeamId = await getUserTeamId(ctx, args.userId);
+      if (!userTeamId) {
+        return { success: false, error: "You must be on a team to start a game" };
+      }
+      if (
+        userTeamId !== tournamentMatch.team1_id &&
+        userTeamId !== tournamentMatch.team2_id
+      ) {
+        return {
+          success: false,
+          error: "You can only start games for your team's matches",
+        };
+      }
     }
 
     // Check match status

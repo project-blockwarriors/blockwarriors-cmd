@@ -44,6 +44,28 @@ export async function joinTeam(
   }
 }
 
+export async function cancelJoinRequest(
+  teamId: Id<'teams'>,
+  userId: string
+): Promise<{ error: string | null }> {
+  try {
+    const token = await getToken();
+    if (!token) {
+      return { error: 'Not authenticated' };
+    }
+
+    await fetchMutation(
+      api.teams.cancelJoinRequest,
+      { teamId, userId },
+      { token }
+    );
+
+    return { error: null };
+  } catch (error) {
+    return { error: (error as Error).message };
+  }
+}
+
 export async function leaveTeam(
   userId: string
 ): Promise<{ error: string | null }> {
@@ -71,4 +93,3 @@ export async function disbandTeam(
 ): Promise<{ error: string | null }> {
   return await disbandTeamDb(teamId, leaderId);
 }
-

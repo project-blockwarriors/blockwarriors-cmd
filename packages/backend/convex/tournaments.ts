@@ -427,6 +427,16 @@ export const joinTournament = mutation({
       return { success: false, error: "You must be on a team to join a tournament" };
     }
 
+    if (tournament.is_official) {
+      const team = await ctx.db.get(teamId);
+      if (!team || team.leader_id !== args.userId) {
+        return {
+          success: false,
+          error: "Only team leaders can register for official tournaments",
+        };
+      }
+    }
+
     // Check if team is already registered
     const existingParticipation = await ctx.db
       .query("tournament_participants")
@@ -490,6 +500,16 @@ export const leaveTournament = mutation({
     const teamId = await getUserTeamId(ctx, args.userId);
     if (!teamId) {
       return { success: false, error: "You are not on a team" };
+    }
+
+    if (tournament.is_official) {
+      const team = await ctx.db.get(teamId);
+      if (!team || team.leader_id !== args.userId) {
+        return {
+          success: false,
+          error: "Only team leaders can withdraw from official tournaments",
+        };
+      }
     }
 
     // Find and delete participation

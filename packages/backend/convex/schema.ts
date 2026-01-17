@@ -145,4 +145,14 @@ export default defineSchema({
     .index("by_tournament_id", ["tournament_id"])
     .index("by_tournament_id_and_round", ["tournament_id", "round"])
     .index("by_tournament_id_and_status", ["tournament_id", "status"]),
+
+  // Team join requests - pending requests to join a team
+  team_join_requests: defineTable({
+    team_id: v.id("teams"),
+    user_id: v.string(),
+    requested_at: v.number(),
+  })
+    .index("by_team_id", ["team_id"])
+    .index("by_user_id", ["user_id"])
+    .index("by_team_id_and_user_id", ["team_id", "user_id"]),
 });
