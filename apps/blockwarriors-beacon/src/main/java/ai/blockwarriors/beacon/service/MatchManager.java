@@ -8,6 +8,9 @@ import org.bukkit.scheduler.BukkitRunnable;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import ai.blockwarriors.beacon.game.BaseGame;
+import ai.blockwarriors.beacon.game.DisconnectReason;
+import ai.blockwarriors.beacon.game.DisconnectResult;
 import ai.blockwarriors.beacon.util.ConvexClient;
 
 import java.util.*;
@@ -30,6 +33,9 @@ public class MatchManager {
     
     // Map player UUID to match ID
     private final Map<UUID, String> playerMatches = new HashMap<>();
+    
+    // Map match ID to BaseGame instance
+    private final Map<String, BaseGame> matchGames = new HashMap<>();
 
     public MatchManager(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
@@ -41,9 +47,21 @@ public class MatchManager {
     }
 
     /**
-     * Register a match with its world and players
+     * Register a match with its world and players (legacy, no game instance).
      */
     public void registerMatch(String matchId, String worldName, List<Player> players) {
+        registerMatch(matchId, worldName, players, null);
+    }
+
+    /**
+     * Register a match with its world, players, and game instance.
+     * 
+     * @param matchId Unique match identifier
+     * @param worldName Name of the world for this match
+     * @param players List of players in the match
+     * @param game BaseGame instance (may be null for legacy matches)
+     */
+    public void registerMatch(String matchId, String worldName, List<Player> players, BaseGame game) {
         matchWorlds.put(matchId, worldName);
         
         Set<UUID> playerIds = new HashSet<>();
@@ -53,8 +71,15 @@ public class MatchManager {
         }
         matchPlayers.put(matchId, playerIds);
         
-        LOGGER.info("Registered match " + matchId + " with world " + worldName + 
-                   " and " + players.size() + " players");
+        // Store game instance if provided
+        if (game != null) {
+            matchGames.put(matchId, game);
+            LOGGER.info("Registered match " + matchId + " with game type " + game.getGameType() + 
+                       ", world " + worldName + " and " + players.size() + " players");
+        } else {
+            LOGGER.info("Registered match " + matchId + " (legacy) with world " + worldName + 
+                       " and " + players.size() + " players");
+        }
     }
 
     /**
@@ -79,11 +104,30 @@ public class MatchManager {
     }
 
     /**
-     * End a match - update status, delete world, kick players
+     * Get the game instance for a match.
+     * 
+     * @param matchId Match identifier
+     * @return BaseGame instance, or null if not found or legacy match
+     */
+    public BaseGame getGameForMatch(String matchId) {
+        return matchGames.get(matchId);
+    }
+
+    /**
+     * Check if a match has a game instance (non-legacy).
+     */
+    public boolean hasGame(String matchId) {
+        return matchGames.containsKey(matchId);
+    }
+
+    /**
+     * End a match - update status, delete world, kick players.
+     * Delegates cleanup to the game instance if available.
      */
     public void endMatch(String matchId, String winnerPlayerId) {
         String worldName = matchWorlds.get(matchId);
         Set<UUID> playerIds = matchPlayers.get(matchId);
+        BaseGame game = matchGames.get(matchId);
         
         if (worldName == null || playerIds == null) {
             LOGGER.warning("Cannot end match " + matchId + " - not found in registry");
@@ -91,6 +135,17 @@ public class MatchManager {
         }
 
         LOGGER.info("Ending match " + matchId + " (winner: " + (winnerPlayerId != null ? winnerPlayerId : "none") + ")");
+
+        // Call game cleanup if we have a game instance
+        if (game != null) {
+            try {
+                game.cleanup();
+                LOGGER.info("Game cleanup completed for match " + matchId);
+            } catch (Exception e) {
+                LOGGER.severe("Error during game cleanup for match " + matchId + ": " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
 
         // Capture and queue final telemetry NOW while player states are valid
         if (telemetryService != null) {
@@ -115,8 +170,8 @@ public class MatchManager {
                     }
                 }
 
-                // Delete the world
-                ai.blockwarriors.commands.debug.CreateMatchCommand.deleteMatchWorld(worldName);
+                // Delete the world using MatchPollingService's static method
+                MatchPollingService.deleteMatchWorld(worldName);
 
                 // Unregister players from telemetry service
                 if (telemetryService != null) {
@@ -128,6 +183,7 @@ public class MatchManager {
                 // Clean up registry
                 matchWorlds.remove(matchId);
                 matchPlayers.remove(matchId);
+                matchGames.remove(matchId);
                 for (UUID playerId : playerIds) {
                     playerMatches.remove(playerId);
                 }
@@ -165,6 +221,119 @@ public class MatchManager {
      */
     public boolean isPlayerInMatch(UUID playerId) {
         return playerMatches.containsKey(playerId);
+    }
+
+    // ==================== Event Delegation ====================
+
+    /**
+     * Delegate player death event to the game instance.
+     * 
+     * @param deadPlayer The player who died
+     * @param killer The killer (may be null)
+     * @return true if the game handled the event, false if legacy handling should be used
+     */
+    public boolean delegatePlayerDeath(Player deadPlayer, Player killer) {
+        String matchId = getMatchIdForPlayer(deadPlayer.getUniqueId());
+        if (matchId == null) {
+            return false;
+        }
+
+        BaseGame game = matchGames.get(matchId);
+        if (game == null || !game.isActive()) {
+            return false; // No game instance, use legacy handling
+        }
+
+        // Delegate to game
+        boolean handled = game.handlePlayerDeath(deadPlayer, killer);
+        
+        // Check win condition after death
+        if (handled && game.checkWinCondition()) {
+            UUID winnerId = game.getWinnerId();
+            endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+        }
+
+        return handled;
+    }
+
+    /**
+     * Delegate player disconnect event to the game instance.
+     * 
+     * @param playerId UUID of the disconnecting player
+     * @param reason Reason for disconnect
+     * @return DisconnectResult indicating how the game handled it
+     */
+    public DisconnectResult delegatePlayerDisconnect(UUID playerId, DisconnectReason reason) {
+        String matchId = getMatchIdForPlayer(playerId);
+        if (matchId == null) {
+            return null;
+        }
+
+        BaseGame game = matchGames.get(matchId);
+        if (game == null || !game.isActive()) {
+            return null; // No game instance, return null for legacy handling
+        }
+
+        // Delegate to game
+        DisconnectResult result = game.handlePlayerDisconnect(playerId, reason);
+        
+        // Handle result
+        if (result == DisconnectResult.FORFEIT || result == DisconnectResult.GAME_CANCELLED) {
+            UUID winnerId = game.getWinnerId();
+            endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+        }
+
+        return result;
+    }
+
+    /**
+     * Delegate player reconnect event to the game instance.
+     * 
+     * @param playerId UUID of the reconnecting player
+     * @return true if reconnect was handled by the game
+     */
+    public boolean delegatePlayerReconnect(UUID playerId) {
+        String matchId = getMatchIdForPlayer(playerId);
+        if (matchId == null) {
+            return false;
+        }
+
+        BaseGame game = matchGames.get(matchId);
+        if (game == null) {
+            return false;
+        }
+
+        return game.handlePlayerReconnect(playerId);
+    }
+
+    /**
+     * Delegate a game objective event to the game instance.
+     * 
+     * @param player Player who triggered the objective
+     * @param objectiveType Type of objective
+     * @param data Additional objective data
+     * @return true if objective was handled
+     */
+    public boolean delegateObjective(Player player, String objectiveType, Map<String, Object> data) {
+        String matchId = getMatchIdForPlayer(player.getUniqueId());
+        if (matchId == null) {
+            return false;
+        }
+
+        BaseGame game = matchGames.get(matchId);
+        if (game == null || !game.isActive()) {
+            return false;
+        }
+
+        // Delegate to game
+        boolean handled = game.handleObjective(objectiveType, player, data);
+        
+        // Check win condition after objective
+        if (handled && game.checkWinCondition()) {
+            UUID winnerId = game.getWinnerId();
+            endMatch(matchId, winnerId != null ? winnerId.toString() : null);
+        }
+
+        return handled;
     }
 }
 
