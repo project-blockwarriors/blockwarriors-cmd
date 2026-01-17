@@ -13,6 +13,8 @@ import ai.blockwarriors.commands.LoginCommand;
 import ai.blockwarriors.commands.debug.CreateMatchCommand;
 import ai.blockwarriors.commands.debug.ListLoggedInCommand;
 import ai.blockwarriors.events.PlayerEventListener;
+import ai.blockwarriors.beacon.arena.ArenaManager;
+import ai.blockwarriors.beacon.game.GameRegistry;
 import ai.blockwarriors.beacon.service.MatchPollingService;
 import ai.blockwarriors.beacon.service.MatchTelemetryService;
 import ai.blockwarriors.beacon.service.MatchManager;
@@ -28,6 +30,7 @@ public class Plugin extends JavaPlugin {
     private MatchPollingService matchPollingService;
     private MatchTelemetryService matchTelemetryService;
     private MatchManager matchManager;
+    private ArenaManager arenaManager;
     private String convexSiteUrl;
     private String convexHttpSecret;
 
@@ -41,6 +44,10 @@ public class Plugin extends JavaPlugin {
 
     public MatchManager getMatchManager() {
         return matchManager;
+    }
+
+    public ArenaManager getArenaManager() {
+        return arenaManager;
     }
 
     public String getConvexSiteUrl() {
@@ -70,6 +77,11 @@ public class Plugin extends JavaPlugin {
             LOGGER.warning("CONVEX_HTTP_SECRET is not configured! Please set it in config.yml or as an environment variable.");
         }
 
+        // Initialize arena manager and load arena configurations
+        arenaManager = new ArenaManager(this);
+        arenaManager.loadArenas();
+        LOGGER.info("ArenaManager initialized with " + arenaManager.getArenaCount() + " arenas");
+
         // Initialize match manager
         matchManager = new MatchManager(this, convexSiteUrl, convexHttpSecret);
 
@@ -78,6 +90,11 @@ public class Plugin extends JavaPlugin {
 
         // Link telemetry service to match manager
         matchManager.setTelemetryService(matchTelemetryService);
+
+        // Initialize GameRegistry (game types will be registered by individual game plugins/modules)
+        GameRegistry.getInstance();
+        LOGGER.info("GameRegistry initialized. Registered game types: " + 
+                   GameRegistry.getInstance().getRegisteredTypes());
 
         // Initialize login command with Convex URL and secret
         loginCommand = new LoginCommand(loggedInPlayers, convexSiteUrl, convexHttpSecret);
@@ -98,6 +115,7 @@ public class Plugin extends JavaPlugin {
         // Initialize and start match polling service
         matchPollingService = new MatchPollingService(this, convexSiteUrl, convexHttpSecret);
         matchPollingService.setMatchManager(matchManager);
+        matchPollingService.setArenaManager(arenaManager);
         matchPollingService.start();
         LOGGER.info("MatchPollingService started with Convex URL: " + convexSiteUrl);
 
@@ -129,6 +147,9 @@ public class Plugin extends JavaPlugin {
         if (matchTelemetryService != null) {
             matchTelemetryService.stop();
         }
+
+        // Clear GameRegistry
+        GameRegistry.getInstance().clearAll();
 
         LOGGER.info("beacon plugin disabled");
     }
