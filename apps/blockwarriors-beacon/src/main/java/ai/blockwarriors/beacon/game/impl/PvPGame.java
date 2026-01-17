@@ -106,7 +106,7 @@ public class PvPGame extends BaseGame {
             return;
         }
         
-        setState(GameState.STARTING);
+        setState(GameState.COUNTDOWN);
         
         // Start countdown
         startCountdown();
