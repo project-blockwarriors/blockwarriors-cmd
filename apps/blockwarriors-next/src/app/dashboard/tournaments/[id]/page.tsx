@@ -394,12 +394,15 @@ export default function TournamentDetailPage() {
     return colors[(round - 1) % colors.length];
   };
 
+  const MILLISECONDS_PER_DAY = 24 * 60 * 60 * 1000;
+
   const formatScheduledTime = (time?: number) => {
     if (!time) return null;
     const date = new Date(time);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
-    const isTomorrow = new Date(now.getTime() + 86400000).toDateString() === date.toDateString();
+    const isTomorrow =
+      new Date(now.getTime() + MILLISECONDS_PER_DAY).toDateString() === date.toDateString();
 
     if (isToday) return `Today ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
     if (isTomorrow) return `Tomorrow ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
