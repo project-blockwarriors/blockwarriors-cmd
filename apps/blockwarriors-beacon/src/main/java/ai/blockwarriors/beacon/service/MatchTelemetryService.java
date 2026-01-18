@@ -11,10 +11,14 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import ai.blockwarriors.beacon.game.BaseGame;
+import ai.blockwarriors.beacon.game.DisconnectReason;
+import ai.blockwarriors.beacon.game.DisconnectResult;
 import ai.blockwarriors.beacon.util.ConvexClient;
 import ai.blockwarriors.beacon.util.ConvexResponseParser;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Logger;
 
 /**
@@ -23,16 +27,63 @@ import java.util.logging.Logger;
  * API calls accept arrays to minimize Convex usage:
  * - Fetch match statuses for all active matches
  * - Update match states
+ * 
+ * Telemetry includes:
+ * - Base player stats (health, position, equipment)
+ * - Game-specific state from BaseGame.getGameState()
+ * - Disconnect/reconnect events
  */
 public class MatchTelemetryService {
     private static final Logger LOGGER = Logger.getLogger("beacon");
     private static final long UPDATE_INTERVAL_TICKS = 20L; // Update every second (20 ticks)
 
     /**
+     * Represents a disconnect or reconnect event for telemetry.
+     */
+    public static class DisconnectEvent {
+        public final String type; // "disconnect" or "reconnect"
+        public final UUID playerId;
+        public final long timestamp;
+        public final DisconnectReason reason; // null for reconnects
+        public final DisconnectResult result; // null for reconnects
+        public final int gracePeriodSeconds; // 0 for instant forfeit or reconnect
+        
+        public DisconnectEvent(String type, UUID playerId, DisconnectReason reason, 
+                              DisconnectResult result, int gracePeriodSeconds) {
+            this.type = type;
+            this.playerId = playerId;
+            this.timestamp = System.currentTimeMillis();
+            this.reason = reason;
+            this.result = result;
+            this.gracePeriodSeconds = gracePeriodSeconds;
+        }
+        
+        public JSONObject toJSON() {
+            JSONObject json = new JSONObject();
+            json.put("type", type);
+            json.put("playerId", playerId.toString());
+            json.put("timestamp", timestamp);
+            if (reason != null) {
+                json.put("reason", reason.name());
+            }
+            if (result != null) {
+                json.put("result", result.name());
+            }
+            if (gracePeriodSeconds > 0) {
+                json.put("gracePeriodSeconds", gracePeriodSeconds);
+                json.put("gracePeriodEnds", timestamp + (gracePeriodSeconds * 1000L));
+            }
+            return json;
+        }
+    }
+
+    /**
      * Per-match tracking state.
      */
     private static class MatchState {
         final Set<UUID> playerIds = new HashSet<>();
+        final List<DisconnectEvent> events = new ArrayList<>();
+        final Set<UUID> disconnectedPlayers = ConcurrentHashMap.newKeySet();
         JSONObject finalTelemetry; // captured at moment of match end, sent on next update
     }
 
@@ -40,11 +91,19 @@ public class MatchTelemetryService {
     private final ConvexClient convexClient;
     private final Map<String, MatchState> matches = new HashMap<>();
     private final Map<UUID, String> playerToMatch = new HashMap<>(); // reverse lookup
+    private MatchManager matchManager; // For accessing game instances
     private int taskId = -1;
 
     public MatchTelemetryService(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexClient = new ConvexClient(convexSiteUrl, convexHttpSecret);
+    }
+    
+    /**
+     * Set the MatchManager reference for accessing game instances.
+     */
+    public void setMatchManager(MatchManager matchManager) {
+        this.matchManager = matchManager;
     }
 
     // ==================== Lifecycle ====================
@@ -113,6 +172,53 @@ public class MatchTelemetryService {
      */
     public boolean isPlayerInMatch(UUID playerId) {
         return playerToMatch.containsKey(playerId);
+    }
+    
+    // ==================== Disconnect/Reconnect Events ====================
+    
+    /**
+     * Record a player disconnect event.
+     * 
+     * @param matchId Match the player disconnected from
+     * @param playerId UUID of the disconnected player
+     * @param reason Why the player disconnected
+     * @param result How the game handled the disconnect
+     * @param gracePeriodSeconds Grace period (0 for instant forfeit)
+     */
+    public void recordDisconnectEvent(String matchId, UUID playerId, DisconnectReason reason,
+                                      DisconnectResult result, int gracePeriodSeconds) {
+        MatchState state = matches.get(matchId);
+        if (state == null) {
+            LOGGER.warning("Cannot record disconnect for match " + matchId + " - not tracked");
+            return;
+        }
+        
+        DisconnectEvent event = new DisconnectEvent("disconnect", playerId, reason, result, gracePeriodSeconds);
+        state.events.add(event);
+        state.disconnectedPlayers.add(playerId);
+        
+        LOGGER.info("Recorded disconnect event for player " + playerId + " in match " + matchId + 
+                   " (result: " + result + ")");
+    }
+    
+    /**
+     * Record a player reconnect event.
+     * 
+     * @param matchId Match the player reconnected to
+     * @param playerId UUID of the reconnected player
+     */
+    public void recordReconnectEvent(String matchId, UUID playerId) {
+        MatchState state = matches.get(matchId);
+        if (state == null) {
+            LOGGER.warning("Cannot record reconnect for match " + matchId + " - not tracked");
+            return;
+        }
+        
+        DisconnectEvent event = new DisconnectEvent("reconnect", playerId, null, null, 0);
+        state.events.add(event);
+        state.disconnectedPlayers.remove(playerId);
+        
+        LOGGER.info("Recorded reconnect event for player " + playerId + " in match " + matchId);
     }
 
     // ==================== Main Update Loop ====================
@@ -217,7 +323,8 @@ public class MatchTelemetryService {
         }
 
         // Capture telemetry NOW - during death event, dead player's health is still 0
-        JSONObject telemetry = collectMatchTelemetry(matchId, state.playerIds);
+        // Pass the state explicitly to ensure events are included
+        JSONObject telemetry = collectMatchTelemetry(matchId, state.playerIds, state);
         
         // Log captured health values for verification
         JSONArray players = telemetry.optJSONArray("players");
@@ -238,6 +345,9 @@ public class MatchTelemetryService {
         telemetry.put("matchEnded", true);
         telemetry.put("finalState", true);
         
+        // Include total events count
+        telemetry.put("totalEvents", state.events.size());
+        
         state.finalTelemetry = telemetry;
     }
 
@@ -245,24 +355,87 @@ public class MatchTelemetryService {
 
     /**
      * Collect telemetry data for all players in a match.
+     * Merges base telemetry with game-specific state from BaseGame.getGameState().
      */
     private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds) {
+        MatchState matchState = matches.get(matchId);
+        return collectMatchTelemetry(matchId, playerIds, matchState);
+    }
+    
+    /**
+     * Collect telemetry data for all players in a match with explicit MatchState.
+     */
+    private JSONObject collectMatchTelemetry(String matchId, Set<UUID> playerIds, MatchState matchState) {
         try {
-            JSONObject matchState = new JSONObject();
-            matchState.put("timestamp", System.currentTimeMillis());
-            matchState.put("matchId", matchId);
+            JSONObject telemetry = new JSONObject();
+            telemetry.put("timestamp", System.currentTimeMillis());
+            telemetry.put("matchId", matchId);
 
+            // Collect base player telemetry
             JSONArray players = new JSONArray();
-
             for (UUID playerId : playerIds) {
                 Player player = Bukkit.getPlayer(playerId);
                 if (player != null && player.isOnline()) {
-                    players.put(collectPlayerTelemetry(player));
+                    JSONObject playerData = collectPlayerTelemetry(player);
+                    // Mark if player was recently disconnected
+                    if (matchState != null && matchState.disconnectedPlayers.contains(playerId)) {
+                        playerData.put("recentlyDisconnected", true);
+                    }
+                    players.put(playerData);
+                } else if (matchState != null && matchState.disconnectedPlayers.contains(playerId)) {
+                    // Include disconnected player with minimal data
+                    JSONObject disconnectedPlayer = new JSONObject();
+                    disconnectedPlayer.put("playerId", playerId.toString());
+                    disconnectedPlayer.put("disconnected", true);
+                    players.put(disconnectedPlayer);
+                }
+            }
+            telemetry.put("players", players);
+            
+            // Include disconnect/reconnect events
+            if (matchState != null && !matchState.events.isEmpty()) {
+                JSONArray events = new JSONArray();
+                for (DisconnectEvent event : matchState.events) {
+                    events.put(event.toJSON());
+                }
+                telemetry.put("events", events);
+                
+                // Include list of currently disconnected players
+                JSONArray disconnectedList = new JSONArray();
+                for (UUID pid : matchState.disconnectedPlayers) {
+                    disconnectedList.put(pid.toString());
+                }
+                telemetry.put("disconnectedPlayers", disconnectedList);
+            }
+            
+            // Merge game-specific state from BaseGame
+            if (matchManager != null) {
+                BaseGame game = matchManager.getGameForMatch(matchId);
+                if (game != null) {
+                    try {
+                        Map<String, Object> gameState = game.getGameState();
+                        if (gameState != null && !gameState.isEmpty()) {
+                            JSONObject gameSpecific = new JSONObject(gameState);
+                            telemetry.put("gameSpecific", gameSpecific);
+                            
+                            // Also copy some key fields to top level for convenience
+                            if (gameState.containsKey("gameType")) {
+                                telemetry.put("gameType", gameState.get("gameType"));
+                            }
+                            if (gameState.containsKey("state")) {
+                                telemetry.put("gameState", gameState.get("state"));
+                            }
+                            if (gameState.containsKey("winnerId")) {
+                                telemetry.put("winnerId", gameState.get("winnerId"));
+                            }
+                        }
+                    } catch (Exception e) {
+                        LOGGER.warning("Error getting game state for telemetry: " + e.getMessage());
+                    }
                 }
             }
 
-            matchState.put("players", players);
-            return matchState;
+            return telemetry;
         } catch (JSONException e) {
             LOGGER.severe("Error collecting match telemetry: " + e.getMessage());
             e.printStackTrace();

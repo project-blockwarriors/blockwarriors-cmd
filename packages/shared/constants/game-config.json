@@ -7,6 +7,27 @@
       "tokensPerTeam": 1,
       "players": "1v1"
     },
+    "sky_tiles": {
+      "id": "sky_tiles",
+      "name": "Sky Tiles",
+      "description": "Cooperative tile-based traversal",
+      "tokensPerTeam": 1,
+      "players": "2-player co-op"
+    },
+    "wool_wars": {
+      "id": "wool_wars",
+      "name": "Wool Wars",
+      "description": "Team-based wool capturing",
+      "tokensPerTeam": 4,
+      "players": "4v4"
+    },
+    "bridge": {
+      "id": "bridge",
+      "name": "Bridge Challenge",
+      "description": "Pathfinding race with obstacles",
+      "tokensPerTeam": 1,
+      "players": "1v1"
+    },
     "bedwars": {
       "id": "bedwars",
       "name": "Bed Wars",

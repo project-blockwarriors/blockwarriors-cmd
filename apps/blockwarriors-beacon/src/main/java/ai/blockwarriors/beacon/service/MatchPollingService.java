@@ -1,16 +1,25 @@
 package ai.blockwarriors.beacon.service;
 
 import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
+import org.bukkit.WorldType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import ai.blockwarriors.beacon.arena.ArenaConfig;
+import ai.blockwarriors.beacon.arena.ArenaManager;
 import ai.blockwarriors.beacon.constants.GameConfig;
+import ai.blockwarriors.beacon.game.BaseGame;
+import ai.blockwarriors.beacon.game.GameRegistry;
 import ai.blockwarriors.beacon.util.ConvexClient;
 import ai.blockwarriors.beacon.util.ConvexResponseParser;
-import ai.blockwarriors.commands.debug.CreateMatchCommand;
 
+import java.io.File;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -31,6 +40,7 @@ public class MatchPollingService {
     private final JavaPlugin plugin;
     private final ConvexClient convexClient;
     private MatchManager matchManager;
+    private ArenaManager arenaManager;
     private int taskId = -1;
 
     /**
@@ -63,6 +73,10 @@ public class MatchPollingService {
 
     public void setMatchManager(MatchManager matchManager) {
         this.matchManager = matchManager;
+    }
+
+    public void setArenaManager(ArenaManager arenaManager) {
+        this.arenaManager = arenaManager;
     }
 
     public void start() {
@@ -368,43 +382,232 @@ public class MatchPollingService {
 
     /**
      * Create match world, teleport players, and register with managers.
+     * Uses GameRegistry to create game instances when available.
      * Must be called on the main thread (Bukkit API requirement).
      */
     private void createMatchWorld(String matchId, String matchType, List<Player> blueTeamPlayers,
             List<Player> redTeamPlayers) {
         try {
-            LOGGER.info("Creating match world for " + matchId + " with " +
+            LOGGER.info("Creating match world for " + matchId + " (type: " + matchType + ") with " +
                     blueTeamPlayers.size() + " blue players and " +
                     redTeamPlayers.size() + " red players");
 
-            // For now, support 1v1 matches (can be extended later)
-            if (blueTeamPlayers.size() == 1 && redTeamPlayers.size() == 1) {
-                Player bluePlayer = blueTeamPlayers.get(0);
-                Player redPlayer = redTeamPlayers.get(0);
-
-                String worldName = CreateMatchCommand.createMatch(bluePlayer, redPlayer);
-                if (worldName == null) {
-                    LOGGER.severe("Failed to create match world for match " + matchId);
-                    return;
-                }
-
-                LOGGER.info("Match created between " + bluePlayer.getName() + " and " + redPlayer.getName());
-
-                // Register with match manager
-                if (matchManager != null) {
-                    matchManager.registerMatch(matchId, worldName, Arrays.asList(bluePlayer, redPlayer));
-                }
-
-                // Register for telemetry
-                registerPlayersForTelemetry(matchId, bluePlayer, redPlayer);
-            } else {
-                LOGGER.warning("Match type " + matchType + " with " +
-                        blueTeamPlayers.size() + " vs " + redTeamPlayers.size() +
-                        " players not yet supported. Only 1v1 is supported.");
+            // Create the world first
+            String worldName = createWorld(matchId);
+            if (worldName == null) {
+                LOGGER.severe("Failed to create match world for match " + matchId);
+                return;
             }
+
+            World world = Bukkit.getWorld(worldName);
+            if (world == null) {
+                LOGGER.severe("World " + worldName + " not found after creation");
+                return;
+            }
+
+            // Check if game type is registered in GameRegistry
+            GameRegistry registry = GameRegistry.getInstance();
+            if (registry.isRegistered(matchType)) {
+                // Use GameRegistry to create and initialize the game
+                createGameViaRegistry(matchId, matchType, world, worldName, blueTeamPlayers, redTeamPlayers);
+            } else {
+                // Legacy fallback for unregistered game types
+                LOGGER.info("Game type '" + matchType + "' not registered, using legacy initialization");
+                createLegacyMatch(matchId, world, worldName, blueTeamPlayers, redTeamPlayers);
+            }
+
         } catch (Exception e) {
             LOGGER.severe("Error creating match world: " + e.getMessage());
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Create a new match world.
+     * 
+     * @param matchId Match identifier (used for logging)
+     * @return World name, or null if creation failed
+     */
+    private String createWorld(String matchId) {
+        // Find the lowest unused world number
+        int worldNumber = 1;
+        String worldName = "match_" + worldNumber;
+        while (Bukkit.getWorld(worldName) != null) {
+            worldNumber++;
+            worldName = "match_" + worldNumber;
+        }
+
+        try {
+            WorldCreator creator = new WorldCreator(worldName);
+            creator.type(WorldType.FLAT);
+            creator.generateStructures(false);
+
+            World world = creator.createWorld();
+            if (world == null) {
+                LOGGER.severe("Failed to create world: " + worldName);
+                return null;
+            }
+
+            // Configure world settings
+            world.setSpawnLocation(0, 64, 0);
+            world.setSpawnFlags(false, false); // No monsters, no animals
+            world.setDifficulty(org.bukkit.Difficulty.PEACEFUL);
+
+            LOGGER.info("Created world " + worldName + " for match " + matchId);
+            return worldName;
+
+        } catch (Exception e) {
+            LOGGER.severe("Error creating world: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    /**
+     * Create and initialize a game using GameRegistry.
+     * The game handles player setup via its initialize() and start() methods.
+     */
+    private void createGameViaRegistry(String matchId, String matchType, World world, String worldName,
+            List<Player> blueTeamPlayers, List<Player> redTeamPlayers) {
+        
+        GameRegistry registry = GameRegistry.getInstance();
+        
+        // Create game instance via registry
+        BaseGame game = registry.createGame(matchType, plugin, matchId);
+        if (game == null) {
+            LOGGER.severe("Failed to create game instance for type: " + matchType);
+            // Fall back to legacy behavior
+            createLegacyMatch(matchId, world, worldName, blueTeamPlayers, redTeamPlayers);
+            return;
+        }
+
+        // Get arena configuration for this game type
+        ArenaConfig arenaConfig = null;
+        if (arenaManager != null) {
+            arenaConfig = arenaManager.getDefaultArena(matchType);
+            if (arenaConfig == null) {
+                LOGGER.warning("No arena config found for game type: " + matchType + ", using null config");
+            }
+        }
+
+        // Initialize the game with world, arena config, and players
+        game.initialize(world, arenaConfig, blueTeamPlayers, redTeamPlayers);
+
+        // Collect all players
+        List<Player> allPlayers = new ArrayList<>();
+        allPlayers.addAll(blueTeamPlayers);
+        allPlayers.addAll(redTeamPlayers);
+
+        // Register with match manager (now includes the game instance)
+        if (matchManager != null) {
+            matchManager.registerMatch(matchId, worldName, allPlayers, game);
+        }
+
+        // Register for telemetry
+        registerPlayersForTelemetry(matchId, allPlayers.toArray(new Player[0]));
+
+        // Start the game
+        game.start();
+
+        LOGGER.info("Game " + matchType + " started for match " + matchId + " via GameRegistry");
+    }
+
+    /**
+     * Legacy match creation for backward compatibility.
+     * Used when game type is not registered in GameRegistry.
+     */
+    private void createLegacyMatch(String matchId, World world, String worldName,
+            List<Player> blueTeamPlayers, List<Player> redTeamPlayers) {
+        
+        // For now, support 1v1 matches in legacy mode
+        if (blueTeamPlayers.size() == 1 && redTeamPlayers.size() == 1) {
+            Player bluePlayer = blueTeamPlayers.get(0);
+            Player redPlayer = redTeamPlayers.get(0);
+
+            // Set both players to survival mode
+            bluePlayer.setGameMode(GameMode.SURVIVAL);
+            redPlayer.setGameMode(GameMode.SURVIVAL);
+
+            // Teleport players to spawn positions
+            Location blueLoc = new Location(world, 5, -61, 0);
+            Location redLoc = new Location(world, -5, -61, 0);
+            bluePlayer.teleport(blueLoc);
+            redPlayer.teleport(redLoc);
+
+            // Clear inventories and reset health/hunger for fair start
+            bluePlayer.getInventory().clear();
+            redPlayer.getInventory().clear();
+            bluePlayer.setHealth(20.0);
+            redPlayer.setHealth(20.0);
+            bluePlayer.setFoodLevel(20);
+            redPlayer.setFoodLevel(20);
+            bluePlayer.setSaturation(20.0f);
+            redPlayer.setSaturation(20.0f);
+
+            LOGGER.info("Legacy match created between " + bluePlayer.getName() + " and " + redPlayer.getName());
+
+            // Register with match manager (without game instance for legacy)
+            if (matchManager != null) {
+                matchManager.registerMatch(matchId, worldName, Arrays.asList(bluePlayer, redPlayer));
+            }
+
+            // Register for telemetry
+            registerPlayersForTelemetry(matchId, bluePlayer, redPlayer);
+        } else {
+            LOGGER.warning("Legacy mode only supports 1v1 matches. Got " +
+                    blueTeamPlayers.size() + " vs " + redTeamPlayers.size() + " players.");
+        }
+    }
+
+    /**
+     * Delete a match world and unload it from memory.
+     */
+    public static void deleteMatchWorld(String worldName) {
+        try {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                // Kick all players from the world first
+                world.getPlayers().forEach(player -> {
+                    World mainWorld = Bukkit.getWorlds().get(0);
+                    if (mainWorld != null && !mainWorld.equals(world)) {
+                        player.teleport(mainWorld.getSpawnLocation());
+                    } else {
+                        player.kickPlayer("Match ended. World is being deleted.");
+                    }
+                });
+
+                // Unload the world
+                Bukkit.unloadWorld(world, false);
+
+                // Delete the world folder
+                File worldFolder = world.getWorldFolder();
+                if (worldFolder.exists()) {
+                    deleteDirectory(worldFolder);
+                    LOGGER.info("Deleted match world: " + worldName);
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.severe("Error deleting match world " + worldName + ": " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Recursively delete a directory.
+     */
+    private static void deleteDirectory(File directory) {
+        if (directory.exists()) {
+            File[] files = directory.listFiles();
+            if (files != null) {
+                for (File file : files) {
+                    if (file.isDirectory()) {
+                        deleteDirectory(file);
+                    } else {
+                        file.delete();
+                    }
+                }
+            }
+            directory.delete();
         }
     }
 
