@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { motion } from 'framer-motion';
@@ -44,6 +44,13 @@ export default function TournamentMatchPage() {
     matchId ? { matchId: matchId as Id<'tournament_matches'> } : 'skip'
   );
 
+  const tournamentBracket = useQuery(
+    api.tournamentMatches.getTournamentBracket,
+    tournamentMatch?.tournament_id
+      ? { tournamentId: tournamentMatch.tournament_id }
+      : 'skip'
+  );
+
   // Fetch game matches for this tournament match
   const gameMatches = useQuery(
     api.matches.getMatches,
@@ -56,7 +63,6 @@ export default function TournamentMatchPage() {
   const createTournamentGame = useMutation(
     api.tournamentMatches.createTournamentGame
   );
-
   const handleCreateGame = async () => {
     if (!session?.user?.id || !tournamentMatch) return;
     setActionLoading(true);
@@ -82,6 +88,32 @@ export default function TournamentMatchPage() {
       setActionLoading(false);
     }
   };
+
+  const isUserTeamInMatch =
+    Boolean(userTeamId) &&
+    (tournamentMatch?.team1_id === userTeamId ||
+      tournamentMatch?.team2_id === userTeamId);
+  const hasUnstartedPriorRound = useMemo(() => {
+    if (!tournamentMatch || !isUserTeamInMatch || !tournamentBracket) return false;
+    return tournamentBracket.some((match) => {
+      const involvesTeam =
+        match.team1_id === userTeamId || match.team2_id === userTeamId;
+      const isEarlierRound = match.round < tournamentMatch.round;
+      const notStarted = match.status === 'pending' || match.status === 'scheduled';
+      return involvesTeam && isEarlierRound && notStarted;
+    });
+  }, [isUserTeamInMatch, tournamentBracket, userTeamId, tournamentMatch]);
+  const hasActiveGame = useMemo(() => {
+    if (!tournamentMatch || !gameMatches) return false;
+    return tournamentMatch.games.some((gameId) => {
+      const game = gameMatches[gameId];
+      return (
+        game &&
+        game.match_status !== 'Finished' &&
+        game.match_status !== 'Terminated'
+      );
+    });
+  }, [gameMatches, tournamentMatch]);
 
   // Loading state
   if (tournamentMatch === undefined) {
@@ -114,17 +146,16 @@ export default function TournamentMatchPage() {
   const maxGames = getMaxGamesInMatch(tournamentMatch.games_required);
   const totalGamesPlayed =
     tournamentMatch.team1_games_won + tournamentMatch.team2_games_won;
-  const isUserTeamInMatch =
-    Boolean(userTeamId) &&
-    (tournamentMatch.team1_id === userTeamId ||
-      tournamentMatch.team2_id === userTeamId);
   const canCreateGame =
     tournamentMatch.status !== 'completed' &&
     tournamentMatch.status !== 'cancelled' &&
     totalGamesPlayed < maxGames &&
     tournamentMatch.team1_games_won < tournamentMatch.games_required &&
     tournamentMatch.team2_games_won < tournamentMatch.games_required &&
+    !hasUnstartedPriorRound &&
+    !hasActiveGame &&
     isUserTeamInMatch;
+  const shouldShowStartButton = canCreateGame;
 
   return (
     <motion.div
@@ -154,6 +185,14 @@ export default function TournamentMatchPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
           <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
+      {hasUnstartedPriorRound && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
+          <p className="text-amber-400 text-sm">
+            You must start your team's earlier round matches before starting this game.
+          </p>
         </div>
       )}
 
@@ -238,7 +277,7 @@ export default function TournamentMatchPage() {
           <h2 className="text-lg font-semibold text-white">
             Games ({totalGamesPlayed} / {maxGames})
           </h2>
-          {canCreateGame && (
+          {shouldShowStartButton && (
             <Button
               onClick={handleCreateGame}
               disabled={actionLoading}
@@ -249,7 +288,7 @@ export default function TournamentMatchPage() {
               ) : (
                 <>
                   <PlayIcon className="w-4 h-4 mr-2" />
-                  Start Game {totalGamesPlayed + 1}
+                  {`Start Game ${totalGamesPlayed + 1}`}
                 </>
               )}
             </Button>

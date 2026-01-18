@@ -27,6 +27,7 @@ async function getUserTeamId(
   return profile?.team_id ?? null;
 }
 
+
 // ============================================================================
 // QUERIES
 // ============================================================================
@@ -403,6 +404,30 @@ export const createTournamentGame = mutation({
           error: "You can only start games for your team's matches",
         };
       }
+
+      const priorMatches = await ctx.db
+        .query("tournament_matches")
+        .withIndex("by_tournament_id", (q) =>
+          q.eq("tournament_id", tournamentMatch.tournament_id)
+        )
+        .collect();
+
+      const hasUnstartedPriorRound = priorMatches.some((match) => {
+        const involvesTeam =
+          match.team1_id === userTeamId || match.team2_id === userTeamId;
+        const isEarlierRound = match.round < tournamentMatch.round;
+        const notStarted =
+          match.status === "pending" || match.status === "scheduled";
+        return involvesTeam && isEarlierRound && notStarted;
+      });
+
+      if (hasUnstartedPriorRound) {
+        return {
+          success: false,
+          error:
+            "You must start your team's earlier round matches before starting this game",
+        };
+      }
     }
 
     // Check match status
@@ -416,6 +441,26 @@ export const createTournamentGame = mutation({
       tournamentMatch.team2_games_won >= tournamentMatch.games_required
     ) {
       return { success: false, error: "Tournament match is already decided" };
+    }
+
+    if (tournamentMatch.games.length > 0) {
+      const existingGames = await Promise.all(
+        tournamentMatch.games.map((gameId) => ctx.db.get(gameId))
+      );
+      const hasActiveGame = existingGames.some((game) => {
+        return (
+          game &&
+          game.match_status !== "Finished" &&
+          game.match_status !== "Terminated"
+        );
+      });
+
+      if (hasActiveGame) {
+        return {
+          success: false,
+          error: "A game is already in progress for this match",
+        };
+      }
     }
 
     // Create game teams for this match
