@@ -264,7 +264,10 @@ export const getTournamentStandings = query({
         team1Stats.matches_played++;
         team2Stats.matches_played++;
 
-        if (match.winner_team_id === match.team1_id) {
+        if (match.team1_games_won === match.team2_games_won) {
+          team1Stats.points += 1;
+          team2Stats.points += 1;
+        } else if (match.winner_team_id === match.team1_id) {
           team1Stats.matches_won++;
           team1Stats.points += 3;
           team2Stats.matches_lost++;
@@ -412,21 +415,25 @@ export const createTournamentGame = mutation({
         )
         .collect();
 
-      const hasUnstartedPriorRound = priorMatches.some((match) => {
-        const involvesTeam =
-          match.team1_id === userTeamId || match.team2_id === userTeamId;
-        const isEarlierRound = match.round < tournamentMatch.round;
-        const notStarted =
-          match.status === "pending" || match.status === "scheduled";
-        return involvesTeam && isEarlierRound && notStarted;
-      });
-
-      if (hasUnstartedPriorRound) {
-        return {
-          success: false,
-          error:
-            "You must start your team's earlier round matches before starting this game",
-        };
+      if (tournamentMatch.round > 1) {
+        const priorRound = tournamentMatch.round - 1;
+        const priorRoundMatches = priorMatches.filter(
+          (match) =>
+            match.round === priorRound &&
+            (match.team1_id === tournamentMatch.team1_id ||
+              match.team2_id === tournamentMatch.team1_id ||
+              match.team1_id === tournamentMatch.team2_id ||
+              match.team2_id === tournamentMatch.team2_id)
+        );
+        if (
+          priorRoundMatches.length > 0 &&
+          priorRoundMatches.some((match) => match.status !== "completed")
+        ) {
+          return {
+            success: false,
+            error: `Round ${priorRound} must be completed before this game can start`,
+          };
+        }
       }
     }
 
@@ -474,11 +481,24 @@ export const createTournamentGame = mutation({
     const matchId = await ctx.db.insert("matches", {
       match_type: args.matchType,
       match_status: "Queuing",
+      tournament_match_id: args.tournamentMatchId,
+      tournament_id: tournamentMatch.tournament_id,
       blue_team_id: blueTeamId,
       red_team_id: redTeamId,
       mode: args.mode,
       expires_at: expiresAt,
     });
+
+    if (tournamentMatch.team1_id) {
+      await ctx.db.patch(tournamentMatch.team1_id, {
+        game_team_id: blueTeamId.toString(),
+      });
+    }
+    if (tournamentMatch.team2_id) {
+      await ctx.db.patch(tournamentMatch.team2_id, {
+        game_team_id: redTeamId.toString(),
+      });
+    }
 
     // Update tournament match status and add game reference
     const updatedGames = [...tournamentMatch.games, matchId];
@@ -499,7 +519,8 @@ export const recordGameResult = mutation({
   args: {
     tournamentMatchId: v.id("tournament_matches"),
     gameMatchId: v.id("matches"),
-    winnerTeamNumber: v.union(v.literal(1), v.literal(2)), // 1 for team1, 2 for team2
+    winnerTeamNumber: v.optional(v.union(v.literal(1), v.literal(2))), // 1 for team1, 2 for team2
+    isDraw: v.optional(v.boolean()),
   },
   returns: v.object({
     success: v.boolean(),
@@ -530,15 +551,22 @@ export const recordGameResult = mutation({
       return { success: false, tournamentMatchCompleted: false, error: "Game is not part of this tournament match" };
     }
 
+    const isDraw = Boolean(args.isDraw);
+    if (!isDraw && args.winnerTeamNumber === undefined) {
+      return {
+        success: false,
+        tournamentMatchCompleted: false,
+        error: "winnerTeamNumber is required when not a draw",
+      };
+    }
+
     // Update game counts
     const newTeam1GamesWon =
-      args.winnerTeamNumber === 1
-        ? tournamentMatch.team1_games_won + 1
-        : tournamentMatch.team1_games_won;
+      tournamentMatch.team1_games_won +
+      (isDraw || args.winnerTeamNumber === 1 ? 1 : 0);
     const newTeam2GamesWon =
-      args.winnerTeamNumber === 2
-        ? tournamentMatch.team2_games_won + 1
-        : tournamentMatch.team2_games_won;
+      tournamentMatch.team2_games_won +
+      (isDraw || args.winnerTeamNumber === 2 ? 1 : 0);
 
     // Check if tournament match is decided
     const matchCompleted =
@@ -546,10 +574,14 @@ export const recordGameResult = mutation({
       newTeam2GamesWon >= tournamentMatch.games_required;
 
     const winnerId = matchCompleted
-      ? newTeam1GamesWon >= tournamentMatch.games_required
+      ? newTeam1GamesWon > newTeam2GamesWon
         ? tournamentMatch.team1_id
-        : tournamentMatch.team2_id
+        : newTeam2GamesWon > newTeam1GamesWon
+          ? tournamentMatch.team2_id
+          : undefined
       : undefined;
+
+    const wasCompleted = tournamentMatch.status === "completed";
 
     // Update tournament match
     await ctx.db.patch(args.tournamentMatchId, {
@@ -558,6 +590,78 @@ export const recordGameResult = mutation({
       status: matchCompleted ? "completed" : "in_progress",
       winner_team_id: winnerId,
     });
+
+    const gameMatch = await ctx.db.get(args.gameMatchId);
+    if (gameMatch) {
+      if (tournamentMatch.team1_id) {
+        const team1 = await ctx.db.get(tournamentMatch.team1_id);
+        if (team1?.game_team_id === gameMatch.blue_team_id.toString()) {
+          await ctx.db.patch(tournamentMatch.team1_id, {
+            game_team_id: undefined,
+          });
+        }
+      }
+      if (tournamentMatch.team2_id) {
+        const team2 = await ctx.db.get(tournamentMatch.team2_id);
+        if (team2?.game_team_id === gameMatch.red_team_id.toString()) {
+          await ctx.db.patch(tournamentMatch.team2_id, {
+            game_team_id: undefined,
+          });
+        }
+      }
+    }
+
+    if (matchCompleted && !wasCompleted && winnerId) {
+      const team1 = await ctx.db.get(tournamentMatch.team1_id);
+      const team2 = await ctx.db.get(tournamentMatch.team2_id);
+      if (team1 && team2) {
+        const allTournamentMatches = await ctx.db
+          .query("tournament_matches")
+          .collect();
+        const computeRecord = (teamId: Id<"teams">) => {
+          let wins = 0;
+          let losses = 0;
+          for (const match of allTournamentMatches) {
+            if (match.status !== "completed") continue;
+            if (match.team1_id !== teamId && match.team2_id !== teamId) continue;
+            if (!match.winner_team_id) continue;
+            if (match.winner_team_id === teamId) {
+              wins += 1;
+            } else {
+              losses += 1;
+            }
+          }
+          return { wins, losses };
+        };
+        const team1Record = computeRecord(tournamentMatch.team1_id);
+        const team2Record = computeRecord(tournamentMatch.team2_id);
+        const team1Won = winnerId === tournamentMatch.team1_id;
+        const team2Won = winnerId === tournamentMatch.team2_id;
+        const kFactor = 32;
+        const expectedTeam1 =
+          1 / (1 + Math.pow(10, (team2.team_elo - team1.team_elo) / 400));
+        const expectedTeam2 = 1 - expectedTeam1;
+        const scoreTeam1 = team1Won ? 1 : 0;
+        const scoreTeam2 = team2Won ? 1 : 0;
+        const newTeam1Elo = Math.round(
+          team1.team_elo + kFactor * (scoreTeam1 - expectedTeam1)
+        );
+        const newTeam2Elo = Math.round(
+          team2.team_elo + kFactor * (scoreTeam2 - expectedTeam2)
+        );
+
+        await ctx.db.patch(tournamentMatch.team1_id, {
+          team_wins: team1Record.wins,
+          team_losses: team1Record.losses,
+          team_elo: newTeam1Elo,
+        });
+        await ctx.db.patch(tournamentMatch.team2_id, {
+          team_wins: team2Record.wins,
+          team_losses: team2Record.losses,
+          team_elo: newTeam2Elo,
+        });
+      }
+    }
 
     // If tournament match is complete, check if tournament should complete
     if (matchCompleted) {

@@ -58,7 +58,6 @@ export default function TeamPage() {
 
   const [isLeaving, setIsLeaving] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
-
   const handleLeaveTeam = async () => {
     if (!userId) return;
     if (!confirm('Are you sure you want to leave this team?')) return;

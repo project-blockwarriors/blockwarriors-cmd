@@ -823,16 +823,24 @@ http.route({
       return errorResponse("Invalid JSON in request body");
     }
 
-    const { tournament_match_id, game_match_id, winner_team_number } = body;
+    const { tournament_match_id, game_match_id, winner_team_number, is_draw } = body;
 
-    if (!tournament_match_id || !game_match_id || winner_team_number === undefined) {
+    if (
+      !tournament_match_id ||
+      !game_match_id ||
+      (winner_team_number === undefined && !is_draw)
+    ) {
       return errorResponse(
         "Missing required fields: tournament_match_id, game_match_id, winner_team_number"
       );
     }
 
-    // Validate winner_team_number is 1 or 2
-    if (winner_team_number !== 1 && winner_team_number !== 2) {
+    // Validate winner_team_number is 1 or 2 when provided
+    if (
+      winner_team_number !== undefined &&
+      winner_team_number !== 1 &&
+      winner_team_number !== 2
+    ) {
       return errorResponse("winner_team_number must be 1 or 2");
     }
 
@@ -842,7 +850,8 @@ http.route({
         {
           tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
           gameMatchId: game_match_id as Id<"matches">,
-          winnerTeamNumber: winner_team_number as 1 | 2,
+          winnerTeamNumber: winner_team_number as 1 | 2 | undefined,
+          isDraw: Boolean(is_draw),
         }
       );
 

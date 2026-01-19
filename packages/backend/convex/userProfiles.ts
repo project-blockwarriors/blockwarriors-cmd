@@ -57,6 +57,7 @@ export const getUserProfile = query({
           team_elo: teamData.team_elo,
           team_wins: teamData.team_wins,
           team_losses: teamData.team_losses,
+          game_team_id: teamData.game_team_id,
           team_image_url: teamImageUrl,
           description: teamData.description,
         };
@@ -143,6 +144,7 @@ export const getUserProfileWithTeamMembers = query({
           team_elo: teamData.team_elo,
           team_wins: teamData.team_wins,
           team_losses: teamData.team_losses,
+          game_team_id: teamData.game_team_id,
           team_image_url: teamImageUrl,
           description: teamData.description,
           created_at: teamData.created_at,
