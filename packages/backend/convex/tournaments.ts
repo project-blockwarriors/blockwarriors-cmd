@@ -679,9 +679,12 @@ export const cancelTournament = mutation({
       return { success: false, error: "Only the tournament creator or admin can cancel the tournament" };
     }
 
-    // Check tournament is not already completed
+    // Check tournament is not already completed or in progress
     if (tournament.status === "completed") {
       return { success: false, error: "Cannot cancel a completed tournament" };
+    }
+    if (tournament.status === "in_progress") {
+      return { success: false, error: "Cannot cancel a tournament in progress" };
     }
 
     if (tournament.status === "cancelled") {

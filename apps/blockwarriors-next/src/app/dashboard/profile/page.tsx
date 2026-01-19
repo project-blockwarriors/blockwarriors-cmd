@@ -77,10 +77,13 @@ export default function ProfilePage() {
 
   const fullName = `${profile.first_name} ${profile.last_name}`;
   const isTeamLeader = profile.team?.leader_id === userId;
+  const teamTies = profile.team?.team_ties ?? 0;
   const winRate = profile.team
-    ? profile.team.team_wins + profile.team.team_losses > 0
+    ? profile.team.team_wins + profile.team.team_losses + teamTies > 0
       ? Math.round(
-          (profile.team.team_wins / (profile.team.team_wins + profile.team.team_losses)) * 100
+          ((profile.team.team_wins + teamTies * 0.5) /
+            (profile.team.team_wins + profile.team.team_losses + teamTies)) *
+            100
         )
       : 0
     : 0;

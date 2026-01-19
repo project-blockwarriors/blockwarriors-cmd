@@ -67,10 +67,10 @@ export default function TeamsPage() {
         )
       : 0;
 
-  const getWinRate = (wins: number, losses: number) => {
-    const total = wins + losses;
+  const getWinRate = (wins: number, losses: number, ties: number) => {
+    const total = wins + losses + ties;
     if (total === 0) return 0;
-    return Math.round((wins / total) * 100);
+    return Math.round(((wins + ties * 0.5) / total) * 100);
   };
 
   const getWinRateTrend = (winRate: number) => {
@@ -199,7 +199,11 @@ export default function TeamsPage() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {sortedTeams.map((team, index) => {
-            const winRate = getWinRate(team.team_wins, team.team_losses);
+            const winRate = getWinRate(
+              team.team_wins,
+              team.team_losses,
+              team.team_ties ?? 0
+            );
             const trend = getWinRateTrend(winRate);
             const TrendIcon = trend.icon;
             const isMyTeam = team.id === userTeamId;
@@ -298,6 +302,12 @@ export default function TeamsPage() {
                             {team.team_losses}
                           </p>
                           <p className="text-xs text-red-400/70">L</p>
+                        </div>
+                        <div className="text-center px-3 py-1 rounded-lg bg-slate-500/10">
+                          <p className="font-bold text-slate-300">
+                            {team.team_ties ?? 0}
+                          </p>
+                          <p className="text-xs text-slate-300/70">T</p>
                         </div>
                       </div>
                     </div>

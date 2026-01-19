@@ -28,6 +28,7 @@ import {
   Swords,
   TrendingUp,
   AlertTriangle,
+  Minus,
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import toast from 'react-hot-toast';
@@ -166,9 +167,14 @@ export default function TeamPage() {
 
   const team = profile.team;
   const isLeader = team.leader_id === userId;
+  const teamTies = team.team_ties ?? 0;
   const winRate =
-    team.team_wins + team.team_losses > 0
-      ? Math.round((team.team_wins / (team.team_wins + team.team_losses)) * 100)
+    team.team_wins + team.team_losses + teamTies > 0
+      ? Math.round(
+          ((team.team_wins + teamTies * 0.5) /
+            (team.team_wins + team.team_losses + teamTies)) *
+            100
+        )
       : 0;
 
   const formatJoinRequestDate = (timestamp: number) => {
@@ -317,7 +323,7 @@ export default function TeamPage() {
       </Card>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
           <CardContent className="pt-6 text-center">
             <Trophy className="h-8 w-8 text-primary mx-auto mb-2" />
@@ -337,6 +343,13 @@ export default function TeamPage() {
             <Target className="h-8 w-8 text-red-400 mx-auto mb-2" />
             <p className="text-4xl font-bold text-white">{team.team_losses}</p>
             <p className="text-sm text-muted-foreground">Losses</p>
+          </CardContent>
+        </Card>
+        <Card className="border-slate-500/20 bg-gradient-to-br from-slate-500/10 to-transparent">
+          <CardContent className="pt-6 text-center">
+            <Minus className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-4xl font-bold text-white">{teamTies}</p>
+            <p className="text-sm text-muted-foreground">Ties</p>
           </CardContent>
         </Card>
         <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent">
@@ -525,16 +538,20 @@ export default function TeamPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-400 font-bold">
-                            {tournament.matches_won}W
-                          </span>
-                          <span className="text-muted-foreground">/</span>
-                          <span className="text-red-400 font-bold">
-                            {tournament.matches_played - tournament.matches_won}L
-                          </span>
-                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-400 font-bold">
+                              {tournament.matches_won}W
+                            </span>
+                            <span className="text-muted-foreground">/</span>
+                            <span className="text-red-400 font-bold">
+                              {tournament.matches_lost}L
+                            </span>
+                            <span className="text-muted-foreground">/</span>
+                            <span className="text-slate-300 font-bold">
+                              {tournament.matches_tied}T
+                            </span>
+                          </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground mt-1 ml-auto" />
                       </div>
                     </div>

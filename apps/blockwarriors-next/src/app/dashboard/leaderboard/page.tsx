@@ -37,7 +37,11 @@ export default function LeaderboardPage() {
   // Calculate stats
   const topTeam = teams?.[0];
   const totalMatches =
-    teams?.reduce((acc, team) => acc + team.team_wins + team.team_losses, 0) ??
+    teams?.reduce(
+      (acc, team) =>
+        acc + team.team_wins + team.team_losses + (team.team_ties ?? 0),
+      0
+    ) ??
     0;
   const avgElo =
     teams && teams.length > 0
@@ -136,7 +140,8 @@ export default function LeaderboardPage() {
                   <span className="font-bold text-xl">{teams[1].team_elo}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {teams[1].team_wins}W - {teams[1].team_losses}L
+                  {teams[1].team_wins}W - {teams[1].team_losses}L -{' '}
+                  {teams[1].team_ties ?? 0}T
                 </p>
               </CardContent>
             </Card>
@@ -168,7 +173,8 @@ export default function LeaderboardPage() {
                   <span className="font-bold text-2xl">{teams[0].team_elo}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {teams[0].team_wins}W - {teams[0].team_losses}L
+                  {teams[0].team_wins}W - {teams[0].team_losses}L -{' '}
+                  {teams[0].team_ties ?? 0}T
                 </p>
               </CardContent>
             </Card>
@@ -195,7 +201,8 @@ export default function LeaderboardPage() {
                   <span className="font-bold text-xl">{teams[2].team_elo}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {teams[2].team_wins}W - {teams[2].team_losses}L
+                  {teams[2].team_wins}W - {teams[2].team_losses}L -{' '}
+                  {teams[2].team_ties ?? 0}T
                 </p>
               </CardContent>
             </Card>
@@ -275,11 +282,15 @@ export default function LeaderboardPage() {
               </div>
               <div className="flex items-center gap-6">
                 <div className="text-center">
-                  <p className="text-xs text-muted-foreground">W / L</p>
+                  <p className="text-xs text-muted-foreground">W / L / T</p>
                   <p className="font-semibold text-white">
                     <span className="text-green-400">{userTeam.team_wins}</span>
                     {' / '}
                     <span className="text-red-400">{userTeam.team_losses}</span>
+                    {' / '}
+                    <span className="text-slate-300">
+                      {userTeam.team_ties ?? 0}
+                    </span>
                   </p>
                 </div>
                 <div className="text-center">
@@ -315,10 +326,12 @@ export default function LeaderboardPage() {
               teams?.map((team, index) => {
                 const rank = index + 1;
                 const isMyTeam = team.id === userTeamId;
+                const ties = team.team_ties ?? 0;
                 const winRate =
-                  team.team_wins + team.team_losses > 0
+                  team.team_wins + team.team_losses + ties > 0
                     ? Math.round(
-                        (team.team_wins / (team.team_wins + team.team_losses)) *
+                        ((team.team_wins + ties * 0.5) /
+                          (team.team_wins + team.team_losses + ties)) *
                           100
                       )
                     : 0;
@@ -352,6 +365,8 @@ export default function LeaderboardPage() {
                           <span className="text-green-400">{team.team_wins}W</span>
                           <span>-</span>
                           <span className="text-red-400">{team.team_losses}L</span>
+                          <span>-</span>
+                          <span className="text-slate-300">{ties}T</span>
                           <span className="text-primary/50">•</span>
                           <span>{winRate}% WR</span>
                         </div>

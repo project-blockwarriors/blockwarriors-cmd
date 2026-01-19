@@ -67,6 +67,12 @@ function TournamentMatchesCard({
       ((m.team1_id === teamId && m.winner_team_id !== m.team1_id) ||
         (m.team2_id === teamId && m.winner_team_id !== m.team2_id))
   ).length;
+  const matchesTied = teamMatches.filter(
+    (m) =>
+      m.status === 'completed' &&
+      !m.winner_team_id &&
+      m.team1_games_won === m.team2_games_won
+  ).length;
   const upcomingMatches = teamMatches.filter(
     (m) => m.status === 'pending' || m.status === 'scheduled'
   );
@@ -143,6 +149,10 @@ function TournamentMatchesCard({
             <div className="text-center">
               <p className="text-lg font-bold text-red-400">{matchesLost}</p>
               <p className="text-xs text-muted-foreground">Losses</p>
+            </div>
+            <div className="text-center">
+              <p className="text-lg font-bold text-slate-300">{matchesTied}</p>
+              <p className="text-xs text-muted-foreground">Ties</p>
             </div>
             <Link href={`/dashboard/tournaments/${tournament._id}`}>
               <Button variant="outline" size="sm">
@@ -428,11 +438,13 @@ export default function MatchesPage() {
         <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">W/L Record</p>
+                <p className="text-sm text-muted-foreground">W/L/T Record</p>
                 <p className="text-3xl font-bold">
                   <span className="text-green-400">{userProfile.team.team_wins}</span>
                   <span className="text-muted-foreground mx-1">/</span>
                   <span className="text-red-400">{userProfile.team.team_losses}</span>
+                  <span className="text-muted-foreground mx-1">/</span>
+                  <span className="text-slate-300">{userProfile.team.team_ties ?? 0}</span>
                 </p>
               </div>
               <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">

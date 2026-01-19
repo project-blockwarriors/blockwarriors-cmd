@@ -185,6 +185,7 @@ export const getTournamentStandings = query({
       matches_played: v.number(),
       matches_won: v.number(),
       matches_lost: v.number(),
+      matches_tied: v.number(),
       matches_pending: v.number(),
       games_won: v.number(),
       games_lost: v.number(),
@@ -218,6 +219,7 @@ export const getTournamentStandings = query({
         matches_played: number;
         matches_won: number;
         matches_lost: number;
+        matches_tied: number;
         matches_pending: number;
         games_won: number;
         games_lost: number;
@@ -236,6 +238,7 @@ export const getTournamentStandings = query({
           matches_played: 0,
           matches_won: 0,
           matches_lost: 0,
+          matches_tied: 0,
           matches_pending: 0,
           games_won: 0,
           games_lost: 0,
@@ -265,6 +268,8 @@ export const getTournamentStandings = query({
         team2Stats.matches_played++;
 
         if (match.team1_games_won === match.team2_games_won) {
+          team1Stats.matches_tied++;
+          team2Stats.matches_tied++;
           team1Stats.points += 1;
           team2Stats.points += 1;
         } else if (match.winner_team_id === match.team1_id) {
@@ -282,15 +287,48 @@ export const getTournamentStandings = query({
       }
     }
 
-    // Convert to array and sort by points (desc), then games won (desc)
-    const standings = Array.from(standingsMap.values());
-    standings.sort((a, b) => {
-      if (b.points !== a.points) return b.points - a.points;
-      if (b.games_won !== a.games_won) return b.games_won - a.games_won;
-      return (b.games_won - b.games_lost) - (a.games_won - a.games_lost);
-    });
+    const getHeadToHeadWinner = (
+      teamAId: Id<"teams">,
+      teamBId: Id<"teams">
+    ) => {
+      const headToHeadMatch = matches.find(
+        (match) =>
+          match.status === "completed" &&
+          ((match.team1_id === teamAId && match.team2_id === teamBId) ||
+            (match.team1_id === teamBId && match.team2_id === teamAId))
+      );
 
-    return standings;
+      if (!headToHeadMatch || !headToHeadMatch.winner_team_id) return null;
+      return headToHeadMatch.winner_team_id;
+    };
+
+    // Convert to array and sort by points (desc), then games won, then least games lost, then head-to-head
+    const standings = Array.from(standingsMap.values());
+    standings.sort((a, b) => b.points - a.points);
+
+    const sortedStandings: typeof standings = [];
+    let index = 0;
+    while (index < standings.length) {
+      const points = standings[index].points;
+      const group: typeof standings = [];
+      while (index < standings.length && standings[index].points === points) {
+        group.push(standings[index]);
+        index += 1;
+      }
+
+      group.sort((a, b) => {
+        if (b.games_won !== a.games_won) return b.games_won - a.games_won;
+        if (a.games_lost !== b.games_lost) return a.games_lost - b.games_lost;
+        const headToHeadWinner = getHeadToHeadWinner(a.team_id, b.team_id);
+        if (headToHeadWinner === a.team_id) return -1;
+        if (headToHeadWinner === b.team_id) return 1;
+        return 0;
+      });
+
+      sortedStandings.push(...group);
+    }
+
+    return sortedStandings;
   },
 });
 
@@ -611,7 +649,7 @@ export const recordGameResult = mutation({
       }
     }
 
-    if (matchCompleted && !wasCompleted && winnerId) {
+    if (matchCompleted && !wasCompleted) {
       const team1 = await ctx.db.get(tournamentMatch.team1_id);
       const team2 = await ctx.db.get(tournamentMatch.team2_id);
       if (team1 && team2) {
@@ -621,28 +659,35 @@ export const recordGameResult = mutation({
         const computeRecord = (teamId: Id<"teams">) => {
           let wins = 0;
           let losses = 0;
+          let ties = 0;
           for (const match of allTournamentMatches) {
             if (match.status !== "completed") continue;
             if (match.team1_id !== teamId && match.team2_id !== teamId) continue;
-            if (!match.winner_team_id) continue;
+            if (!match.winner_team_id) {
+              if (match.team1_games_won === match.team2_games_won) {
+                ties += 1;
+              }
+              continue;
+            }
             if (match.winner_team_id === teamId) {
               wins += 1;
             } else {
               losses += 1;
             }
           }
-          return { wins, losses };
+          return { wins, losses, ties };
         };
         const team1Record = computeRecord(tournamentMatch.team1_id);
         const team2Record = computeRecord(tournamentMatch.team2_id);
         const team1Won = winnerId === tournamentMatch.team1_id;
         const team2Won = winnerId === tournamentMatch.team2_id;
+        const isDrawOutcome = !winnerId;
         const kFactor = 32;
         const expectedTeam1 =
           1 / (1 + Math.pow(10, (team2.team_elo - team1.team_elo) / 400));
         const expectedTeam2 = 1 - expectedTeam1;
-        const scoreTeam1 = team1Won ? 1 : 0;
-        const scoreTeam2 = team2Won ? 1 : 0;
+        const scoreTeam1 = isDrawOutcome ? 0.5 : team1Won ? 1 : 0;
+        const scoreTeam2 = isDrawOutcome ? 0.5 : team2Won ? 1 : 0;
         const newTeam1Elo = Math.round(
           team1.team_elo + kFactor * (scoreTeam1 - expectedTeam1)
         );
@@ -653,11 +698,13 @@ export const recordGameResult = mutation({
         await ctx.db.patch(tournamentMatch.team1_id, {
           team_wins: team1Record.wins,
           team_losses: team1Record.losses,
+          team_ties: team1Record.ties,
           team_elo: newTeam1Elo,
         });
         await ctx.db.patch(tournamentMatch.team2_id, {
           team_wins: team2Record.wins,
           team_losses: team2Record.losses,
+          team_ties: team2Record.ties,
           team_elo: newTeam2Elo,
         });
       }

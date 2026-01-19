@@ -26,6 +26,7 @@ export default defineSchema({
     team_elo: v.number(),
     team_wins: v.number(),
     team_losses: v.number(),
+    team_ties: v.optional(v.number()),
     game_team_id: v.optional(v.string()),
     team_image_id: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
