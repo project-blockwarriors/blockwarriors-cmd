@@ -11,6 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Trophy,
   ArrowLeft,
   Users,
@@ -28,10 +34,10 @@ import {
   CheckCircle,
   XCircle,
   Grid3X3,
-  List,
   BarChart3,
   CalendarDays,
   Timer,
+  Info,
 } from 'lucide-react';
 import {
   TOURNAMENT_STATUSES,
@@ -52,6 +58,7 @@ export default function TournamentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('matrix');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
 
   // Get user's profile to find their team
   const userProfile = useQuery(
@@ -359,9 +366,11 @@ export default function TournamentDetailPage() {
     if (matchup.status === 'completed') {
       if (matchup.team1GamesWon > matchup.team2GamesWon) {
         return 'bg-green-500/20 border-green-500/30';
-      } else {
+      }
+      if (matchup.team2GamesWon > matchup.team1GamesWon) {
         return 'bg-red-500/20 border-red-500/30';
       }
+      return 'bg-orange-500/20 border-orange-500/30';
     }
     if (matchup.status === 'in_progress')
       return 'bg-yellow-500/20 border-yellow-500/30 animate-pulse';
@@ -439,6 +448,38 @@ export default function TournamentDetailPage() {
                 <Sparkles className="h-6 w-6 text-amber-400" />
               )}
               <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
+              {!tournament.is_official &&
+                creatorProfile &&
+                (tournament.status === 'in_progress' ||
+                  tournament.status === 'completed') && (
+                  <TooltipProvider>
+                    <Tooltip open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="text-muted-foreground inline-flex items-center gap-1 cursor-help"
+                          onClick={() => setIsInfoOpen((prev) => !prev)}
+                        >
+                          <Info className="h-4 w-4" />
+                          Info
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="center">
+                        <div className="text-xs">
+                          <span className="block">
+                            Created by {creatorProfile.first_name}{' '}
+                            {creatorProfile.last_name}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {creatorProfile.institution}
+                            {creatorProfile.team?.team_name
+                              ? ` • ${creatorProfile.team.team_name}`
+                              : ''}
+                          </span>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </div>
             <div className="flex items-center gap-3">
               <Badge className={`${statusInfo.color} bg-white/5`}>
@@ -447,29 +488,17 @@ export default function TournamentDetailPage() {
               <Badge variant="outline" className="text-muted-foreground">
                 {formatInfo.name}
               </Badge>
-              <span className="text-muted-foreground">
-                {tournament.participant_count} / {tournament.max_teams} teams
-              </span>
+              {tournament.status !== 'registration' && (
+                <span className="text-muted-foreground">
+                  {tournament.participant_count} / {tournament.max_teams} teams
+                </span>
+              )}
               {hasMatches && (
                 <span className="text-muted-foreground">
                   • {totalRounds} rounds
                 </span>
               )}
             </div>
-            {creatorProfile && (
-              <div className="text-sm text-muted-foreground mt-2">
-                Created by{' '}
-                <span className="text-white">
-                  {creatorProfile.first_name} {creatorProfile.last_name}
-                </span>
-                {creatorProfile.institution && (
-                  <span> • {creatorProfile.institution}</span>
-                )}
-                {creatorProfile.team?.team_name && (
-                  <span> • {creatorProfile.team.team_name}</span>
-                )}
-              </div>
-            )}
           </div>
         </div>
 
@@ -618,41 +647,47 @@ export default function TournamentDetailPage() {
 
       {/* Tournament Info Bar */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Teams</p>
-                <p className="font-bold text-white">{tournament.participant_count}</p>
+        {tournament.status !== 'registration' && (
+          <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <Users className="h-5 w-5 text-primary" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Teams</p>
+                  <p className="font-bold text-white">{tournament.participant_count}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Swords className="h-5 w-5 text-amber-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Matches</p>
-                <p className="font-bold text-white">{bracket?.length ?? 0}</p>
+            </CardContent>
+          </Card>
+        )}
+        {tournament.status !== 'registration' && (
+          <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <Swords className="h-5 w-5 text-amber-400" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Matches</p>
+                  <p className="font-bold text-white">{bracket?.length ?? 0}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="font-bold text-white">
-                  {bracket?.filter((m) => m.status === 'completed').length ?? 0}
-                </p>
+            </CardContent>
+          </Card>
+        )}
+        {tournament.status !== 'registration' && (
+          <Card className="border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="h-5 w-5 text-green-400" />
+                <div>
+                  <p className="text-xs text-muted-foreground">Completed</p>
+                  <p className="font-bold text-white">
+                    {bracket?.filter((m) => m.status === 'completed').length ?? 0}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        )}
         <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
           <CardContent className="pt-4 pb-4">
             <div className="flex items-center gap-3">
@@ -722,15 +757,6 @@ export default function TournamentDetailPage() {
                 <Users className="h-4 w-4 mr-1" />
                 Teams
               </Button>
-              <Button
-                variant={viewMode === 'rounds' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('rounds')}
-                className={viewMode !== 'rounds' ? 'text-muted-foreground' : ''}
-              >
-                <List className="h-4 w-4 mr-1" />
-                Rounds
-              </Button>
             </div>
           </div>
 
@@ -780,6 +806,7 @@ export default function TournamentDetailPage() {
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="text-green-400">{team.matches_won}W</span>
                         <span className="text-red-400">{team.matches_lost}L</span>
+                        <span className="text-slate-300">{team.matches_tied}T</span>
                         <span className="text-muted-foreground">{team.matches_pending}P</span>
                       </div>
                     </div>
@@ -924,6 +951,10 @@ export default function TournamentDetailPage() {
                           <span>Loss</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-orange-500/20 border border-orange-500/30" />
+                          <span>Tie</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-yellow-500/20 border border-yellow-500/30" />
                           <span>Live</span>
                         </div>
@@ -941,331 +972,6 @@ export default function TournamentDetailPage() {
                         <span className="text-pink-400">R3</span>
                         <span>= Round numbers</span>
                       </div>
-                    </motion.div>
-                  )}
-
-                  {/* Schedule View - Timeline */}
-                  {viewMode === 'schedule' && (
-                    <motion.div
-                      key="schedule"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-6"
-                    >
-                      {/* Timeline header */}
-                      <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
-                        <div className="flex items-center gap-2">
-                          <Timer className="h-5 w-5 text-primary" />
-                          <span className="font-semibold text-white">Full Tournament Schedule</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{sortedMatches.length} matches</span>
-                          <span>•</span>
-                          <span>{totalRounds} rounds</span>
-                        </div>
-                      </div>
-
-                      {/* Timeline */}
-                      <div className="relative">
-                        {/* Vertical line */}
-                        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-
-                        {Object.entries(matchesByRound)
-                          .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                          .map(([round, matches]) => (
-                            <div key={round} className="relative mb-8">
-                              {/* Round marker */}
-                              <div className="flex items-center gap-4 mb-4">
-                                <div
-                                  className={`relative z-10 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
-                                    matches?.some((m) => m.status === 'in_progress')
-                                      ? 'bg-black border-yellow-500/50 text-yellow-400'
-                                      : matches?.every((m) => m.status === 'completed')
-                                        ? 'bg-black border-green-500/50 text-green-400'
-                                        : 'bg-black border-primary/30 text-primary'
-                                  }`}
-                                >
-                                  {round}
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold text-white">Round {round}</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {matches?.filter((m) => m.status === 'completed').length} /{' '}
-                                    {matches?.length} completed
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Matches in this round */}
-                              <div className="ml-16 space-y-3">
-                                {matches
-                                  ?.sort((a, b) => a.match_number - b.match_number)
-                                  .map((match) => {
-                                    const isMyMatch =
-                                      match.team1_id === userTeamId ||
-                                      match.team2_id === userTeamId;
-                                    const statusInfo = TOURNAMENT_MATCH_STATUSES[match.status];
-
-                                    return (
-                                      <Link
-                                        key={match._id}
-                                        href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
-                                      >
-                                        <div
-                                          className={`p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.01] ${
-                                            match.status === 'in_progress'
-                                              ? 'bg-yellow-500/10 border-yellow-500/30'
-                                              : match.status === 'completed'
-                                                ? 'bg-secondary/20 border-secondary/30'
-                                                : match.status === 'scheduled'
-                                                  ? 'bg-blue-500/5 border-blue-500/20'
-                                                  : 'bg-secondary/10 border-secondary/20'
-                                          } ${isMyMatch ? 'ring-1 ring-primary/40' : ''}`}
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            {/* Teams */}
-                                            <div className="flex items-center gap-4 flex-1">
-                                              <div className="flex flex-col items-end flex-1">
-                                                <span
-                                                  className={`font-semibold ${
-                                                    match.winner_team_id === match.team1_id
-                                                      ? 'text-green-400'
-                                                      : 'text-white'
-                                                  } ${match.team1_id === userTeamId ? 'text-primary' : ''}`}
-                                                >
-                                                  {match.team1_name ?? 'TBD'}
-                                                </span>
-                                                {match.team1_id === userTeamId && (
-                                                  <Badge className="text-[9px] px-1 py-0 bg-primary/20 text-primary border-0 mt-0.5">
-                                                    You
-                                                  </Badge>
-                                                )}
-                                              </div>
-
-                                              {/* Score */}
-                                              <div className="flex items-center gap-3 px-4">
-                                                <span className="text-2xl font-bold text-white">
-                                                  {match.team1_games_won}
-                                                </span>
-                                                <span className="text-muted-foreground">-</span>
-                                                <span className="text-2xl font-bold text-white">
-                                                  {match.team2_games_won}
-                                                </span>
-                                              </div>
-
-                                              <div className="flex flex-col items-start flex-1">
-                                                <span
-                                                  className={`font-semibold ${
-                                                    match.winner_team_id === match.team2_id
-                                                      ? 'text-green-400'
-                                                      : 'text-white'
-                                                  } ${match.team2_id === userTeamId ? 'text-primary' : ''}`}
-                                                >
-                                                  {match.team2_name ?? 'TBD'}
-                                                </span>
-                                                {match.team2_id === userTeamId && (
-                                                  <Badge className="text-[9px] px-1 py-0 bg-primary/20 text-primary border-0 mt-0.5">
-                                                    You
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                            </div>
-
-                                            {/* Status & Time */}
-                                            <div className="flex items-center gap-4 ml-4">
-                                              <div className="text-right">
-                                                <div className="flex items-center gap-1.5 justify-end">
-                                                  {getStatusIcon(match.status, 'md')}
-                                                  <span className={`text-sm font-medium ${statusInfo.color}`}>
-                                                    {statusInfo.name}
-                                                  </span>
-                                                </div>
-                                                {match.scheduled_time && (
-                                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                                    {formatScheduledTime(match.scheduled_time)}
-                                                  </p>
-                                                )}
-                                              </div>
-                                              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </Link>
-                                    );
-                                  })}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Teams View */}
-                  {viewMode === 'teams' && participants && (
-                    <motion.div
-                      key="teams"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-4"
-                    >
-                      {participants.map((team, idx) => {
-                        const teamMatches = matchesByTeam[team.team_id] ?? [];
-                        const standing = standings?.find((s) => s.team_id === team.team_id);
-                        const isMyTeam = team.team_id === userTeamId;
-
-                        return (
-                          <div
-                            key={team.team_id}
-                            className={`border rounded-xl overflow-hidden ${
-                              isMyTeam ? 'border-primary/30' : 'border-primary/10'
-                            }`}
-                          >
-                            <div
-                              className={`flex items-center justify-between p-4 cursor-pointer transition-all ${
-                                selectedTeamId === team.team_id
-                                  ? 'bg-primary/10'
-                                  : isMyTeam
-                                    ? 'bg-primary/5 hover:bg-primary/10'
-                                    : 'bg-secondary/20 hover:bg-secondary/30'
-                              }`}
-                              onClick={() =>
-                                setSelectedTeamId(
-                                  selectedTeamId === team.team_id ? null : team.team_id
-                                )
-                              }
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 text-center">{getRankBadge(idx + 1)}</div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-bold text-white text-lg">{team.team_name}</p>
-                                    {isMyTeam && (
-                                      <Badge className="bg-primary/20 text-primary border-0">
-                                        Your Team
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">ELO: {team.team_elo}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-6">
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-green-400">
-                                    {standing?.matches_won ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Wins</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-red-400">
-                                    {standing?.matches_lost ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Losses</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-amber-400">
-                                    {standing?.points ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Points</p>
-                                </div>
-                                <ChevronRight
-                                  className={`h-5 w-5 text-muted-foreground transition-transform ${
-                                    selectedTeamId === team.team_id ? 'rotate-90' : ''
-                                  }`}
-                                />
-                              </div>
-                            </div>
-
-                            <AnimatePresence>
-                              {selectedTeamId === team.team_id && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="p-4 pt-2 border-t border-primary/10">
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                      {teamMatches.length} matches • Sorted by round
-                                    </p>
-                                    <div className="space-y-2">
-                                      {teamMatches.map((match) => {
-                                        const isTeam1 = match.team1_id === team.team_id;
-                                        const opponentName = isTeam1
-                                          ? match.team2_name
-                                          : match.team1_name;
-                                        const teamScore = isTeam1
-                                          ? match.team1_games_won
-                                          : match.team2_games_won;
-                                        const oppScore = isTeam1
-                                          ? match.team2_games_won
-                                          : match.team1_games_won;
-                                        const isWinner = match.winner_team_id === team.team_id;
-                                        const isLoser =
-                                          match.winner_team_id &&
-                                          match.winner_team_id !== team.team_id;
-
-                                        return (
-                                          <Link
-                                            key={match._id}
-                                            href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
-                                          >
-                                            <div
-                                              className={`flex items-center justify-between p-3 rounded-lg transition-all cursor-pointer ${
-                                                isWinner
-                                                  ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
-                                                  : isLoser
-                                                    ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/20'
-                                                    : match.status === 'in_progress'
-                                                      ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20'
-                                                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <Badge
-                                                  variant="outline"
-                                                  className={`${getRoundColor(match.round)}`}
-                                                >
-                                                  R{match.round}
-                                                </Badge>
-                                                {getStatusIcon(match.status)}
-                                                <div>
-                                                  <p className="font-medium text-white">
-                                                    vs {opponentName ?? 'TBD'}
-                                                  </p>
-                                                  {match.scheduled_time && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                      {formatScheduledTime(match.scheduled_time)}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-3">
-                                                <div className="text-right">
-                                                  <p className="text-lg font-bold text-white">
-                                                    {teamScore} - {oppScore}
-                                                  </p>
-                                                  <p
-                                                    className={`text-xs ${TOURNAMENT_MATCH_STATUSES[match.status].color}`}
-                                                  >
-                                                    {TOURNAMENT_MATCH_STATUSES[match.status].name}
-                                                  </p>
-                                                </div>
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                              </div>
-                                            </div>
-                                          </Link>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
                     </motion.div>
                   )}
 
@@ -1391,6 +1097,316 @@ export default function TournamentDetailPage() {
                         })}
                     </motion.div>
                   )}
+
+                  {/* Schedule View */}
+                  {viewMode === 'schedule' && (
+                    <motion.div
+                      key="schedule"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-6"
+                    >
+                      <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-5 w-5 text-primary" />
+                          <span className="font-semibold text-white">Full Tournament Schedule</span>
+                        </div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{totalRounds} rounds</span>
+                          <span>•</span>
+                          <span>{sortedMatches.length} matches</span>
+                        </div>
+                      </div>
+
+                      {Object.entries(matchesByRound)
+                        .sort(([a], [b]) => parseInt(a) - parseInt(b))
+                        .map(([round, matches]) => {
+                          const completedCount =
+                            matches?.filter((m) => m.status === 'completed').length ?? 0;
+                          const inProgressCount =
+                            matches?.filter((m) => m.status === 'in_progress').length ?? 0;
+
+                          return (
+                            <div key={round}>
+                              <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                                  <div
+                                    className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
+                                      inProgressCount > 0
+                                        ? 'bg-yellow-500/20 text-yellow-400'
+                                        : completedCount === matches?.length
+                                          ? 'bg-green-500/20 text-green-400'
+                                          : 'bg-primary/10 text-primary'
+                                    }`}
+                                  >
+                                    {round}
+                                  </div>
+                                  Round {round}
+                                </h3>
+                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                  <span className="text-green-400">{completedCount}</span>
+                                  <span>/</span>
+                                  <span>{matches?.length}</span>
+                                  <span>completed</span>
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {matches?.map((match) => {
+                                  const statusInfo = TOURNAMENT_MATCH_STATUSES[match.status];
+                                  const isMyMatch =
+                                    match.team1_id === userTeamId || match.team2_id === userTeamId;
+
+                                  return (
+                                    <Link
+                                      key={match._id}
+                                      href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
+                                    >
+                                      <div
+                                        className={`p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.02] ${
+                                          match.status === 'completed'
+                                            ? 'bg-secondary/30 border-primary/10 hover:border-primary/30'
+                                            : match.status === 'in_progress'
+                                              ? 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                                              : match.status === 'scheduled'
+                                                ? 'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40'
+                                                : 'bg-secondary/20 border-secondary/30 hover:border-primary/20'
+                                        } ${isMyMatch ? 'ring-1 ring-primary/40' : ''}`}
+                                      >
+                                        <div className="flex items-center justify-between mb-3">
+                                          <div className="flex items-center gap-2">
+                                            {getStatusIcon(match.status)}
+                                            <span className={`text-sm font-medium ${statusInfo.color}`}>
+                                              {statusInfo.name}
+                                            </span>
+                                          </div>
+                                          {match.scheduled_time && (
+                                            <span className="text-xs text-muted-foreground">
+                                              {formatScheduledTime(match.scheduled_time)}
+                                            </span>
+                                          )}
+                                        </div>
+
+                                        <div className="flex items-center justify-between">
+                                          <div className="flex-1">
+                                            <p
+                                              className={`font-semibold ${
+                                                match.winner_team_id === match.team1_id
+                                                  ? 'text-green-400'
+                                                  : 'text-white'
+                                              } ${match.team1_id === userTeamId ? 'text-primary' : ''}`}
+                                            >
+                                              {match.team1_name ?? 'TBD'}
+                                              {match.team1_id === userTeamId && (
+                                                <span className="text-[10px] ml-1 text-primary">(You)</span>
+                                              )}
+                                            </p>
+                                          </div>
+                                          <div className="px-6">
+                                            <p className="text-2xl font-bold text-white">
+                                              {match.team1_games_won} - {match.team2_games_won}
+                                            </p>
+                                          </div>
+                                          <div className="flex-1 text-right">
+                                            <p
+                                              className={`font-semibold ${
+                                                match.winner_team_id === match.team2_id
+                                                  ? 'text-green-400'
+                                                  : 'text-white'
+                                              } ${match.team2_id === userTeamId ? 'text-primary' : ''}`}
+                                            >
+                                              {match.team2_name ?? 'TBD'}
+                                              {match.team2_id === userTeamId && (
+                                                <span className="text-[10px] ml-1 text-primary">(You)</span>
+                                              )}
+                                            </p>
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </Link>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })}
+                    </motion.div>
+                  )}
+
+                  {/* Teams View */}
+                  {viewMode === 'teams' && participants && (
+                    <motion.div
+                      key="teams"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4"
+                    >
+                      {participants.map((team, idx) => {
+                        const teamMatches = matchesByTeam[team.team_id] ?? [];
+                        const standing = standings?.find((s) => s.team_id === team.team_id);
+                        const isMyTeam = team.team_id === userTeamId;
+
+                        return (
+                          <div
+                            key={team.team_id}
+                            className={`border rounded-xl overflow-hidden ${
+                              isMyTeam ? 'border-primary/30' : 'border-primary/10'
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center justify-between p-4 cursor-pointer transition-all ${
+                                selectedTeamId === team.team_id
+                                  ? 'bg-primary/10'
+                                  : isMyTeam
+                                    ? 'bg-primary/5 hover:bg-primary/10'
+                                    : 'bg-secondary/20 hover:bg-secondary/30'
+                              }`}
+                              onClick={() =>
+                                setSelectedTeamId(
+                                  selectedTeamId === team.team_id ? null : team.team_id
+                                )
+                              }
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 text-center">{getRankBadge(idx + 1)}</div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white text-lg">{team.team_name}</p>
+                                    {isMyTeam && (
+                                      <Badge className="bg-primary/20 text-primary border-0">
+                                        Your Team
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">ELO: {team.team_elo}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-green-400">
+                                    {standing?.matches_won ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Wins</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-red-400">
+                                    {standing?.matches_lost ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Losses</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-slate-300">
+                                    {standing?.matches_tied ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Ties</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-amber-400">
+                                    {standing?.points ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Points</p>
+                                </div>
+                                <ChevronRight
+                                  className={`h-5 w-5 text-muted-foreground transition-transform ${
+                                    selectedTeamId === team.team_id ? 'rotate-90' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <AnimatePresence>
+                              {selectedTeamId === team.team_id && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 pt-2 border-t border-primary/10">
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                      {teamMatches.length} matches • Sorted by round
+                                    </p>
+                                    <div className="space-y-2">
+                                      {teamMatches.map((match) => {
+                                        const isTeam1 = match.team1_id === team.team_id;
+                                        const opponentName = isTeam1
+                                          ? match.team2_name
+                                          : match.team1_name;
+                                        const teamScore = isTeam1
+                                          ? match.team1_games_won
+                                          : match.team2_games_won;
+                                        const oppScore = isTeam1
+                                          ? match.team2_games_won
+                                          : match.team1_games_won;
+                                        const isWinner = match.winner_team_id === team.team_id;
+                                        const isLoser =
+                                          match.winner_team_id &&
+                                          match.winner_team_id !== team.team_id;
+
+                                        return (
+                                          <Link
+                                            key={match._id}
+                                            href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
+                                          >
+                                            <div
+                                              className={`flex items-center justify-between p-3 rounded-lg transition-all cursor-pointer ${
+                                                isWinner
+                                                  ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
+                                                  : isLoser
+                                                    ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/20'
+                                                    : match.status === 'in_progress'
+                                                      ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20'
+                                                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent'
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <Badge
+                                                  variant="outline"
+                                                  className={`${getRoundColor(match.round)}`}
+                                                >
+                                                  R{match.round}
+                                                </Badge>
+                                                {getStatusIcon(match.status)}
+                                                <div>
+                                                  <p className="font-medium text-white">
+                                                    vs {opponentName ?? 'TBD'}
+                                                  </p>
+                                                  {match.scheduled_time && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                      {formatScheduledTime(match.scheduled_time)}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <div className="text-right">
+                                                  <p className="text-lg font-bold text-white">
+                                                    {teamScore} - {oppScore}
+                                                  </p>
+                                                  <p
+                                                    className={`text-xs ${TOURNAMENT_MATCH_STATUSES[match.status].color}`}
+                                                  >
+                                                    {TOURNAMENT_MATCH_STATUSES[match.status].name}
+                                                  </p>
+                                                </div>
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                            </div>
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+
                 </AnimatePresence>
               </CardContent>
             </Card>
@@ -1407,13 +1423,39 @@ export default function TournamentDetailPage() {
             <CardContent>
               <p className="text-muted-foreground mb-6">{tournament.description}</p>
 
+              {!tournament.is_official &&
+                creatorProfile &&
+                (tournament.status === 'registration' ||
+                  tournament.status === 'cancelled') && (
+                  <div className="mb-6 text-sm text-muted-foreground">
+                    <span className="block">Created by</span>
+                    <span className="text-white">
+                      {creatorProfile.first_name} {creatorProfile.last_name}
+                    </span>
+                    <span>
+                      {creatorProfile.institution
+                        ? ` • ${creatorProfile.institution}`
+                        : ''}
+                      {creatorProfile.team?.team_name
+                        ? ` • ${creatorProfile.team.team_name}`
+                        : ''}
+                    </span>
+                  </div>
+                )}
+
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Format</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Swords className="h-4 w-4" />
+                    <span>Format</span>
+                  </div>
                   <p className="font-semibold text-white">{formatInfo.name}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Games/Match</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Target className="h-4 w-4" />
+                    <span>Games/Match</span>
+                  </div>
                   <p className="font-semibold text-white">
                     {tournament.games_per_match === 1
                       ? 'Single Game'
@@ -1421,19 +1463,47 @@ export default function TournamentDetailPage() {
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Team Limits</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Deadline</span>
+                  </div>
                   <p className="font-semibold text-white">
-                    {tournament.min_teams} - {tournament.max_teams}
+                    {tournament.registration_deadline
+                      ? new Date(tournament.registration_deadline).toLocaleDateString()
+                      : 'TBD'}
                   </p>
                 </div>
-                {tournament.registration_deadline && (
-                  <div className="p-4 rounded-lg bg-secondary/30">
-                    <p className="text-sm text-muted-foreground">Deadline</p>
-                    <p className="font-semibold text-white">
-                      {new Date(tournament.registration_deadline).toLocaleDateString()}
-                    </p>
+                <div className="p-4 rounded-lg bg-secondary/30 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Timer className="h-4 w-4" />
+                      <span>Start</span>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-white"
+                            aria-label="Start timing info"
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center">
+                          <p className="text-xs">
+                            Organizer can start the tournament before this date.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
-                )}
+                  <p className="font-semibold text-white">
+                    {tournament.start_time
+                      ? new Date(tournament.start_time).toLocaleDateString()
+                      : 'TBD'}
+                  </p>
+                </div>
               </div>
 
               {canManage &&
@@ -1448,6 +1518,7 @@ export default function TournamentDetailPage() {
                     </p>
                   </div>
                 )}
+
             </CardContent>
           </Card>
 

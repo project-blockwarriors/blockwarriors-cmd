@@ -36,6 +36,7 @@ export const getAllTeamsWithMembers = query({
       team_elo: v.number(),
       team_wins: v.number(),
       team_losses: v.number(),
+      team_ties: v.number(),
       description: v.optional(v.string()),
       team_image_url: v.optional(v.string()),
       created_at: v.optional(v.number()),
@@ -89,6 +90,7 @@ export const getAllTeamsWithMembers = query({
           team_elo: team.team_elo,
           team_wins: team.team_wins,
           team_losses: team.team_losses,
+          team_ties: team.team_ties ?? 0,
           description: team.description,
           team_image_url: teamImageUrl ?? undefined,
           created_at: team.created_at,
@@ -167,16 +169,17 @@ export const getTeamById = query({
       })
     );
 
-    return {
-      id: team._id,
-      team_name: team.team_name,
-      leader_id: team.leader_id,
-      team_elo: team.team_elo,
-      team_wins: team.team_wins,
-      team_losses: team.team_losses,
-      description: team.description,
-      team_image_url: teamImageUrl ?? undefined,
-      created_at: team.created_at,
+      return {
+        id: team._id,
+        team_name: team.team_name,
+        leader_id: team.leader_id,
+        team_elo: team.team_elo,
+        team_wins: team.team_wins,
+        team_losses: team.team_losses,
+        team_ties: team.team_ties ?? 0,
+        description: team.description,
+        team_image_url: teamImageUrl ?? undefined,
+        created_at: team.created_at,
       members: membersWithImages,
     };
   },
@@ -196,6 +199,7 @@ export const createTeam = mutation({
     team_elo: v.number(),
     team_wins: v.number(),
     team_losses: v.number(),
+    team_ties: v.number(),
   }),
   handler: async (ctx, args) => {
     // Check if user is already in a team
@@ -231,6 +235,7 @@ export const createTeam = mutation({
       team_elo: 1000, // Start with 1000 ELO
       team_wins: 0,
       team_losses: 0,
+      team_ties: 0,
       description: args.description,
       created_at: now,
     });
@@ -253,6 +258,7 @@ export const createTeam = mutation({
       team_elo: team.team_elo,
       team_wins: team.team_wins,
       team_losses: team.team_losses,
+      team_ties: team.team_ties ?? 0,
     };
   },
 });
@@ -912,6 +918,7 @@ export const getAllTeamsScores = query({
       team_elo: v.number(),
       team_wins: v.number(),
       team_losses: v.number(),
+      team_ties: v.number(),
       team_image_url: v.optional(v.string()),
       member_count: v.number(),
     })
@@ -944,6 +951,7 @@ export const getAllTeamsScores = query({
           team_elo: team.team_elo,
           team_wins: team.team_wins,
           team_losses: team.team_losses,
+          team_ties: team.team_ties ?? 0,
           team_image_url: teamImageUrl ?? undefined,
           member_count: members.length,
         };
@@ -972,6 +980,8 @@ export const getTeamTournamentHistory = query({
       ),
       matches_played: v.number(),
       matches_won: v.number(),
+      matches_lost: v.number(),
+      matches_tied: v.number(),
       final_placement: v.optional(v.number()),
     })
   ),
@@ -1005,6 +1015,14 @@ export const getTeamTournamentHistory = query({
         const matchesWon = completedMatches.filter(
           (m) => m.winner_team_id === args.teamId
         ).length;
+        const matchesTied = completedMatches.filter(
+          (m) =>
+            !m.winner_team_id && m.team1_games_won === m.team2_games_won
+        ).length;
+        const matchesLost = Math.max(
+          0,
+          completedMatches.length - matchesWon - matchesTied
+        );
 
         return {
           tournament_id: p.tournament_id,
@@ -1013,6 +1031,8 @@ export const getTeamTournamentHistory = query({
           status: tournament.status,
           matches_played: completedMatches.length,
           matches_won: matchesWon,
+          matches_lost: matchesLost,
+          matches_tied: matchesTied,
           final_placement: undefined as number | undefined, // Could calculate this based on standings
         };
       })

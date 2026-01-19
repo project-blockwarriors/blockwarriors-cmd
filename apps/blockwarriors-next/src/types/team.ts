@@ -7,6 +7,7 @@ export interface Team {
   team_elo: number;
   team_wins: number;
   team_losses: number;
+  team_ties?: number;
 }
 
 export interface TeamMember {
