@@ -980,10 +980,10 @@ export default function TournamentDetailPage() {
                                 <div
                                   className={`relative z-10 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
                                     matches?.some((m) => m.status === 'in_progress')
-                                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
+                                      ? 'bg-black border-yellow-500/50 text-yellow-400'
                                       : matches?.every((m) => m.status === 'completed')
-                                        ? 'bg-green-500/20 border-green-500/50 text-green-400'
-                                        : 'bg-primary/10 border-primary/30 text-primary'
+                                        ? 'bg-black border-green-500/50 text-green-400'
+                                        : 'bg-black border-primary/30 text-primary'
                                   }`}
                                 >
                                   {round}

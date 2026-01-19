@@ -93,16 +93,21 @@ export default function TournamentMatchPage() {
     Boolean(userTeamId) &&
     (tournamentMatch?.team1_id === userTeamId ||
       tournamentMatch?.team2_id === userTeamId);
-  const hasUnstartedPriorRound = useMemo(() => {
-    if (!tournamentMatch || !isUserTeamInMatch || !tournamentBracket) return false;
-    return tournamentBracket.some((match) => {
-      const involvesTeam =
-        match.team1_id === userTeamId || match.team2_id === userTeamId;
-      const isEarlierRound = match.round < tournamentMatch.round;
-      const notStarted = match.status === 'pending' || match.status === 'scheduled';
-      return involvesTeam && isEarlierRound && notStarted;
-    });
-  }, [isUserTeamInMatch, tournamentBracket, userTeamId, tournamentMatch]);
+  const hasIncompletePriorRound = useMemo(() => {
+    if (!tournamentMatch || !tournamentBracket) return false;
+    if (tournamentMatch.round <= 1) return false;
+    const priorRound = tournamentMatch.round - 1;
+    const priorRoundMatches = tournamentBracket.filter(
+      (match) =>
+        match.round === priorRound &&
+        (match.team1_id === tournamentMatch.team1_id ||
+          match.team2_id === tournamentMatch.team1_id ||
+          match.team1_id === tournamentMatch.team2_id ||
+          match.team2_id === tournamentMatch.team2_id)
+    );
+    if (priorRoundMatches.length === 0) return false;
+    return priorRoundMatches.some((match) => match.status !== 'completed');
+  }, [tournamentBracket, tournamentMatch]);
   const hasActiveGame = useMemo(() => {
     if (!tournamentMatch || !gameMatches) return false;
     return tournamentMatch.games.some((gameId) => {
@@ -144,15 +149,14 @@ export default function TournamentMatchPage() {
 
   const statusInfo = TOURNAMENT_MATCH_STATUSES[tournamentMatch.status];
   const maxGames = getMaxGamesInMatch(tournamentMatch.games_required);
-  const totalGamesPlayed =
-    tournamentMatch.team1_games_won + tournamentMatch.team2_games_won;
+  const totalGamesPlayed = tournamentMatch.games.length;
   const canCreateGame =
     tournamentMatch.status !== 'completed' &&
     tournamentMatch.status !== 'cancelled' &&
     totalGamesPlayed < maxGames &&
     tournamentMatch.team1_games_won < tournamentMatch.games_required &&
     tournamentMatch.team2_games_won < tournamentMatch.games_required &&
-    !hasUnstartedPriorRound &&
+    !hasIncompletePriorRound &&
     !hasActiveGame &&
     isUserTeamInMatch;
   const shouldShowStartButton = canCreateGame;
@@ -188,10 +192,10 @@ export default function TournamentMatchPage() {
         </div>
       )}
 
-      {hasUnstartedPriorRound && (
+      {hasIncompletePriorRound && (
         <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
           <p className="text-amber-400 text-sm">
-            You must start your team's earlier round matches before starting this game.
+            Round {tournamentMatch.round - 1} must be completed before this game can start.
           </p>
         </div>
       )}
@@ -300,7 +304,10 @@ export default function TournamentMatchPage() {
             {tournamentMatch.games.map((gameId, index) => {
               const game = gameMatches?.[gameId];
               return (
-                <Link key={gameId} href={`/dashboard/matches/${gameId}`}>
+                <Link
+                  key={gameId}
+                  href={`/dashboard/matches/${gameId}?tournamentId=${tournamentId}&tournamentMatchId=${matchId}`}
+                >
                   <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div>

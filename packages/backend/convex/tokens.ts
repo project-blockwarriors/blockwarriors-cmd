@@ -195,6 +195,50 @@ export const markTokenAsUsed = mutation({
   },
 });
 
+// Validate a token for a specific match and mark it as used (proxy flow)
+export const claimTokenForMatch = mutation({
+  args: {
+    token: v.string(),
+    matchId: v.id("matches"),
+    playerId: v.string(),
+    ign: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const tokenDoc = await ctx.db
+      .query("game_tokens")
+      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .first();
+
+    if (!tokenDoc) {
+      return { success: false, error: "Token not found" };
+    }
+
+    if (tokenDoc.match_id !== args.matchId) {
+      return { success: false, error: "Token does not belong to this match" };
+    }
+
+    if (!tokenDoc.is_active) {
+      return { success: false, error: "Token is not active" };
+    }
+
+    const now = Date.now();
+    if (tokenDoc.expires_at < now) {
+      return { success: false, error: "Token has expired" };
+    }
+
+    if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
+      return { success: false, error: "Token has already been used" };
+    }
+
+    await ctx.db.patch(tokenDoc._id, {
+      user_id: args.playerId,
+      ign: args.ign ?? undefined,
+    });
+
+    return { success: true };
+  },
+});
+
 // Clear token usage when a player disconnects before match starts
 // Only clears if match is in "Waiting" status - Convex handles the status check
 // This allows the token to be reused by the same player or another player

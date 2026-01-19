@@ -34,13 +34,16 @@ export default defineSchema({
   })
     .index("by_leader_id", ["leader_id"])
     .index("by_team_elo", ["team_elo"])
-    .index("by_team_name", ["team_name"]),
+    .index("by_team_name", ["team_name"])
+    .index("by_game_team_id", ["game_team_id"]),
 
   // Matches table
   matches: defineTable({
     match_type: v.string(),
     match_status: v.string(),
     match_elo: v.optional(v.number()),
+    tournament_match_id: v.optional(v.id("tournament_matches")),
+    tournament_id: v.optional(v.id("tournaments")),
     winner_team_id: v.optional(v.id("game_teams")),
     blue_team_id: v.id("game_teams"),
     red_team_id: v.id("game_teams"),
