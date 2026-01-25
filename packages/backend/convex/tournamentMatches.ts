@@ -322,6 +322,8 @@ export const getTournamentStandings = query({
         const headToHeadWinner = getHeadToHeadWinner(a.team_id, b.team_id);
         if (headToHeadWinner === a.team_id) return -1;
         if (headToHeadWinner === b.team_id) return 1;
+        // Final fallback: lower ELO ranks higher (underdog advantage)
+        if (a.team_elo !== b.team_elo) return a.team_elo - b.team_elo;
         return 0;
       });
 

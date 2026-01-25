@@ -80,6 +80,10 @@ export default function TournamentsPage() {
     );
   };
 
+  const getBoLabel = (gamesPerMatch: number) =>
+    gamesPerMatch === 1 ? 'Bo1' : `Bo${gamesPerMatch * 2 - 1}`;
+
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -220,6 +224,9 @@ export default function TournamentsPage() {
                 <div className="flex flex-wrap gap-2 mb-3">
                   {getStatusBadge(tournament.status)}
                   {getFormatBadge(tournament.format)}
+                  <span className="px-2 py-1 rounded-full text-xs font-medium text-gray-400 bg-white/5">
+                    {getBoLabel(tournament.games_per_match)}
+                  </span>
                 </div>
 
                 {/* Description */}
