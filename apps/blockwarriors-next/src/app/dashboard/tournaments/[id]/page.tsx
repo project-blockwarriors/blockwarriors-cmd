@@ -83,6 +83,12 @@ export default function TournamentDetailPage() {
   const matrixScrollRef = useRef<HTMLDivElement | null>(null);
   const teamsScrollRef = useRef<HTMLDivElement | null>(null);
   const [isStandingsInfoOpen, setIsStandingsInfoOpen] = useState(false);
+  const [registeredTeamsApi, setRegisteredTeamsApi] = useState<CarouselApi | null>(null);
+  const [canScrollRegisteredTeamsPrev, setCanScrollRegisteredTeamsPrev] = useState(false);
+  const [canScrollRegisteredTeamsNext, setCanScrollRegisteredTeamsNext] = useState(false);
+  const scheduleScrollRef = useRef<HTMLDivElement | null>(null);
+  const scheduleItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const [canScrollSchedule, setCanScrollSchedule] = useState(false);
 
   // Get user's profile to find their team
   const userProfile = useQuery(
@@ -317,6 +323,24 @@ export default function TournamentDetailPage() {
     };
   }, [roundsApi]);
 
+  useEffect(() => {
+    if (!registeredTeamsApi) return;
+
+    const updateScrollState = () => {
+      setCanScrollRegisteredTeamsPrev(registeredTeamsApi.canScrollPrev());
+      setCanScrollRegisteredTeamsNext(registeredTeamsApi.canScrollNext());
+    };
+
+    updateScrollState();
+    registeredTeamsApi.on('select', updateScrollState);
+    registeredTeamsApi.on('reInit', updateScrollState);
+
+    return () => {
+      registeredTeamsApi.off('select', updateScrollState);
+      registeredTeamsApi.off('reInit', updateScrollState);
+    };
+  }, [registeredTeamsApi]);
+
 
   const shouldLockRightPanelHeight = (standings?.length ?? 0) >= 5;
 
@@ -381,6 +405,38 @@ export default function TournamentDetailPage() {
     }, 220);
     return () => clearTimeout(timeout);
   }, [viewMode, selectedTeamId]);
+
+  useEffect(() => {
+    if (!myTeamMatches.length) return;
+    const firstUpcoming = myTeamMatches.find(
+      (match) => match.status === 'pending' || match.status === 'in_progress'
+    );
+    if (!firstUpcoming) return;
+    const container = scheduleScrollRef.current;
+    const target = scheduleItemRefs.current.get(firstUpcoming._id);
+    if (!container || !target) return;
+    requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const left = targetRect.left - containerRect.left + container.scrollLeft - 16;
+      container.scrollTo({ left, behavior: 'smooth' });
+    });
+  }, [myTeamMatches]);
+
+  useEffect(() => {
+    const container = scheduleScrollRef.current;
+    if (!container) return;
+
+    const updateOverflow = () => {
+      setCanScrollSchedule(container.scrollWidth > container.clientWidth + 4);
+    };
+
+    updateOverflow();
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [myTeamMatches]);
+
 
   const renderStandings = (
     teams: NonNullable<typeof standings>,
@@ -470,6 +526,21 @@ export default function TournamentDetailPage() {
     }
     return pages;
   }, [roundsEntries, roundsPageSize]);
+
+  const registeredTeamsPageSize = useMemo(() => {
+    if (!participants || participants.length === 0) return 0;
+    return participants.length <= 8 ? participants.length : 5;
+  }, [participants]);
+
+  const registeredTeamsPages = useMemo(() => {
+    if (!participants || participants.length === 0) return [];
+    const pageSize = registeredTeamsPageSize || participants.length;
+    const pages = [];
+    for (let i = 0; i < participants.length; i += pageSize) {
+      pages.push(participants.slice(i, i + pageSize));
+    }
+    return pages;
+  }, [participants, registeredTeamsPageSize]);
 
   const renderRoundBlock = (round: string, matches: typeof bracket) => {
     const completedCount =
@@ -962,8 +1033,41 @@ export default function TournamentDetailPage() {
                   </p>
                 </div>
               </div>
+              {canScrollSchedule && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scheduleScrollRef.current?.scrollBy({
+                        left: -((scheduleScrollRef.current?.clientWidth ?? 0) * 5) / 8,
+                        behavior: 'smooth',
+                      })
+                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Scroll schedule left"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scheduleScrollRef.current?.scrollBy({
+                        left: ((scheduleScrollRef.current?.clientWidth ?? 0) * 5) / 8,
+                        behavior: 'smooth',
+                      })
+                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Scroll schedule right"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div
+              ref={scheduleScrollRef}
+              className="flex gap-3 overflow-x-auto pr-2 pb-1"
+            >
               {myTeamMatches.map((match) => {
                 const isTeam1 = match.team1_id === userTeamId;
                 const opponentName = isTeam1 ? match.team2_name : match.team1_name;
@@ -978,6 +1082,9 @@ export default function TournamentDetailPage() {
                     href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
                   >
                     <div
+                      ref={(el) => {
+                        scheduleItemRefs.current.set(match._id, el);
+                      }}
                       className={`p-3 rounded-lg border transition-all cursor-pointer hover:scale-[1.02] ${
                         isWinner
                           ? 'bg-green-500/10 border-green-500/30'
@@ -1291,10 +1398,13 @@ export default function TournamentDetailPage() {
                           <span>Pending</span>
                         </div>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-blue-400">R1</span>
-                        <span className="text-purple-400">R2</span>
-                        <span className="text-pink-400">R3</span>
-                        <span>= Round numbers</span>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="text-blue-400">R1</span>
+                          <span className="text-purple-400">R2</span>
+                          <span className="text-pink-400">R3</span>
+                          <span className="text-muted-foreground/60">…</span>
+                          <span>= Round numbers</span>
+                        </div>
                       </div>
                     </motion.div>
                   )}
@@ -1797,44 +1907,111 @@ export default function TournamentDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Registered Teams</span>
-                <Badge variant="outline">
-                  {tournament.participant_count} / {tournament.max_teams}
-                </Badge>
+                {registeredTeamsPages.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => registeredTeamsApi?.scrollPrev()}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      aria-label="Previous teams slide"
+                      disabled={!canScrollRegisteredTeamsPrev}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => registeredTeamsApi?.scrollNext()}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      aria-label="Next teams slide"
+                      disabled={!canScrollRegisteredTeamsNext}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {participants && participants.length > 0 ? (
-                <div className="space-y-2">
-                  {participants.map((participant, index) => (
-                    <div
-                      key={participant._id}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        participant.team_id === userTeamId
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'bg-secondary/30'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-white truncate">
-                            {participant.team_name}
-                          </p>
-                          {participant.team_id === userTeamId && (
-                            <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
-                              You
-                            </Badge>
-                          )}
+                <>
+                  {registeredTeamsPages.length <= 1 ? (
+                    <div className="space-y-2">
+                      {participants.map((participant, index) => (
+                        <div
+                          key={participant._id}
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            participant.team_id === userTeamId
+                              ? 'bg-primary/10 border border-primary/20'
+                              : 'bg-secondary/30'
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-white truncate">
+                                {participant.team_name}
+                              </p>
+                              {participant.team_id === userTeamId && (
+                                <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                                  You
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              ELO: {participant.team_elo}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          ELO: {participant.team_elo}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <Carousel opts={{ align: 'start' }} setApi={setRegisteredTeamsApi}>
+                      <CarouselContent>
+                        {registeredTeamsPages.map((page, pageIndex) => (
+                          <CarouselItem key={`registered-${pageIndex}`}>
+                            <div className="space-y-2">
+                              {page.map((participant, index) => {
+                                const rankIndex =
+                                  pageIndex * (registeredTeamsPageSize || 0) + index;
+                                return (
+                                  <div
+                                    key={participant._id}
+                                    className={`flex items-center gap-3 p-3 rounded-lg ${
+                                      participant.team_id === userTeamId
+                                        ? 'bg-primary/10 border border-primary/20'
+                                        : 'bg-secondary/30'
+                                    }`}
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                                      {rankIndex + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-white truncate">
+                                          {participant.team_name}
+                                        </p>
+                                        {participant.team_id === userTeamId && (
+                                          <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                                            You
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        ELO: {participant.team_elo}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                    </Carousel>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
