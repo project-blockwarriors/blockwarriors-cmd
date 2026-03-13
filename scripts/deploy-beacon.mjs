@@ -84,6 +84,12 @@ async function main() {
     await client.pullFile(config);
   }
 
+  if (config.convexSiteUrl || config.convexHttpSecret) {
+    logStep('Syncing Beacon config.yml with Convex settings');
+    const configYml = buildBeaconConfigYml(config);
+    await client.writeFile('/plugins/beacon/config.yml', configYml);
+  }
+
   if (!config.skipRestart) {
     logStep(`Sending power signal: ${config.restartSignal}`);
     await client.sendPowerSignal(config.restartSignal);
@@ -246,6 +252,8 @@ async function resolveConfig(args) {
       args.restartSignal ??
       process.env.PTERODACTYL_RESTART_SIGNAL ??
       defaultRestartSignal,
+    convexSiteUrl: process.env.CONVEX_SITE_URL,
+    convexHttpSecret: process.env.CONVEX_HTTP_SECRET,
     serverName:
       args.serverName ?? process.env.PTERODACTYL_SERVER_NAME,
     serverUuid: args.serverUuid ?? process.env.PTERODACTYL_SERVER_UUID,
@@ -381,6 +389,12 @@ function printSummary(config, backupName) {
   } else {
     console.log(`- artifact url: ${config.artifactUrl}`);
   }
+  if (config.convexSiteUrl) {
+    console.log(`- convex site url: ${config.convexSiteUrl}`);
+  }
+  if (config.convexHttpSecret) {
+    console.log(`- convex http secret: ${'*'.repeat(8)}...`);
+  }
   if (config.dryRun) {
     console.log('- dry run: true');
   }
@@ -443,6 +457,28 @@ function createPterodactylClient(config) {
       }
     },
 
+    async writeFile(remotePath, contents) {
+      const url = new URL(
+        `/api/client/servers/${config.serverUuid}/files/write`,
+        config.panelUrl
+      );
+      url.searchParams.set('file', remotePath);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Accept: 'application/vnd.pterodactyl.v1+json',
+          Authorization: `Bearer ${config.apiKey}`,
+          'Content-Type': 'text/plain',
+        },
+        body: contents,
+      });
+
+      if (!response.ok) {
+        throw new Error(await formatResponseError(response));
+      }
+    },
+
     async pullFile(deployConfig) {
       await request(
         deployConfig,
@@ -488,6 +524,23 @@ function createPterodactylClient(config) {
       throw new Error(`Timed out waiting for server state "${expectedState}".`);
     },
   };
+}
+
+function buildBeaconConfigYml(config) {
+  const siteUrl = config.convexSiteUrl || 'https://your-deployment.convex.site';
+  const secret = config.convexHttpSecret || 'your-secret-here';
+
+  return `# Convex Backend Configuration
+# These settings configure the connection between the beacon plugin and Convex backend
+
+# The Convex site URL for HTTP API calls
+convex-site-url: '${siteUrl}'
+
+# The shared secret for server-to-server authentication
+# Generate with: openssl rand -base64 32
+# Must match the CONVEX_HTTP_SECRET environment variable set in Convex
+convex-http-secret: '${secret}'
+`;
 }
 
 async function fetchAllServers(config) {
