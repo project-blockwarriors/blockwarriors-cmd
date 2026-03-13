@@ -543,4 +543,323 @@ http.route({
   }),
 });
 
+// ============================================================================
+// TOURNAMENT ENDPOINTS
+// ============================================================================
+
+// GET /tournaments - List tournaments with optional filters
+// Query: ?status=registration&is_official=true
+http.route({
+  path: "/tournaments",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const status = url.searchParams.get("status") as
+      | "registration"
+      | "in_progress"
+      | "completed"
+      | "cancelled"
+      | null;
+    const isOfficialParam = url.searchParams.get("is_official");
+    const isOfficial =
+      isOfficialParam === "true"
+        ? true
+        : isOfficialParam === "false"
+          ? false
+          : undefined;
+
+    try {
+      const tournaments = await ctx.runQuery(api.tournaments.listTournaments, {
+        status: status || undefined,
+        isOfficial,
+      });
+
+      return successResponse(tournaments);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to list tournaments: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// GET /tournaments/info - Get tournament by ID
+// Query: ?tournament_id=xxx
+http.route({
+  path: "/tournaments/info",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const tournamentId = url.searchParams.get("tournament_id");
+
+    if (!tournamentId) {
+      return errorResponse("Missing 'tournament_id' query parameter");
+    }
+
+    try {
+      const tournament = await ctx.runQuery(api.tournaments.getTournament, {
+        tournamentId: tournamentId as Id<"tournaments">,
+      });
+
+      if (!tournament) {
+        return errorResponse("Tournament not found", 404);
+      }
+
+      return successResponse(tournament);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to get tournament: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// GET /tournaments/bracket - Get tournament bracket/matches
+// Query: ?tournament_id=xxx
+http.route({
+  path: "/tournaments/bracket",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const tournamentId = url.searchParams.get("tournament_id");
+
+    if (!tournamentId) {
+      return errorResponse("Missing 'tournament_id' query parameter");
+    }
+
+    try {
+      const bracket = await ctx.runQuery(
+        api.tournamentMatches.getTournamentBracket,
+        {
+          tournamentId: tournamentId as Id<"tournaments">,
+        }
+      );
+
+      return successResponse(bracket);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to get bracket: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// GET /tournaments/standings - Get tournament standings
+// Query: ?tournament_id=xxx
+http.route({
+  path: "/tournaments/standings",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const tournamentId = url.searchParams.get("tournament_id");
+
+    if (!tournamentId) {
+      return errorResponse("Missing 'tournament_id' query parameter");
+    }
+
+    try {
+      const standings = await ctx.runQuery(
+        api.tournamentMatches.getTournamentStandings,
+        {
+          tournamentId: tournamentId as Id<"tournaments">,
+        }
+      );
+
+      return successResponse(standings);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to get standings: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// GET /tournaments/matches/queued - Get queued tournament matches
+// Query: ?tournament_id=xxx
+// Returns matches that are pending or scheduled and ready to be played
+http.route({
+  path: "/tournaments/matches/queued",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
+    const url = new URL(request.url);
+    const tournamentId = url.searchParams.get("tournament_id");
+
+    if (!tournamentId) {
+      return errorResponse("Missing 'tournament_id' query parameter");
+    }
+
+    try {
+      const bracket = await ctx.runQuery(
+        api.tournamentMatches.getTournamentBracket,
+        {
+          tournamentId: tournamentId as Id<"tournaments">,
+        }
+      );
+
+      // Filter to pending or scheduled matches only
+      const queuedMatches = bracket.filter(
+        (match) => match.status === "pending" || match.status === "scheduled"
+      );
+
+      return successResponse(queuedMatches);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(
+        `Failed to get queued matches: ${errorMessage}`,
+        500
+      );
+    }
+  }),
+});
+
+// GET /tournaments/match - Get tournament match details
+// Query: ?match_id=xxx
+http.route({
+  path: "/tournaments/match",
+  method: "GET",
+  handler: httpAction(async (ctx, request) => {
+    const url = new URL(request.url);
+    const matchId = url.searchParams.get("match_id");
+
+    if (!matchId) {
+      return errorResponse("Missing 'match_id' query parameter");
+    }
+
+    try {
+      const match = await ctx.runQuery(
+        api.tournamentMatches.getTournamentMatch,
+        {
+          matchId: matchId as Id<"tournament_matches">,
+        }
+      );
+
+      if (!match) {
+        return errorResponse("Tournament match not found", 404);
+      }
+
+      return successResponse(match);
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(
+        `Failed to get tournament match: ${errorMessage}`,
+        500
+      );
+    }
+  }),
+});
+
+// POST /tournaments/matches/game/new - Create a game within a tournament match
+// Called by Minecraft server to create a new game match within a tournament match
+http.route({
+  path: "/tournaments/matches/game/new",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return errorResponse("Invalid JSON in request body");
+    }
+
+    const { tournament_match_id, match_type, mode } = body;
+
+    if (!tournament_match_id) {
+      return errorResponse("Missing required field: tournament_match_id");
+    }
+
+    try {
+      const result = await ctx.runMutation(
+        api.tournamentMatches.createTournamentGame,
+        {
+          tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
+          matchType: match_type || "pvp",
+          mode: mode || "ranked",
+        }
+      );
+
+      if (!result.success) {
+        return errorResponse(result.error ?? "Failed to create game");
+      }
+
+      return successResponse({
+        matchId: result.matchId,
+        tournamentMatchId: tournament_match_id,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to create tournament game: ${errorMessage}`, 500);
+    }
+  }),
+});
+
+// POST /tournaments/matches/game/result - Record game result within a tournament match
+// Called by Minecraft server when a game completes
+http.route({
+  path: "/tournaments/matches/game/result",
+  method: "POST",
+  handler: httpAction(async (ctx, request) => {
+    // Verify bearer token for server-to-server auth
+    if (!verifyBearerToken(request)) {
+      return unauthorizedResponse();
+    }
+
+    let body: any;
+    try {
+      body = await request.json();
+    } catch (error) {
+      return errorResponse("Invalid JSON in request body");
+    }
+
+    const { tournament_match_id, game_match_id, winner_team_number } = body;
+
+    if (!tournament_match_id || !game_match_id || winner_team_number === undefined) {
+      return errorResponse(
+        "Missing required fields: tournament_match_id, game_match_id, winner_team_number"
+      );
+    }
+
+    // Validate winner_team_number is 1 or 2
+    if (winner_team_number !== 1 && winner_team_number !== 2) {
+      return errorResponse("winner_team_number must be 1 or 2");
+    }
+
+    try {
+      const result = await ctx.runMutation(
+        api.tournamentMatches.recordGameResult,
+        {
+          tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
+          gameMatchId: game_match_id as Id<"matches">,
+          winnerTeamNumber: winner_team_number as 1 | 2,
+        }
+      );
+
+      if (!result.success) {
+        return errorResponse(result.error ?? "Failed to record game result");
+      }
+
+      return successResponse({
+        tournamentMatchCompleted: result.tournamentMatchCompleted,
+        winnerId: result.winnerId,
+      });
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error";
+      return errorResponse(`Failed to record game result: ${errorMessage}`, 500);
+    }
+  }),
+});
+
 export default http;
