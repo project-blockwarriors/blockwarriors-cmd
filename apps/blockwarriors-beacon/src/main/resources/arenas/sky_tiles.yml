@@ -1,0 +1,74 @@
+# Sky Tiles Arena Configuration
+# A cooperative tile-traversal game where players work together to reach the goal
+#
+# NOTE: This arena is built programmatically when no schematic exists.
+# The SkyTilesArenaBuilder generates the arena automatically on game start.
+# If you create a custom schematic, set "schematic: your_schematic.schem" below.
+
+name: "Sky Tiles Arena"
+game_type: "sky_tiles"
+# schematic: "sky_tiles_arena.schem"  # Uncomment to use a custom schematic
+
+# Spawn points for players (cooperative game - all players spawn together)
+# Both teams spawn at same location since this is a co-op game
+spawns:
+  blue_team:
+    - x: 0
+      y: 100
+      z: 0
+      yaw: 0
+      pitch: 0
+    - x: 2
+      y: 100
+      z: 0
+      yaw: 0
+      pitch: 0
+  red_team: []  # Not used in co-op mode
+
+# Arena boundaries
+# Players below min.y - 5 will trigger void death
+boundaries:
+  min:
+    x: -50
+    y: 80
+    z: -50
+  max:
+    x: 50
+    y: 150
+    z: 50
+
+# Game objectives
+# goal: Final destination players must reach
+# checkpoint_N: Intermediate respawn points
+objectives:
+  goal:
+    x: 0
+    y: 100
+    z: 45
+  checkpoint_1:
+    x: 0
+    y: 100
+    z: 15
+  checkpoint_2:
+    x: 0
+    y: 100
+    z: 30
+
+# Game-specific settings
+settings:
+  team_lives: 5
+  tile_disappear_delay_ticks: 20
+  void_level_offset: 5  # How far below min boundary triggers death
+  
+# Tile materials that will disappear when stepped on
+tile_materials:
+  - WHITE_CONCRETE
+  - LIGHT_BLUE_CONCRETE
+  - CYAN_CONCRETE
+  - BLUE_CONCRETE
+
+# Visual markers (for arena building reference)
+markers:
+  goal_block: GOLD_BLOCK
+  checkpoint_block: EMERALD_BLOCK
+  spawn_block: DIAMOND_BLOCK

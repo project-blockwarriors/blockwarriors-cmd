@@ -23,6 +23,7 @@ import ai.blockwarriors.beacon.arena.ArenaManager;
 import ai.blockwarriors.beacon.constants.GameConfig;
 import ai.blockwarriors.beacon.game.GameRegistry;
 import ai.blockwarriors.beacon.game.impl.PvPGame;
+import ai.blockwarriors.beacon.game.impl.SkyTilesGame;
 import ai.blockwarriors.beacon.service.MatchPollingService;
 import ai.blockwarriors.beacon.service.MatchTelemetryService;
 import ai.blockwarriors.beacon.service.MatchManager;
@@ -113,6 +114,19 @@ public class Plugin extends JavaPlugin {
                 .playersPerTeam(1)
                 .teamCount(2)
                 .defaultArena("pvp")
+                .build()
+        );
+        
+        // Register Sky Tiles game type with metadata
+        registry.registerGame(
+            GameConfig.GAME_TYPE_SKY_TILES,
+            SkyTilesGame::new,
+            GameRegistry.GameMetadata.builder()
+                .displayName("Sky Tiles")
+                .description("Cooperative tile-based traversal game")
+                .playersPerTeam(2)
+                .teamCount(1)
+                .defaultArena("sky_tiles")
                 .build()
         );
         

@@ -108,7 +108,7 @@ public class ArenaManager {
      */
     private void saveDefaultArenas() {
         // List of default arena configs to save
-        String[] defaultArenas = {"pvp.yml"};
+        String[] defaultArenas = {"pvp.yml", "sky_tiles.yml"};
         
         for (String arenaName : defaultArenas) {
             String resourcePath = ARENAS_FOLDER + "/" + arenaName;
