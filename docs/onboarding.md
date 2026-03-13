@@ -30,6 +30,7 @@ This repo contains multiple runtimes. Start with the smallest slice you need.
 2. Copy the env examples you need:
 
    ```bash
+   cp .env.example .env.local
    cp apps/blockwarriors-next/.env.example apps/blockwarriors-next/.env.local
    cp packages/backend/.env.example packages/backend/.env.local
    cp apps/bot-orchestrator/.env.example apps/bot-orchestrator/.env.local
@@ -100,6 +101,14 @@ Minecraft plugin build:
 ```bash
 npm run build:beacon
 ```
+
+Minecraft plugin deploy dry-run:
+
+```bash
+npm run deploy:beacon:dry-run
+```
+
+See [Beacon Deploy Guide](./beacon-deploy.md) for the panel-backed deploy flow.
 
 ## Git Workflow
 

@@ -21,6 +21,7 @@ BlockWarriors is a monorepo for the tournament platform, Convex backend, and Min
    - `packages/backend/.env.example`
    - `apps/bot-orchestrator/.env.example`
    - `apps/blockwarriors-beacon/.env.example`
+   - `.env.example` if you want to use Beacon deploy automation
 3. Generate the Beacon game config from the shared JSON source:
    ```bash
    npm run codegen:beacon
@@ -42,6 +43,8 @@ Use targeted commands if you only need part of the stack:
 - `npm run typecheck`
 - `npm run test`
 - `npm run build`
+- `npm run deploy:beacon`
+- `npm run deploy:beacon:dry-run`
 - `npm run validate`
 - `npm run test:http`
 
@@ -55,6 +58,7 @@ Day-to-day work flows through `staging`, not directly into `main`.
 ## Documentation
 
 - [Onboarding Guide](./docs/onboarding.md)
+- [Beacon Deploy Guide](./docs/beacon-deploy.md)
 - [Technology Stack](./docs/stack.md)
 - [Match System Architecture](./docs/match-system-architecture.md)
 - [Contributing Guidelines](./docs/contributing.md)
