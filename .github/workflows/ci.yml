@@ -13,6 +13,8 @@ permissions:
 jobs:
   node:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_CONVEX_URL: https://abundant-ferret-667.convex.cloud
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
