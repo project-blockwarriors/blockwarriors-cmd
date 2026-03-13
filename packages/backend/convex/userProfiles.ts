@@ -24,7 +24,7 @@ function splitName(fullName: string | null | undefined): { firstName: string | n
   }
 }
 
-// Get user profile by userId
+// Get user profile by userId with full details
 export const getUserProfile = query({
   args: {
     userId: v.string(),
@@ -44,6 +44,12 @@ export const getUserProfile = query({
     if (profile.team_id) {
       const teamData = await ctx.db.get(profile.team_id);
       if (teamData) {
+        // Get team image URL
+        let teamImageUrl = null;
+        if (teamData.team_image_id) {
+          teamImageUrl = await ctx.storage.getUrl(teamData.team_image_id);
+        }
+        
         team = {
           id: teamData._id,
           team_name: teamData.team_name,
@@ -51,8 +57,16 @@ export const getUserProfile = query({
           team_elo: teamData.team_elo,
           team_wins: teamData.team_wins,
           team_losses: teamData.team_losses,
+          team_image_url: teamImageUrl,
+          description: teamData.description,
         };
       }
+    }
+
+    // Get profile image URL if exists
+    let profileImageUrl = null;
+    if (profile.profile_image_id) {
+      profileImageUrl = await ctx.storage.getUrl(profile.profile_image_id);
     }
 
     return {
@@ -62,14 +76,105 @@ export const getUserProfile = query({
       institution: profile.institution,
       geographic_location: profile.geographic_location,
       team: team,
+      profile_image_url: profileImageUrl,
+      profile_image_id: profile.profile_image_id,
+      bio: profile.bio,
+      minecraft_username: profile.minecraft_username,
+      discord_username: profile.discord_username,
+      updated_at: profile.updated_at,
+    };
+  },
+});
+
+// Get user profile with team members - for profile page
+export const getUserProfileWithTeamMembers = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+      .first();
+
+    if (!profile) {
+      return null;
+    }
+
+    // Get team data and members if team_id exists
+    let team = null;
+    if (profile.team_id) {
+      const teamData = await ctx.db.get(profile.team_id);
+      if (teamData) {
+        // Get team image URL
+        let teamImageUrl = null;
+        if (teamData.team_image_id) {
+          teamImageUrl = await ctx.storage.getUrl(teamData.team_image_id);
+        }
+        
+        // Get all team members
+        const members = await ctx.db
+          .query("user_profiles")
+          .withIndex("by_team_id", (q) => q.eq("team_id", profile.team_id!))
+          .collect();
+        
+        // Get profile images for members
+        const membersWithImages = await Promise.all(
+          members.map(async (member) => {
+            let memberImageUrl = null;
+            if (member.profile_image_id) {
+              memberImageUrl = await ctx.storage.getUrl(member.profile_image_id);
+            }
+            return {
+              user_id: member.user_id,
+              first_name: member.first_name,
+              last_name: member.last_name,
+              profile_image_url: memberImageUrl,
+              institution: member.institution,
+              minecraft_username: member.minecraft_username,
+            };
+          })
+        );
+        
+        team = {
+          id: teamData._id,
+          team_name: teamData.team_name,
+          leader_id: teamData.leader_id,
+          team_elo: teamData.team_elo,
+          team_wins: teamData.team_wins,
+          team_losses: teamData.team_losses,
+          team_image_url: teamImageUrl,
+          description: teamData.description,
+          created_at: teamData.created_at,
+          members: membersWithImages,
+        };
+      }
+    }
+
+    // Get profile image URL if exists
+    let profileImageUrl = null;
+    if (profile.profile_image_id) {
+      profileImageUrl = await ctx.storage.getUrl(profile.profile_image_id);
+    }
+
+    return {
+      user_id: profile.user_id,
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      institution: profile.institution,
+      geographic_location: profile.geographic_location,
+      team: team,
+      profile_image_url: profileImageUrl,
+      profile_image_id: profile.profile_image_id,
+      bio: profile.bio,
+      minecraft_username: profile.minecraft_username,
+      discord_username: profile.discord_username,
+      updated_at: profile.updated_at,
     };
   },
 });
 
 // Initialize user profile from Google OAuth data (name, email, etc.)
-// This should be called when a user first signs up to prefill their profile
-// Note: Since all fields are now required, this creates a profile with placeholder values
-// that must be filled in by the user during setup
 export const initializeUserProfile = mutation({
   args: {
     userId: v.string(),
@@ -102,13 +207,12 @@ export const initializeUserProfile = mutation({
     }
 
     // Create new profile with all required fields
-    // Use empty strings as placeholders for fields that must be filled during setup
     await ctx.db.insert("user_profiles", {
       user_id: args.userId,
       first_name: firstName,
       last_name: lastName,
-      institution: "", // Must be filled during setup
-      geographic_location: "", // Must be filled during setup
+      institution: "",
+      geographic_location: "",
       updated_at: now,
     });
 
@@ -116,7 +220,7 @@ export const initializeUserProfile = mutation({
   },
 });
 
-// Update user profile
+// Update user profile - basic fields
 export const updateUserProfile = mutation({
   args: {
     userId: v.string(),
@@ -124,7 +228,13 @@ export const updateUserProfile = mutation({
     lastName: v.string(),
     institution: v.string(),
     geographicLocation: v.string(),
+    bio: v.optional(v.string()),
+    
+    discordUsername: v.optional(v.string()),
   },
+  returns: v.object({
+    success: v.boolean(),
+  }),
   handler: async (ctx, args) => {
     // Validate that all required fields are non-empty
     if (
@@ -144,23 +254,27 @@ export const updateUserProfile = mutation({
     const now = Date.now();
 
     if (existing) {
-      // Update existing profile with all required fields
       await ctx.db.patch(existing._id, {
         first_name: args.firstName.trim(),
         last_name: args.lastName.trim(),
         institution: args.institution.trim(),
         geographic_location: args.geographicLocation.trim(),
+        bio: args.bio?.trim(),
+        
+        discord_username: args.discordUsername?.trim(),
         updated_at: now,
       });
       return { success: true };
     } else {
-      // Create new profile with all required fields
       await ctx.db.insert("user_profiles", {
         user_id: args.userId,
         first_name: args.firstName.trim(),
         last_name: args.lastName.trim(),
         institution: args.institution.trim(),
         geographic_location: args.geographicLocation.trim(),
+        bio: args.bio?.trim(),
+        
+        discord_username: args.discordUsername?.trim(),
         updated_at: now,
       });
       return { success: true };
@@ -168,3 +282,78 @@ export const updateUserProfile = mutation({
   },
 });
 
+// Generate upload URL for profile image
+export const generateProfileImageUploadUrl = mutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// Update profile image
+export const updateProfileImage = mutation({
+  args: {
+    userId: v.string(),
+    storageId: v.id("_storage"),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+      .first();
+
+    if (!profile) {
+      throw new Error("User profile not found");
+    }
+
+    // Delete old image if exists
+    if (profile.profile_image_id) {
+      await ctx.storage.delete(profile.profile_image_id);
+    }
+
+    // Update with new image
+    await ctx.db.patch(profile._id, {
+      profile_image_id: args.storageId,
+      updated_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});
+
+// Delete profile image
+export const deleteProfileImage = mutation({
+  args: {
+    userId: v.string(),
+  },
+  returns: v.object({
+    success: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const profile = await ctx.db
+      .query("user_profiles")
+      .withIndex("by_user_id", (q) => q.eq("user_id", args.userId))
+      .first();
+
+    if (!profile) {
+      throw new Error("User profile not found");
+    }
+
+    // Delete image if exists
+    if (profile.profile_image_id) {
+      await ctx.storage.delete(profile.profile_image_id);
+    }
+
+    // Remove image reference
+    await ctx.db.patch(profile._id, {
+      profile_image_id: undefined,
+      updated_at: Date.now(),
+    });
+
+    return { success: true };
+  },
+});

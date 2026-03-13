@@ -1,0 +1,59 @@
+{
+  "gameTypes": {
+    "pvp": {
+      "id": "pvp",
+      "name": "Normal PvP",
+      "description": "Classic player versus player combat",
+      "tokensPerTeam": 1,
+      "players": "1v1"
+    },
+    "sky_tiles": {
+      "id": "sky_tiles",
+      "name": "Sky Tiles",
+      "description": "Cooperative tile-based traversal",
+      "tokensPerTeam": 1,
+      "players": "2-player co-op"
+    },
+    "wool_wars": {
+      "id": "wool_wars",
+      "name": "Wool Wars",
+      "description": "Team-based wool capturing",
+      "tokensPerTeam": 4,
+      "players": "4v4"
+    },
+    "bridge": {
+      "id": "bridge",
+      "name": "Bridge Challenge",
+      "description": "Pathfinding race with obstacles",
+      "tokensPerTeam": 1,
+      "players": "1v1"
+    },
+    "bedwars": {
+      "id": "bedwars",
+      "name": "Bed Wars",
+      "description": "Protect your bed and destroy others",
+      "tokensPerTeam": 4,
+      "players": "4v4"
+    },
+    "ctf": {
+      "id": "ctf",
+      "name": "Capture the Flag",
+      "description": "Strategic team-based gameplay",
+      "tokensPerTeam": 5,
+      "players": "5v5"
+    }
+  },
+  "matchStatuses": ["Queuing", "Waiting", "Playing", "Finished", "Terminated"],
+  "matchModes": {
+    "practice": {
+      "id": "practice",
+      "name": "Practice",
+      "description": "Casual matches for testing and learning"
+    },
+    "ranked": {
+      "id": "ranked",
+      "name": "Ranked",
+      "description": "Competitive matches that affect team ELO"
+    }
+  }
+}

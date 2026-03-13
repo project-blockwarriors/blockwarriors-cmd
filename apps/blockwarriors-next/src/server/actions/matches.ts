@@ -107,6 +107,7 @@ export async function startMatch(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
+        success: false,
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
       console.error('Convex HTTP route error:', {
@@ -114,6 +115,7 @@ export async function startMatch(
         errorData,
       });
 
+      // Handle new standardized error format: { success: false, error: string }
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
@@ -121,13 +123,24 @@ export async function startMatch(
         matchType: '',
         error:
           errorData.error ||
-          errorData.details ||
-          errorData.message ||
           `Failed to start match (${response.status})`,
       };
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+    
+    // Handle new standardized response format: { success: true, data: {...} }
+    if (!responseData.success) {
+      return {
+        matchId: '',
+        tokens: { redTeam: [], blueTeam: [] },
+        expiresAt: 0,
+        matchType: '',
+        error: responseData.error || 'Failed to start match',
+      };
+    }
+    
+    const data = responseData.data;
     // Match is created but tokens haven't been generated yet
     // Tokens will be generated when Minecraft server acknowledges the match
     return {

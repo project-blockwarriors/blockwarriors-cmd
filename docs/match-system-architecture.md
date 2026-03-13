@@ -2,6 +2,38 @@
 
 This document describes how the match system components interact with each other.
 
+## Shared Constants
+
+Game configuration constants (game types, match statuses, etc.) are defined in a single source of truth:
+
+- **Source of truth**: `packages/shared/constants/game-config.json`
+- **TypeScript types**: `packages/shared/src/` (game-types.ts, match-status.ts, http-responses.ts)
+- **Java constants**: `apps/blockwarriors-beacon/src/main/java/ai/blockwarriors/beacon/constants/GameConfig.java`
+
+**IMPORTANT**: When updating game configuration, update both the JSON source AND the Java constants file.
+
+## HTTP Response Format
+
+All Convex HTTP routes use a standardized response format:
+
+**Success Response:**
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+**Error Response:**
+```json
+{
+  "success": false,
+  "error": "Error message here"
+}
+```
+
+This ensures consistent handling across all clients (Next.js frontend, Beacon plugin, etc.).
+
 ## System Overview
 
 ```mermaid
