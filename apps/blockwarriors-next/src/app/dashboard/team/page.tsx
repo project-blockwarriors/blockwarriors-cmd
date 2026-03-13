@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -51,6 +52,9 @@ export default function TeamPage() {
   const [isLeaving, setIsLeaving] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
 
+  const getErrorMessage = (error: unknown, fallback: string) =>
+    error instanceof Error ? error.message : fallback;
+
   const handleLeaveTeam = async () => {
     if (!userId) return;
     if (!confirm('Are you sure you want to leave this team?')) return;
@@ -59,9 +63,9 @@ export default function TeamPage() {
     try {
       await leaveTeam({ userId });
       toast.success('You have left the team.');
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to leave team:', error);
-      toast.error(error.message || 'Failed to leave team.');
+      toast.error(getErrorMessage(error, 'Failed to leave team.'));
     } finally {
       setIsLeaving(false);
     }
@@ -88,9 +92,9 @@ export default function TeamPage() {
       } else {
         toast.error(result.error || 'Failed to disband team.');
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Failed to disband team:', error);
-      toast.error(error.message || 'Failed to disband team.');
+      toast.error(getErrorMessage(error, 'Failed to disband team.'));
     } finally {
       setIsDisbanding(false);
     }
@@ -102,7 +106,9 @@ export default function TeamPage() {
         <div className="text-center">
           <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Not Logged In</h1>
-          <p className="text-muted-foreground mb-4">Please log in to view your team.</p>
+          <p className="text-muted-foreground mb-4">
+            Please log in to view your team.
+          </p>
           <Link href="/login">
             <Button>Log In</Button>
           </Link>
@@ -161,11 +167,11 @@ export default function TeamPage() {
             {isLeader ? (
               <ImageUpload
                 currentImageUrl={team.team_image_url}
-                onUploadComplete={async (storageId) => {
+                onUploadComplete={async (storageId: Id<'_storage'>) => {
                   await updateTeamImage({
                     teamId: team.id,
                     userId,
-                    storageId: storageId as any,
+                    storageId,
                   });
                   toast.success('Team photo updated!');
                 }}
@@ -244,7 +250,9 @@ export default function TeamPage() {
           {/* Team Info */}
           <div className="pt-12 pl-44">
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold text-white">{team.team_name}</h1>
+              <h1 className="text-3xl font-bold text-white">
+                {team.team_name}
+              </h1>
               {isLeader && (
                 <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
                   <Crown className="h-3 w-3 mr-1" />
@@ -265,7 +273,9 @@ export default function TeamPage() {
               {team.created_at && (
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>Created {new Date(team.created_at).toLocaleDateString()}</span>
+                  <span>
+                    Created {new Date(team.created_at).toLocaleDateString()}
+                  </span>
                 </div>
               )}
             </div>
@@ -351,14 +361,18 @@ export default function TeamPage() {
                       </Badge>
                     )}
                     {member.user_id === userId && (
-                      <Badge variant="outline" className="text-xs text-primary border-primary/30">
+                      <Badge
+                        variant="outline"
+                        className="text-xs text-primary border-primary/30"
+                      >
                         You
                       </Badge>
                     )}
                   </div>
-                  <p className="text-sm text-muted-foreground">{member.institution}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {member.institution}
+                  </p>
                 </div>
-
               </div>
             ))}
           </CardContent>
@@ -382,7 +396,9 @@ export default function TeamPage() {
                   >
                     <div className="flex items-center justify-between p-4 rounded-xl bg-secondary/30 hover:bg-secondary/50 transition-colors cursor-pointer">
                       <div>
-                        <p className="font-medium text-white">{tournament.tournament_name}</p>
+                        <p className="font-medium text-white">
+                          {tournament.tournament_name}
+                        </p>
                         <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
                           <Badge
                             variant="outline"
@@ -413,7 +429,8 @@ export default function TeamPage() {
                           </span>
                           <span className="text-muted-foreground">/</span>
                           <span className="text-red-400 font-bold">
-                            {tournament.matches_played - tournament.matches_won}L
+                            {tournament.matches_played - tournament.matches_won}
+                            L
                           </span>
                         </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground mt-1 ml-auto" />
@@ -438,22 +455,27 @@ export default function TeamPage() {
       </div>
 
       {/* Warning for in-progress tournaments */}
-      {teamHistory && teamHistory.some((t) => t.status === 'in_progress') && isLeader && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-4">
-            <div className="flex items-start gap-3">
-              <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-medium text-amber-400">Active Tournament Warning</p>
-                <p className="text-sm text-muted-foreground">
-                  Your team is currently in an active tournament. Disbanding the team will forfeit
-                  all remaining matches and give your opponents automatic wins.
-                </p>
+      {teamHistory &&
+        teamHistory.some((t) => t.status === 'in_progress') &&
+        isLeader && (
+          <Card className="border-amber-500/30 bg-amber-500/5">
+            <CardContent className="py-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-medium text-amber-400">
+                    Active Tournament Warning
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Your team is currently in an active tournament. Disbanding
+                    the team will forfeit all remaining matches and give your
+                    opponents automatic wins.
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
+        )}
     </motion.div>
   );
 }

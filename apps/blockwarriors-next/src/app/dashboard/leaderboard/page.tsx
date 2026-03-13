@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from 'convex/react';
 import { motion } from 'framer-motion';
 import {
@@ -14,7 +13,6 @@ import {
   Star,
 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { api } from '@/lib/convex';
 import { authClient } from '@/lib/auth-client';
@@ -76,7 +74,8 @@ export default function LeaderboardPage() {
   const getRowStyle = (rank: number, isMyTeam: boolean) => {
     if (isMyTeam)
       return 'bg-gradient-to-r from-primary/20 via-primary/10 to-transparent border-primary/50';
-    if (rank <= 3) return 'bg-primary/5 border-primary/20 hover:border-primary/40';
+    if (rank <= 3)
+      return 'bg-primary/5 border-primary/20 hover:border-primary/40';
     return 'bg-secondary/30 border-primary/10 hover:border-primary/20';
   };
 
@@ -104,12 +103,12 @@ export default function LeaderboardPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold text-white">Leaderboard</h1>
-          <p className="text-muted-foreground">
-            Top performers ranked by{' '}
-            <span className="text-primary font-medium">ELO rating</span>
-          </p>
-        </div>
-      </div>
+              <p className="text-muted-foreground">
+                Top performers ranked by{' '}
+                <span className="text-primary font-medium">ELO rating</span>
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -165,7 +164,9 @@ export default function LeaderboardPage() {
                 </p>
                 <div className="flex items-center justify-center gap-1 text-amber-400">
                   <Trophy className="h-5 w-5" />
-                  <span className="font-bold text-2xl">{teams[0].team_elo}</span>
+                  <span className="font-bold text-2xl">
+                    {teams[0].team_elo}
+                  </span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
                   {teams[0].team_wins}W - {teams[0].team_losses}L
@@ -269,7 +270,9 @@ export default function LeaderboardPage() {
                   #{userTeamRank + 1}
                 </div>
                 <div>
-                  <p className="font-semibold text-white">{userTeam.team_name}</p>
+                  <p className="font-semibold text-white">
+                    {userTeam.team_name}
+                  </p>
                   <p className="text-sm text-primary">Your Team</p>
                 </div>
               </div>
@@ -309,7 +312,9 @@ export default function LeaderboardPage() {
             {teams?.length === 0 ? (
               <div className="text-center py-12">
                 <Trophy className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-                <p className="text-muted-foreground">No teams on the leaderboard yet</p>
+                <p className="text-muted-foreground">
+                  No teams on the leaderboard yet
+                </p>
               </div>
             ) : (
               teams?.map((team, index) => {
@@ -325,7 +330,7 @@ export default function LeaderboardPage() {
 
                 return (
                   <motion.div
-                  key={team.id}
+                    key={team.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: index * 0.03 }}
@@ -349,9 +354,13 @@ export default function LeaderboardPage() {
                           )}
                         </div>
                         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span className="text-green-400">{team.team_wins}W</span>
+                          <span className="text-green-400">
+                            {team.team_wins}W
+                          </span>
                           <span>-</span>
-                          <span className="text-red-400">{team.team_losses}L</span>
+                          <span className="text-red-400">
+                            {team.team_losses}L
+                          </span>
                           <span className="text-primary/50">•</span>
                           <span>{winRate}% WR</span>
                         </div>

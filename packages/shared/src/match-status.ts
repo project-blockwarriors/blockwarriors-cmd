@@ -1,18 +1,23 @@
 /**
  * Match status definitions and constants.
- * 
- * This is the single source of truth for match status values.
- * The Beacon plugin (Java) should be manually kept in sync with these values.
- * See: packages/shared/constants/game-config.json
+ *
+ * The source of truth is packages/shared/constants/game-config.json.
+ * Run `npm run codegen:beacon` after updating shared game config.
  */
 
 import gameConfig from '../constants/game-config.json';
 
 // Match status type - valid status values for a match
-export type MatchStatus = 'Queuing' | 'Waiting' | 'Playing' | 'Finished' | 'Terminated';
+export type MatchStatus =
+  | 'Queuing'
+  | 'Waiting'
+  | 'Playing'
+  | 'Finished'
+  | 'Terminated';
 
 // All valid match statuses (from config)
-export const MATCH_STATUSES: readonly MatchStatus[] = gameConfig.matchStatuses as MatchStatus[];
+export const MATCH_STATUSES: readonly MatchStatus[] =
+  gameConfig.matchStatuses as MatchStatus[];
 
 // Match status as an object for easier lookup
 export const MatchStatusEnum = {
@@ -24,7 +29,10 @@ export const MatchStatusEnum = {
 };
 
 // Terminal statuses (match is complete, no further transitions)
-export const TERMINAL_STATUSES: readonly MatchStatus[] = ['Finished', 'Terminated'];
+export const TERMINAL_STATUSES: readonly MatchStatus[] = [
+  'Finished',
+  'Terminated',
+];
 
 /**
  * Check if a status is a terminal status (no further transitions allowed)
@@ -46,7 +54,10 @@ export function isValidMatchStatus(status: string): status is MatchStatus {
  * @param newStatus - The target status to transition to
  * @returns true if the transition is valid
  */
-export function isValidStatusTransition(currentStatus: string, newStatus: string): boolean {
+export function isValidStatusTransition(
+  currentStatus: string,
+  newStatus: string
+): boolean {
   // Can't transition from terminal states
   if (isTerminalStatus(currentStatus)) {
     return false;

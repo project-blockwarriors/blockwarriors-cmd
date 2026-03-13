@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -94,7 +95,9 @@ export default function EditProfilePage() {
         <div className="text-center">
           <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Not Logged In</h1>
-          <p className="text-muted-foreground mb-4">Please log in to edit your profile.</p>
+          <p className="text-muted-foreground mb-4">
+            Please log in to edit your profile.
+          </p>
           <Link href="/login">
             <Button>Log In</Button>
           </Link>
@@ -127,7 +130,9 @@ export default function EditProfilePage() {
         </Link>
         <div>
           <h1 className="text-2xl font-bold text-white">Edit Profile</h1>
-          <p className="text-muted-foreground">Update your personal information</p>
+          <p className="text-muted-foreground">
+            Update your personal information
+          </p>
         </div>
       </div>
 
@@ -140,8 +145,8 @@ export default function EditProfilePage() {
           <CardContent className="flex flex-col items-center">
             <ImageUpload
               currentImageUrl={profile?.profile_image_url}
-              onUploadComplete={async (storageId) => {
-                await updateProfileImage({ userId, storageId: storageId as any });
+              onUploadComplete={async (storageId: Id<'_storage'>) => {
+                await updateProfileImage({ userId, storageId });
                 toast.success('Profile photo updated!');
               }}
               onDelete={async () => {
@@ -174,7 +179,9 @@ export default function EditProfilePage() {
                 <Input
                   id="firstName"
                   value={formData.firstName}
-                  onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, firstName: e.target.value })
+                  }
                   placeholder="John"
                   required
                   className="border-primary/20 focus:border-primary"
@@ -187,7 +194,9 @@ export default function EditProfilePage() {
                 <Input
                   id="lastName"
                   value={formData.lastName}
-                  onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, lastName: e.target.value })
+                  }
                   placeholder="Doe"
                   required
                   className="border-primary/20 focus:border-primary"
@@ -196,14 +205,19 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="institution" className="text-white flex items-center gap-2">
+              <Label
+                htmlFor="institution"
+                className="text-white flex items-center gap-2"
+              >
                 <Building2 className="h-4 w-4 text-muted-foreground" />
                 Institution <span className="text-primary">*</span>
               </Label>
               <Input
                 id="institution"
                 value={formData.institution}
-                onChange={(e) => setFormData({ ...formData, institution: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, institution: e.target.value })
+                }
                 placeholder="Princeton University"
                 required
                 className="border-primary/20 focus:border-primary"
@@ -211,14 +225,22 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="location" className="text-white flex items-center gap-2">
+              <Label
+                htmlFor="location"
+                className="text-white flex items-center gap-2"
+              >
                 <MapPin className="h-4 w-4 text-muted-foreground" />
                 Geographic Location <span className="text-primary">*</span>
               </Label>
               <Input
                 id="location"
                 value={formData.geographicLocation}
-                onChange={(e) => setFormData({ ...formData, geographicLocation: e.target.value })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    geographicLocation: e.target.value,
+                  })
+                }
                 placeholder="Princeton, NJ"
                 required
                 className="border-primary/20 focus:border-primary"
@@ -226,19 +248,26 @@ export default function EditProfilePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="bio" className="text-white flex items-center gap-2">
+              <Label
+                htmlFor="bio"
+                className="text-white flex items-center gap-2"
+              >
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 Bio
               </Label>
               <Textarea
                 id="bio"
                 value={formData.bio}
-                onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, bio: e.target.value })
+                }
                 placeholder="Tell us about yourself..."
                 rows={3}
                 className="border-primary/20 focus:border-primary resize-none"
               />
-              <p className="text-xs text-muted-foreground">Optional. Max 500 characters.</p>
+              <p className="text-xs text-muted-foreground">
+                Optional. Max 500 characters.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -253,14 +282,19 @@ export default function EditProfilePage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              <Label htmlFor="discord" className="text-white flex items-center gap-2">
+              <Label
+                htmlFor="discord"
+                className="text-white flex items-center gap-2"
+              >
                 <MessageSquare className="h-4 w-4 text-indigo-400" />
                 Discord Username
               </Label>
               <Input
                 id="discord"
                 value={formData.discordUsername}
-                onChange={(e) => setFormData({ ...formData, discordUsername: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, discordUsername: e.target.value })
+                }
                 placeholder="username#1234"
                 className="border-primary/20 focus:border-primary"
               />

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
@@ -13,7 +14,6 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { ImageUpload } from '@/components/ui/image-upload';
-import { Badge } from '@/components/ui/badge';
 import {
   Users,
   ArrowLeft,
@@ -48,7 +48,9 @@ export default function EditTeamPage() {
     description: '',
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [selectedNewLeader, setSelectedNewLeader] = useState<string | null>(null);
+  const [selectedNewLeader, setSelectedNewLeader] = useState<string | null>(
+    null
+  );
   const [isTransferring, setIsTransferring] = useState(false);
 
   const team = profile?.team;
@@ -94,7 +96,9 @@ export default function EditTeamPage() {
   const handleTransferLeadership = async () => {
     if (!userId || !team || !selectedNewLeader) return;
 
-    const newLeader = team.members?.find((m) => m.user_id === selectedNewLeader);
+    const newLeader = team.members?.find(
+      (m) => m.user_id === selectedNewLeader
+    );
     if (!newLeader) return;
 
     const confirmMessage = `Are you sure you want to transfer leadership to ${newLeader.first_name} ${newLeader.last_name}?\n\nYou will lose all team management privileges.`;
@@ -128,7 +132,9 @@ export default function EditTeamPage() {
         <div className="text-center">
           <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Not Logged In</h1>
-          <p className="text-muted-foreground mb-4">Please log in to edit your team.</p>
+          <p className="text-muted-foreground mb-4">
+            Please log in to edit your team.
+          </p>
           <Link href="/login">
             <Button>Log In</Button>
           </Link>
@@ -151,7 +157,9 @@ export default function EditTeamPage() {
         <div className="text-center">
           <Users className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">No Team</h1>
-          <p className="text-muted-foreground mb-4">You&apos;re not on a team.</p>
+          <p className="text-muted-foreground mb-4">
+            You&apos;re not on a team.
+          </p>
           <Link href="/dashboard/setup/team">
             <Button>Find a Team</Button>
           </Link>
@@ -166,7 +174,9 @@ export default function EditTeamPage() {
         <div className="text-center">
           <Shield className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Access Denied</h1>
-          <p className="text-muted-foreground mb-4">Only the team leader can edit team settings.</p>
+          <p className="text-muted-foreground mb-4">
+            Only the team leader can edit team settings.
+          </p>
           <Link href="/dashboard/team">
             <Button>Back to Team</Button>
           </Link>
@@ -206,11 +216,11 @@ export default function EditTeamPage() {
           <CardContent className="flex flex-col items-center">
             <ImageUpload
               currentImageUrl={team.team_image_url}
-              onUploadComplete={async (storageId) => {
+              onUploadComplete={async (storageId: Id<'_storage'>) => {
                 await updateTeamImage({
                   teamId: team.id,
                   userId,
-                  storageId: storageId as any,
+                  storageId,
                 });
                 toast.success('Team logo updated!');
               }}
@@ -243,7 +253,9 @@ export default function EditTeamPage() {
               <Input
                 id="teamName"
                 value={formData.teamName}
-                onChange={(e) => setFormData({ ...formData, teamName: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, teamName: e.target.value })
+                }
                 placeholder="Your Team Name"
                 required
                 className="border-primary/20 focus:border-primary"
@@ -251,19 +263,26 @@ export default function EditTeamPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-white flex items-center gap-2">
+              <Label
+                htmlFor="description"
+                className="text-white flex items-center gap-2"
+              >
                 <FileText className="h-4 w-4 text-muted-foreground" />
                 Description
               </Label>
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, description: e.target.value })
+                }
                 placeholder="Tell others about your team..."
                 rows={4}
                 className="border-primary/20 focus:border-primary resize-none"
               />
-              <p className="text-xs text-muted-foreground">Optional. Max 500 characters.</p>
+              <p className="text-xs text-muted-foreground">
+                Optional. Max 500 characters.
+              </p>
             </div>
           </CardContent>
         </Card>
@@ -306,8 +325,9 @@ export default function EditTeamPage() {
               <div>
                 <p className="text-sm text-amber-400 font-medium">Warning</p>
                 <p className="text-sm text-muted-foreground">
-                  Transferring leadership will remove your ability to edit team settings and
-                  disband the team. This action cannot be easily undone.
+                  Transferring leadership will remove your ability to edit team
+                  settings and disband the team. This action cannot be easily
+                  undone.
                 </p>
               </div>
             </div>
@@ -343,7 +363,9 @@ export default function EditTeamPage() {
                       <p className="font-medium text-white">
                         {member.first_name} {member.last_name}
                       </p>
-                      <p className="text-xs text-muted-foreground">{member.institution}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {member.institution}
+                      </p>
                     </div>
                     {selectedNewLeader === member.user_id && (
                       <UserCheck className="h-5 w-5 text-primary" />
