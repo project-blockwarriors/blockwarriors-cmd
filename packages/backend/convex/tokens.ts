@@ -1,5 +1,5 @@
-import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { query, mutation } from './_generated/server';
+import { v } from 'convex/values';
 
 // Validate token and return match info
 export const validateToken = query({
@@ -8,26 +8,26 @@ export const validateToken = query({
   },
   handler: async (ctx, args) => {
     const tokenDoc = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .query('game_tokens')
+      .withIndex('by_token', (q) => q.eq('token', args.token))
       .first();
 
     if (!tokenDoc) {
-      return { valid: false, error: "Token not found" };
+      return { valid: false, error: 'Token not found' };
     }
 
     if (!tokenDoc.is_active) {
-      return { valid: false, error: "Token is not active" };
+      return { valid: false, error: 'Token is not active' };
     }
 
     const now = Date.now();
     if (tokenDoc.expires_at < now) {
-      return { valid: false, error: "Token has expired" };
+      return { valid: false, error: 'Token has expired' };
     }
 
     // Check if token has already been used by another player
     if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
-      return { valid: false, error: "Token has already been used" };
+      return { valid: false, error: 'Token has already been used' };
     }
 
     return {
@@ -45,7 +45,7 @@ export const validateToken = query({
  */
 export const getTokens = query({
   args: {
-    matchIds: v.array(v.id("matches")),
+    matchIds: v.array(v.id('matches')),
   },
   handler: async (ctx, args) => {
     const results: Record<
@@ -57,7 +57,7 @@ export const getTokens = query({
         ign?: string;
         match_id: string;
         game_team_id: string;
-        bot_id?: string;
+        bot_id?: number;
         created_at: number;
         expires_at: number;
         is_active: boolean;
@@ -66,8 +66,8 @@ export const getTokens = query({
 
     for (const matchId of args.matchIds) {
       const tokens = await ctx.db
-        .query("game_tokens")
-        .withIndex("by_match_id", (q) => q.eq("match_id", matchId))
+        .query('game_tokens')
+        .withIndex('by_match_id', (q) => q.eq('match_id', matchId))
         .collect();
 
       results[matchId] = tokens.map((token) => ({
@@ -95,7 +95,7 @@ export const getTokens = query({
  */
 export const checkReadiness = query({
   args: {
-    matchIds: v.array(v.id("matches")),
+    matchIds: v.array(v.id('matches')),
   },
   handler: async (ctx, args) => {
     const results: Record<
@@ -115,14 +115,14 @@ export const checkReadiness = query({
           ready: false,
           totalTokens: 0,
           usedTokens: 0,
-          error: "Match not found",
+          error: 'Match not found',
         };
         continue;
       }
 
       const tokens = await ctx.db
-        .query("game_tokens")
-        .withIndex("by_match_id", (q) => q.eq("match_id", matchId))
+        .query('game_tokens')
+        .withIndex('by_match_id', (q) => q.eq('match_id', matchId))
         .collect();
 
       if (tokens.length === 0) {
@@ -130,7 +130,7 @@ export const checkReadiness = query({
           ready: false,
           totalTokens: 0,
           usedTokens: 0,
-          error: "No tokens found for match",
+          error: 'No tokens found for match',
         };
         continue;
       }
@@ -162,26 +162,26 @@ export const markTokenAsUsed = mutation({
   },
   handler: async (ctx, args) => {
     const tokenDoc = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_token", (q) => q.eq("token", args.token))
+      .query('game_tokens')
+      .withIndex('by_token', (q) => q.eq('token', args.token))
       .first();
 
     if (!tokenDoc) {
-      throw new Error("Token not found");
+      throw new Error('Token not found');
     }
 
     if (!tokenDoc.is_active) {
-      throw new Error("Token is not active");
+      throw new Error('Token is not active');
     }
 
     const now = Date.now();
     if (tokenDoc.expires_at < now) {
-      throw new Error("Token has expired");
+      throw new Error('Token has expired');
     }
 
     // Check if token has already been used by another player (prevents race condition)
     if (tokenDoc.user_id !== undefined && tokenDoc.user_id !== null) {
-      throw new Error("Token has already been used");
+      throw new Error('Token has already been used');
     }
 
     // Mark token as used by storing playerId in user_id field and IGN
@@ -201,17 +201,17 @@ export const markTokenAsUsed = mutation({
 export const clearTokenUsage = mutation({
   args: {
     playerId: v.string(), // Minecraft UUID
-    matchId: v.id("matches"),
+    matchId: v.id('matches'),
   },
   handler: async (ctx, args) => {
     // Get the match and check status
     const match = await ctx.db.get(args.matchId);
     if (!match) {
-      return { success: false, error: "Match not found" };
+      return { success: false, error: 'Match not found' };
     }
 
     // Only clear tokens if match is in "Waiting" status
-    if (match.match_status !== "Waiting") {
+    if (match.match_status !== 'Waiting') {
       return {
         success: false,
         error: `Cannot clear token: match is in ${match.match_status} status`,
@@ -220,8 +220,8 @@ export const clearTokenUsage = mutation({
 
     // Find the token used by this player in this match
     const tokens = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .query('game_tokens')
+      .withIndex('by_match_id', (q) => q.eq('match_id', args.matchId))
       .collect();
 
     const playerToken = tokens.find((t) => t.user_id === args.playerId);
@@ -229,7 +229,7 @@ export const clearTokenUsage = mutation({
     if (!playerToken) {
       return {
         success: false,
-        error: "No token found for player in this match",
+        error: 'No token found for player in this match',
       };
     }
 
@@ -247,12 +247,12 @@ export const clearTokenUsage = mutation({
 // Called when a match ends (Finished or Terminated)
 export const deactivateMatchTokens = mutation({
   args: {
-    matchId: v.id("matches"),
+    matchId: v.id('matches'),
   },
   handler: async (ctx, args) => {
     const tokens = await ctx.db
-      .query("game_tokens")
-      .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
+      .query('game_tokens')
+      .withIndex('by_match_id', (q) => q.eq('match_id', args.matchId))
       .collect();
 
     let deactivatedCount = 0;

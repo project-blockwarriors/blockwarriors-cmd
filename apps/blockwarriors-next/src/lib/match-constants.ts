@@ -1,6 +1,6 @@
 /**
  * Match configuration constants and type definitions
- * 
+ *
  * This file re-exports shared constants from @packages/shared.
  * The source of truth for game types and their configurations is:
  * packages/shared/constants/game-config.json
@@ -19,6 +19,7 @@ export {
   MatchStatusEnum,
   getGameTypeConfig,
   getTokensPerTeam,
+  getValidGameTypes,
   isValidGameType,
   isValidMatchMode,
   isValidMatchStatus,

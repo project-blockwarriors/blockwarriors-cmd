@@ -1,89 +1,52 @@
 # Contributing to BlockWarriors
 
-This guide outlines the contribution workflow for the BlockWarriors project.
+## Branching Model
 
-## Contribution Workflow
+- Create feature branches from `staging`
+- Open feature PRs into `staging`
+- Use a separate release PR to merge `staging` into `main`
 
-### 1. Work in a Feature Branch
+Suggested branch format:
 
-- Every contributor works out of their own branch.
-- Follow the branch naming convention: `{first name initial}{lastname}-{feature}`
-  - Examples:
-    - `jdoe-login-page`
-    - `asmith-bugfix123`
-    - `mjones-update-readme`
+- `{first name initial}{lastname}-{feature}`
+- `codex-dx-streamline`
 
-### 2. Update Your Branch Regularly
+## Local Checklist
 
-- Keep your branch up to date with the main branch by regularly pulling the latest changes.
-  ```bash
-  git pull origin main
-  ```
+Before opening a PR, run:
 
-### 3. Commit Frequently and Meaningfully
-
-- Write clear and descriptive commit messages.
-  - Good: `Fix null pointer exception in login handler`
-  - Bad: `Fixed stuff`
-
-### 4. Run Tests
-
-- Ensure that your changes do not break the build by running all relevant tests locally.
-
-### 5. Create a Pull Request (PR)
-
-- Once your feature or fix is complete, create a pull request to merge your branch into the main branch.
-- Include a clear title and description for the PR:
-  - Title: `Add login page functionality`
-  - Description: "This PR includes the implementation of the login page, user authentication logic, and relevant unit tests."
-- Assign a reviewer to your PR.
-
-### 6. Code Review
-
-- Reviewers will provide feedback and request changes if necessary.
-- Address all comments and suggestions before requesting another review.
-
-### 7. Merge to Main
-
-- Once the PR is approved, squash and merge your branch into main.
-  - Ensure there are no merge conflicts.
-  ```bash
-  git checkout main
-  git pull origin main
-  git merge --squash your-branch
-  git push origin main
-  ```
-- Delete your branch after merging.
-
-## Code Style
-
-- Follow the existing code style patterns in the repository
-- For JavaScript/TypeScript code:
-  - Use ESLint and Prettier with the project configurations
-  - Use TypeScript types appropriately
-- For components:
-  - Follow the established component structure
-  - Use Tailwind CSS for styling
-
-## Commit Message Guidelines
-
-Commit messages should be clear and descriptive, following this format:
-```
-<type>: <subject>
-
-<body>
+```bash
+npm run validate
 ```
 
-Types:
-- feat: A new feature
-- fix: A bug fix
-- docs: Documentation changes
-- style: Code style changes (formatting, missing semi-colons, etc)
-- refactor: Code changes that neither fix a bug nor add a feature
-- perf: Performance improvements
-- test: Adding or fixing tests
-- chore: Changes to the build process or auxiliary tools
+Run these separately if your change touches a specific runtime:
 
-## Questions?
+```bash
+npm run build:web
+npm run build:bot-orchestrator
+npm run build:beacon
+npm run test:http
+```
 
-If you have any questions about contributing, please reach out to the project maintainers.
+## Pull Requests
+
+- Keep PRs scoped to one change set when possible
+- Target `staging` unless you are doing a release promotion
+- Include operational context when changing env vars, auth, Convex routes, or Minecraft plugin behavior
+
+## Commit Messages
+
+Use clear conventional messages:
+
+- `feat: add tournament bracket filters`
+- `fix: handle missing convex auth token`
+- `chore: remove deprecated package`
+- `docs: rewrite onboarding guide`
+
+## Cross-Runtime Changes
+
+If you change shared game configuration:
+
+1. Update `packages/shared/constants/game-config.json`
+2. Run `npm run codegen:beacon`
+3. Include the regenerated Beacon constants in the same PR

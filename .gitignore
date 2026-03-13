@@ -1,5 +1,11 @@
 .turbo/
 node_modules/
+.next/
+dist/
+target/
+.env
+.env.local
+.env.*.local
 .idea/
 .vscode/
 .cursor/mcp.json

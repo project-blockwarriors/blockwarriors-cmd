@@ -1022,8 +1022,8 @@ export default function HomeContent() {
             </p>
             <p className="text-sm text-muted-foreground max-w-3xl mx-auto">
               This organization is open to all students interested in supporting
-              our organization's mission, regardless of identity, such as race,
-              sex, ethnicity, national origin, or other protected
+              our organization&apos;s mission, regardless of identity, such as
+              race, sex, ethnicity, national origin, or other protected
               characteristics.
             </p>
           </div>

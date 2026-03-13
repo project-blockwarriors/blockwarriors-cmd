@@ -14,6 +14,7 @@
     "./constants/*": "./constants/*"
   },
   "scripts": {
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

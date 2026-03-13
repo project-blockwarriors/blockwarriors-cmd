@@ -72,7 +72,7 @@ export async function initializeUserProfile(
   }
 }
 
-// Update user profile in Convex only (Supabase removed)
+// Update user profile in Convex.
 export async function updateUserProfile(
   newUserProfile: UserProfile
 ): Promise<{ data: unknown; error: string | null }> {
@@ -93,7 +93,10 @@ export async function updateUserProfile(
       !newUserProfile.institution?.trim() ||
       !newUserProfile.geographic_location?.trim()
     ) {
-      return { data: null, error: 'All profile fields are required and cannot be empty' };
+      return {
+        data: null,
+        error: 'All profile fields are required and cannot be empty',
+      };
     }
 
     await fetchMutation(
