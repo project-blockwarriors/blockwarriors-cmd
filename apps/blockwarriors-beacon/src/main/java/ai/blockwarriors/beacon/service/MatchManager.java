@@ -58,39 +58,30 @@ public class MatchManager {
     }
 
     /**
-     * Register a match with its world and players (legacy, no game instance).
-     */
-    public void registerMatch(String matchId, String worldName, List<Player> players) {
-        registerMatch(matchId, worldName, players, null);
-    }
-
-    /**
      * Register a match with its world, players, and game instance.
-     * 
+     * All matches must have a game instance — no legacy matches.
+     *
      * @param matchId Unique match identifier
      * @param worldName Name of the world for this match
      * @param players List of players in the match
-     * @param game BaseGame instance (may be null for legacy matches)
+     * @param game BaseGame instance (required)
      */
     public void registerMatch(String matchId, String worldName, List<Player> players, BaseGame game) {
         matchWorlds.put(matchId, worldName);
-        
+
         Set<UUID> playerIds = new HashSet<>();
         for (Player player : players) {
             playerIds.add(player.getUniqueId());
             playerMatches.put(player.getUniqueId(), matchId);
         }
         matchPlayers.put(matchId, playerIds);
-        
-        // Store game instance if provided
+
         if (game != null) {
             matchGames.put(matchId, game);
-            LOGGER.info("Registered match " + matchId + " with game type " + game.getGameType() + 
-                       ", world " + worldName + " and " + players.size() + " players");
-        } else {
-            LOGGER.info("Registered match " + matchId + " (legacy) with world " + worldName + 
-                       " and " + players.size() + " players");
         }
+        LOGGER.info("Registered match " + matchId + " with game type " +
+                   (game != null ? game.getGameType() : "unknown") +
+                   ", world " + worldName + " and " + players.size() + " players");
     }
 
     /**
@@ -184,8 +175,8 @@ public class MatchManager {
                     }
                 }
 
-                // Delete the world using MatchPollingService's static method
-                MatchPollingService.deleteMatchWorld(worldName);
+                // Delete the world
+                MatchWorldManager.deleteWorld(worldName);
 
                 // Unregister players from telemetry service
                 if (telemetryService != null) {

@@ -38,7 +38,7 @@ public final class GameConfig {
     public static final int WOOL_WARS_TOKENS_PER_TEAM = 4;
     public static final int BRIDGE_TOKENS_PER_TEAM = 1;
     public static final int BEDWARS_TOKENS_PER_TEAM = 4;
-    public static final int CTF_TOKENS_PER_TEAM = 5;
+    public static final int CTF_TOKENS_PER_TEAM = 4;
 
     /**
      * Get tokens per team for a game type.

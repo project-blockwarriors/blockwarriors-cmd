@@ -8,8 +8,10 @@ import ai.blockwarriors.beacon.game.*;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
@@ -105,9 +107,15 @@ public class PvPGame extends BaseGame {
             LOGGER.warning("Cannot start game - not in READY state (current: " + state + ")");
             return;
         }
-        
+
+        // World is created as PEACEFUL to prevent mobs during setup;
+        // switch to HARD so PvP damage is meaningful.
+        if (world != null) {
+            world.setDifficulty(org.bukkit.Difficulty.HARD);
+        }
+
         setState(GameState.COUNTDOWN);
-        
+
         // Start countdown
         startCountdown();
     }
@@ -314,9 +322,10 @@ public class PvPGame extends BaseGame {
         // Set game mode
         player.setGameMode(GameMode.SURVIVAL);
         
-        // Clear inventory
+        // Clear inventory and give PvP loadout
         player.getInventory().clear();
-        
+        player.getInventory().addItem(new ItemStack(Material.STONE_SWORD, 1));
+
         // Reset health and hunger
         player.setHealth(20.0);
         player.setFoodLevel(20);
@@ -401,6 +410,16 @@ public class PvPGame extends BaseGame {
         return player != null ? player.getName() : playerId.toString().substring(0, 8);
     }
     
+    // ==================== Damage Tracking ====================
+
+    @Override
+    public void handleDamage(Player damager, Player target, double damage) {
+        if (!isActive() || !pvpEnabled) {
+            return;
+        }
+        recordDamage(damager.getUniqueId(), damage);
+    }
+
     // ==================== Public Methods ====================
     
     /**

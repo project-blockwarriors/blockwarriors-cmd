@@ -297,6 +297,21 @@ public abstract class BaseGame {
         return state == GameState.FINISHED || state == GameState.TERMINATED;
     }
     
+    // ==================== Event Methods ====================
+
+    /**
+     * Handle damage dealt by one player to another.
+     * Default implementation is a no-op. Override in game implementations
+     * that need to track damage (e.g., PvP).
+     *
+     * @param damager The player dealing damage
+     * @param target The player receiving damage
+     * @param damage The final damage amount
+     */
+    public void handleDamage(Player damager, Player target, double damage) {
+        // Default no-op — override in subclasses that track damage
+    }
+
     // ==================== Utility Methods ====================
     
     /**

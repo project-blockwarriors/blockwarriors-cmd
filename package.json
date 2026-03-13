@@ -31,6 +31,7 @@
     "test": "npm run test:beacon",
     "test:beacon": "mvn -f apps/blockwarriors-beacon/pom.xml -B test",
     "test:http": "npm run test:http --workspace @packages/backend",
+    "test:game": "node --import tsx packages/game-tests/src/runner.ts",
     "codegen": "npm run codegen:backend && npm run codegen:beacon",
     "codegen:backend": "npm run codegen --workspace @packages/backend",
     "codegen:beacon": "node scripts/generate-beacon-game-config.mjs",
