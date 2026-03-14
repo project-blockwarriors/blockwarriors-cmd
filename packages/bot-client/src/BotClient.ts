@@ -78,7 +78,7 @@ export class BotClient {
       port: port || DEFAULT_SERVER_PORT,
       username: ign,
       auth: "offline",
-      checkTimeoutInterval: 60000,
+      checkTimeoutInterval: 180000,
       keepAlive: true,
       hideErrors: false,
     });
@@ -224,6 +224,11 @@ export class BotClient {
     const managedBot = this.bots.get(id);
     if (!managedBot) return;
 
+    // Catch errors on the underlying protocol client to prevent process crash
+    (bot as any)._client?.on("error", (err: Error) => {
+      // Silently handle — the bot-level error handler will also fire
+    });
+
     bot.once("spawn", () => {
       this.updateBotState(id, {
         status: "online",
@@ -295,11 +300,15 @@ export class BotClient {
     });
 
     bot.on("error", (err) => {
-      this.updateBotState(id, {
-        status: "error",
-        errorMessage: err.message,
-        currentAction: "Error",
-      });
+      // Suppress EPIPE/ECONNRESET — these are expected during teleportation
+      const isNetworkError = err.message?.includes("EPIPE") || err.message?.includes("ECONNRESET");
+      if (!isNetworkError) {
+        this.updateBotState(id, {
+          status: "error",
+          errorMessage: err.message,
+          currentAction: "Error",
+        });
+      }
       if (this.onBotError) {
         this.onBotError(id, err.message);
       }

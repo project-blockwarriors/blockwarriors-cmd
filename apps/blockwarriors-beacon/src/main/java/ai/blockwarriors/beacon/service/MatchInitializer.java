@@ -47,11 +47,20 @@ public class MatchInitializer {
         public final List<Player> onlinePlayers;
         public final List<Player> blueTeamPlayers;
         public final List<Player> redTeamPlayers;
+        public final String blueTeamId;
+        public final String redTeamId;
 
         public MatchTokenData(List<Player> onlinePlayers, List<Player> blueTeamPlayers, List<Player> redTeamPlayers) {
+            this(onlinePlayers, blueTeamPlayers, redTeamPlayers, null, null);
+        }
+
+        public MatchTokenData(List<Player> onlinePlayers, List<Player> blueTeamPlayers, List<Player> redTeamPlayers,
+                              String blueTeamId, String redTeamId) {
             this.onlinePlayers = onlinePlayers;
             this.blueTeamPlayers = blueTeamPlayers;
             this.redTeamPlayers = redTeamPlayers;
+            this.blueTeamId = blueTeamId;
+            this.redTeamId = redTeamId;
         }
 
         public boolean hasPlayers() {
@@ -80,7 +89,7 @@ public class MatchInitializer {
 
         // Create match world on main thread (Bukkit API requirement)
         Bukkit.getScheduler().runTask(plugin, () -> {
-            createAndStartMatch(matchId, matchType, tokenData.blueTeamPlayers, tokenData.redTeamPlayers);
+            createAndStartMatch(matchId, matchType, tokenData);
         });
     }
 
@@ -88,8 +97,9 @@ public class MatchInitializer {
      * Create world, instantiate game, register match, and start.
      * Must be called on the main thread.
      */
-    private void createAndStartMatch(String matchId, String matchType,
-                                      List<Player> blueTeamPlayers, List<Player> redTeamPlayers) {
+    private void createAndStartMatch(String matchId, String matchType, MatchTokenData tokenData) {
+        List<Player> blueTeamPlayers = tokenData.blueTeamPlayers;
+        List<Player> redTeamPlayers = tokenData.redTeamPlayers;
         try {
             LOGGER.info("Creating match world for " + matchId + " (type: " + matchType + ") with " +
                     blueTeamPlayers.size() + " blue players and " +
@@ -129,6 +139,7 @@ public class MatchInitializer {
                 if (arenaConfig == null) {
                     LOGGER.warning("No arena config found for game type: " + matchType + ", using null config");
                 }
+                game.setArenaManager(arenaManager);
             }
 
             // Initialize the game
@@ -141,6 +152,9 @@ public class MatchInitializer {
 
             if (matchManager != null) {
                 matchManager.registerMatch(matchId, worldName, allPlayers, game);
+                if (tokenData.blueTeamId != null && tokenData.redTeamId != null) {
+                    matchManager.setMatchTeamIds(matchId, tokenData.blueTeamId, tokenData.redTeamId);
+                }
             }
 
             // Register for telemetry

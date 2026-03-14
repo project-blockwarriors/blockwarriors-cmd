@@ -3,35 +3,32 @@ import {
   type MatchOrchestratorConfig,
   type ScenarioResult,
 } from "../MatchOrchestrator.js";
-import { pvpAttackScript } from "../scripts/pvp-attack.js";
-import { pvpForfeitScript } from "../scripts/pvp-forfeit.js";
+import { bridgeRushScript } from "../scripts/bridge-rush.js";
+import { bridgeForfeitScript } from "../scripts/bridge-forfeit.js";
 
 /**
- * PvP 1v1 test scenario.
+ * Bridge 1v1 test scenario.
  *
- * Blue bot attacks normally, red bot disconnects after ~10s to trigger
- * instant forfeit. This reliably tests the full match lifecycle without
- * depending on bots actually killing each other.
- *
- * Tests:
- * - Match creation for PvP game type
- * - Bot spawning and login
- * - PvP game countdown and start
+ * Blue bot plays normally (rush/attack), red bot disconnects after ~15s
+ * to trigger instant forfeit. This tests:
+ * - Match creation for bridge game type
+ * - Bot spawning on separate platforms
+ * - Bridge game countdown and start
  * - Disconnect handling (instant forfeit policy)
  * - Match finishes with blue as winner
  */
-export async function runPvp1v1(
+export async function runBridge1v1(
   config: MatchOrchestratorConfig
 ): Promise<ScenarioResult> {
   const orchestrator = new MatchOrchestrator(config);
 
   return orchestrator.runScenario(
-    "PvP 1v1",
-    "pvp",
+    "Bridge 1v1",
+    "bridge",
     "practice",
     {
-      blue: [pvpAttackScript],
-      red: [pvpForfeitScript],
+      blue: [bridgeRushScript],
+      red: [bridgeForfeitScript],
     },
     (result) => {
       if (result.finalStatus !== "Finished") {
@@ -50,6 +47,8 @@ export async function runPvp1v1(
       }
     },
     {
+      // Bridge game can take up to 5 min + sudden death, but with forfeit
+      // it should end in ~20s. Give generous timeout just in case.
       finishTimeoutMs: 60000,
     }
   );

@@ -27,15 +27,15 @@ import java.util.*;
 /**
  * Capture the Flag — 4v4.
  *
- * Two teams of 4 on an 80x80 symmetric map. Each base has a flag.
+ * Two teams of 4 on a 50x50 symmetric map. Each base has a flag.
  * Pick up enemy flag, carry it to your base to score.
  * First to 3 captures wins, or most after 8 minutes.
  *
  * Arena layout (generated programmatically):
- * - Map: x=[-40..40], z=[-40..40], y=65 (stone floor)
- * - Blue base: x=[30..38], z=[-4..4] (walled area with flag at x=35, z=0)
- * - Red base:  x=[-38..-30], z=[-4..4] (walled area with flag at x=-35, z=0)
- * - Mid walls for cover at x=[-5..5] (stone bricks, various patterns)
+ * - Map: x=[-25..25], z=[-25..25], y=65 (stone floor)
+ * - Blue base: x=[16..24], z=[-4..4] (walled area with flag at x=21, z=0)
+ * - Red base:  x=[-24..-16], z=[-4..4] (walled area with flag at x=-21, z=0)
+ * - Mid walls for cover at x=[-8..8] (cobblestone/stone bricks)
  */
 public class CTFGame extends BaseGame {
 
@@ -46,15 +46,15 @@ public class CTFGame extends BaseGame {
     private static final int GRACE_PERIOD_SECONDS = 30;
     private static final int MIN_PLAYERS_BEFORE_FORFEIT = 2;
 
-    // Arena dimensions
-    private static final int MAP_HALF = 40;
+    // Arena dimensions (reduced from 80x80 to 50x50 to avoid tick lag with 8 players)
+    private static final int MAP_HALF = 25;
     private static final int FLOOR_Y = 65;
 
     // Base positions
-    private static final int BLUE_BASE_X = 34;
-    private static final int RED_BASE_X = -34;
-    private static final int BLUE_FLAG_X = 35;
-    private static final int RED_FLAG_X = -35;
+    private static final int BLUE_BASE_X = 20;
+    private static final int RED_BASE_X = -20;
+    private static final int BLUE_FLAG_X = 21;
+    private static final int RED_FLAG_X = -21;
 
     /** Flag state tracking. */
     private static class FlagState {
@@ -131,13 +131,31 @@ public class CTFGame extends BaseGame {
         blueFlag = new FlagState(new Location(world, BLUE_FLAG_X, FLOOR_Y + 1, 0));
         redFlag = new FlagState(new Location(world, RED_FLAG_X, FLOOR_Y + 1, 0));
 
-        // Generate arena
-        generateArena();
+        // Load arena (schematic if available, else programmatic generation)
+        loadArena();
 
-        // Teleport and setup
-        teleportToSpawns(blueTeamPlayers, redTeamPlayers);
-        for (Player p : blueTeamPlayers) setupPlayer(p, "blue");
-        for (Player p : redTeamPlayers) setupPlayer(p, "red");
+        // Stagger teleports to avoid overwhelming the server with chunk loading.
+        // Teleport one player every 10 ticks (0.5s) to spread the chunk-send load.
+        // The 10-second countdown gives enough time for all 8 teleports to complete.
+        for (int i = 0; i < blueTeamPlayers.size(); i++) {
+            final Player p = blueTeamPlayers.get(i);
+            final int idx = i;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Location[] spawns = getBlueSpawns();
+                p.teleport(spawns[idx % spawns.length]);
+                setupPlayer(p, "blue");
+            }, (long) i * 20);
+        }
+        for (int i = 0; i < redTeamPlayers.size(); i++) {
+            final Player p = redTeamPlayers.get(i);
+            final int idx = i;
+            final long delay = (long) (blueTeamPlayers.size() + i) * 20;
+            Bukkit.getScheduler().runTaskLater(plugin, () -> {
+                Location[] spawns = getRedSpawns();
+                p.teleport(spawns[idx % spawns.length]);
+                setupPlayer(p, "red");
+            }, delay);
+        }
 
         setState(GameState.READY);
         LOGGER.info("CTF game initialized for match " + matchId + " (" +
@@ -313,11 +331,16 @@ public class CTFGame extends BaseGame {
         int activeBlue = countActivePlayers("blue");
         int activeRed = countActivePlayers("red");
 
-        if (activeBlue < MIN_PLAYERS_BEFORE_FORFEIT && activeRed >= MIN_PLAYERS_BEFORE_FORFEIT) {
+        if (activeBlue < MIN_PLAYERS_BEFORE_FORFEIT && activeRed < MIN_PLAYERS_BEFORE_FORFEIT) {
+            // Both teams have insufficient players — terminate the match
+            broadcastMessage("§cBoth teams have too few players. Match terminated!");
+            terminateGame("Both teams forfeited — insufficient players");
+            return DisconnectResult.FORFEIT;
+        } else if (activeBlue < MIN_PLAYERS_BEFORE_FORFEIT) {
             winnerId = redTeam.get(0);
             broadcastMessage("§cBlue team forfeits — too many disconnects!");
             return DisconnectResult.FORFEIT;
-        } else if (activeRed < MIN_PLAYERS_BEFORE_FORFEIT && activeBlue >= MIN_PLAYERS_BEFORE_FORFEIT) {
+        } else if (activeRed < MIN_PLAYERS_BEFORE_FORFEIT) {
             winnerId = blueTeam.get(0);
             broadcastMessage("§cRed team forfeits — too many disconnects!");
             return DisconnectResult.FORFEIT;
@@ -443,31 +466,41 @@ public class CTFGame extends BaseGame {
 
     // ==================== Arena Generation ====================
 
-    private void generateArena() {
+    @Override
+    protected void generateArena() {
         if (world == null) return;
 
-        // Stone floor
+        // === Ground: stone floor with central path ===
         for (int x = -MAP_HALF; x <= MAP_HALF; x++) {
             for (int z = -MAP_HALF; z <= MAP_HALF; z++) {
-                setBlock(x, FLOOR_Y, z, Material.STONE);
+                Material ground;
+                if (Math.abs(z) <= 2) {
+                    ground = Material.STONE_BRICKS; // Central lane
+                } else {
+                    ground = Material.STONE;
+                }
+                setBlock(x, FLOOR_Y, z, ground);
             }
         }
 
-        // Blue base walls
-        generateBase(BLUE_BASE_X - 4, BLUE_BASE_X + 4, Material.BLUE_CONCRETE);
+        // === Bases (compact 8x8) ===
+        generateBase(BLUE_BASE_X - 4, BLUE_BASE_X + 4, Material.BLUE_CONCRETE, true);
+        generateBase(RED_BASE_X - 4, RED_BASE_X + 4, Material.RED_CONCRETE, false);
 
-        // Red base walls
-        generateBase(RED_BASE_X - 4, RED_BASE_X + 4, Material.RED_CONCRETE);
-
-        // Mid-field cover walls
-        for (int z = -15; z <= 15; z += 10) {
+        // === Mid-field cover ===
+        // Two symmetric walls near center
+        for (int z = -4; z <= 4; z++) {
+            setBlock(8, FLOOR_Y + 1, z, Material.COBBLESTONE_WALL);
+            setBlock(-8, FLOOR_Y + 1, z, Material.COBBLESTONE_WALL);
+        }
+        // Side cover blocks
+        for (int z : new int[]{-10, 10}) {
             for (int x = -3; x <= 3; x++) {
                 setBlock(x, FLOOR_Y + 1, z, Material.STONE_BRICKS);
-                setBlock(x, FLOOR_Y + 2, z, Material.STONE_BRICKS);
             }
         }
 
-        // Side walls (arena boundary)
+        // === Boundary walls (3-high bedrock) ===
         for (int x = -MAP_HALF; x <= MAP_HALF; x++) {
             for (int y = FLOOR_Y + 1; y <= FLOOR_Y + 3; y++) {
                 setBlock(x, y, -MAP_HALF, Material.BEDROCK);
@@ -481,47 +514,48 @@ public class CTFGame extends BaseGame {
             }
         }
 
-        // Place flags
+        // === Flags ===
+        setBlock(BLUE_FLAG_X, FLOOR_Y, 0, Material.DIAMOND_BLOCK);
         placeFlagBlock(blueFlag.baseLocation, Material.BLUE_BANNER);
+        setBlock(RED_FLAG_X, FLOOR_Y, 0, Material.GOLD_BLOCK);
         placeFlagBlock(redFlag.baseLocation, Material.RED_BANNER);
 
-        // Flag pedestals
-        setBlock(BLUE_FLAG_X, FLOOR_Y, 0, Material.GOLD_BLOCK);
-        setBlock(RED_FLAG_X, FLOOR_Y, 0, Material.GOLD_BLOCK);
-
-        LOGGER.info("CTF arena generated");
+        LOGGER.info("CTF arena generated (50x50)");
     }
 
-    private void generateBase(int x1, int x2, Material wallMaterial) {
+    private void generateBase(int x1, int x2, Material wallMaterial, boolean isBlue) {
         int z1 = -4;
         int z2 = 4;
 
-        // Walls around base (2 high)
+        // Base floor
+        for (int x = x1; x <= x2; x++) {
+            for (int z = z1; z <= z2; z++) {
+                setBlock(x, FLOOR_Y, z, wallMaterial);
+            }
+        }
+
+        // Walls (2 high)
         for (int x = x1; x <= x2; x++) {
             for (int y = FLOOR_Y + 1; y <= FLOOR_Y + 2; y++) {
                 setBlock(x, y, z1, wallMaterial);
                 setBlock(x, y, z2, wallMaterial);
             }
         }
+        // Back wall
+        int backX = isBlue ? x2 : x1;
         for (int z = z1; z <= z2; z++) {
             for (int y = FLOOR_Y + 1; y <= FLOOR_Y + 2; y++) {
-                setBlock(x1, y, z, wallMaterial);
-                setBlock(x2, y, z, wallMaterial);
+                setBlock(backX, y, z, wallMaterial);
             }
         }
 
-        // Entry gaps (front wall, 3-wide opening)
-        int frontX = (x1 + x2) / 2 < 0 ? x2 : x1;
-        for (int z = -1; z <= 1; z++) {
-            for (int y = FLOOR_Y + 1; y <= FLOOR_Y + 2; y++) {
-                setBlock(frontX, y, z, Material.AIR);
-            }
-        }
-
-        // Base floor
-        for (int x = x1 + 1; x < x2; x++) {
-            for (int z = z1 + 1; z < z2; z++) {
-                setBlock(x, FLOOR_Y, z, wallMaterial);
+        // Front opening (3-wide gate)
+        int frontX = isBlue ? x1 : x2;
+        for (int z = z1; z <= z2; z++) {
+            if (Math.abs(z) > 1) {
+                for (int y = FLOOR_Y + 1; y <= FLOOR_Y + 2; y++) {
+                    setBlock(frontX, y, z, wallMaterial);
+                }
             }
         }
     }
@@ -539,19 +573,27 @@ public class CTFGame extends BaseGame {
         damageDealt.put(playerId, 0.0);
     }
 
+    private Location[] getBlueSpawns() {
+        return new Location[]{
+            new Location(world, BLUE_BASE_X, FLOOR_Y + 1, -1, -90, 0),
+            new Location(world, BLUE_BASE_X, FLOOR_Y + 1, 1, -90, 0),
+            new Location(world, BLUE_BASE_X + 2, FLOOR_Y + 1, -1, -90, 0),
+            new Location(world, BLUE_BASE_X + 2, FLOOR_Y + 1, 1, -90, 0),
+        };
+    }
+
+    private Location[] getRedSpawns() {
+        return new Location[]{
+            new Location(world, RED_BASE_X, FLOOR_Y + 1, -1, 90, 0),
+            new Location(world, RED_BASE_X, FLOOR_Y + 1, 1, 90, 0),
+            new Location(world, RED_BASE_X - 2, FLOOR_Y + 1, -1, 90, 0),
+            new Location(world, RED_BASE_X - 2, FLOOR_Y + 1, 1, 90, 0),
+        };
+    }
+
     private void teleportToSpawns(List<Player> bluePlayers, List<Player> redPlayers) {
-        Location[] blueSpawns = {
-            new Location(world, BLUE_BASE_X, FLOOR_Y + 1, -2, -90, 0),
-            new Location(world, BLUE_BASE_X, FLOOR_Y + 1, 2, -90, 0),
-            new Location(world, BLUE_BASE_X + 2, FLOOR_Y + 1, -2, -90, 0),
-            new Location(world, BLUE_BASE_X + 2, FLOOR_Y + 1, 2, -90, 0),
-        };
-        Location[] redSpawns = {
-            new Location(world, RED_BASE_X, FLOOR_Y + 1, -2, 90, 0),
-            new Location(world, RED_BASE_X, FLOOR_Y + 1, 2, 90, 0),
-            new Location(world, RED_BASE_X - 2, FLOOR_Y + 1, -2, 90, 0),
-            new Location(world, RED_BASE_X - 2, FLOOR_Y + 1, 2, 90, 0),
-        };
+        Location[] blueSpawns = getBlueSpawns();
+        Location[] redSpawns = getRedSpawns();
 
         for (int i = 0; i < bluePlayers.size(); i++) {
             bluePlayers.get(i).teleport(blueSpawns[i % blueSpawns.length]);

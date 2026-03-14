@@ -299,12 +299,17 @@ http.route({
           match_status?: string;
           match_state?: any;
           winner_player_id?: string;
-        }) => ({
-          matchId: u.match_id as Id<"matches">,
-          matchStatus: u.match_status,
-          matchState: u.match_state,
-          winnerPlayerId: u.winner_player_id,
-        })
+          winner_team_id?: string;
+        }) => {
+          const mapped: Record<string, unknown> = {
+            matchId: u.match_id as Id<"matches">,
+          };
+          if (u.match_status !== undefined) mapped.matchStatus = u.match_status;
+          if (u.match_state !== undefined) mapped.matchState = u.match_state;
+          if (u.winner_player_id !== undefined) mapped.winnerPlayerId = u.winner_player_id;
+          if (u.winner_team_id !== undefined) mapped.winnerTeamId = u.winner_team_id;
+          return mapped;
+        }
       );
 
       const result = await ctx.runMutation(api.matches.updateMatches, {
@@ -784,7 +789,7 @@ http.route({
         api.tournamentMatches.createTournamentGame,
         {
           tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
-          matchType: match_type || "pvp",
+          matchType: match_type || "auto",
           mode: mode || "ranked",
         }
       );

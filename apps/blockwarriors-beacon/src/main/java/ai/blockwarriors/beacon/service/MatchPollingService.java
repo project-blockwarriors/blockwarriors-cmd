@@ -275,7 +275,7 @@ public class MatchPollingService {
                 }
 
                 results.put(matchId, new MatchInitializer.MatchTokenData(
-                        onlinePlayers, blueTeamPlayers, redTeamPlayers));
+                        onlinePlayers, blueTeamPlayers, redTeamPlayers, blueTeamId, redTeamId));
             }
 
         } catch (Exception e) {

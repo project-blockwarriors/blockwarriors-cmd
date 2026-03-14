@@ -100,11 +100,39 @@ export const TOURNAMENT_MATCH_STATUSES: Record<
   },
 };
 
+// Game types available for tournaments
+export type GameType = "pvp" | "bridge" | "ctf";
+
+export const GAME_TYPES: Record<
+  GameType,
+  { id: GameType; name: string; description: string; players: string }
+> = {
+  pvp: {
+    id: "pvp",
+    name: "PvP",
+    description: "1v1 deathmatch — last bot standing wins",
+    players: "1v1",
+  },
+  bridge: {
+    id: "bridge",
+    name: "Bridge",
+    description: "1v1 — bridge across the void and enter the enemy goal",
+    players: "1v1",
+  },
+  ctf: {
+    id: "ctf",
+    name: "Capture the Flag",
+    description: "4v4 — capture the enemy flag and return it to your base",
+    players: "4v4",
+  },
+};
+
 // Default tournament configuration
 export const DEFAULT_TOURNAMENT_CONFIG = {
   minTeams: 4,
   maxTeams: 16,
   gamesPerMatch: 1, // Single game per match by default
+  gameType: "pvp" as GameType,
 };
 
 // Games per match options for best-of-N

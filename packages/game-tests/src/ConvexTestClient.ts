@@ -151,6 +151,61 @@ export class ConvexTestClient {
     );
   }
 
+  // ==================== Tournament Methods ====================
+
+  async createTournament(
+    gameType: string,
+    createdBy: string = "test-user"
+  ): Promise<string> {
+    const tournamentId = (await this.client.mutation(
+      "tournaments:createTournament" as any,
+      {
+        name: `Test Tournament ${Date.now()}`,
+        description: "Automated test tournament",
+        format: "round_robin",
+        isOfficial: false,
+        createdBy,
+        minTeams: 2,
+        maxTeams: 4,
+        gameType,
+        gamesPerMatch: 1,
+      }
+    )) as string;
+    return tournamentId;
+  }
+
+  async joinTournament(tournamentId: string, teamId: string, userId: string = "test-user"): Promise<void> {
+    await this.client.mutation(
+      "tournaments:joinTournament" as any,
+      { tournamentId, teamId, userId }
+    );
+  }
+
+  async startTournament(tournamentId: string, userId: string = "test-user"): Promise<void> {
+    await this.client.mutation(
+      "tournaments:startTournament" as any,
+      { tournamentId, userId }
+    );
+  }
+
+  async createTournamentGame(
+    tournamentMatchId: string,
+    matchType: string = "auto",
+    mode: string = "ranked"
+  ): Promise<{ success: boolean; matchId?: string; error?: string }> {
+    return (await this.client.mutation(
+      "tournamentMatches:createTournamentGame" as any,
+      { tournamentMatchId, matchType, mode }
+    )) as { success: boolean; matchId?: string; error?: string };
+  }
+
+  async getTournamentBracket(tournamentId: string): Promise<any[]> {
+    return (await this.client.query(
+      "tournamentMatches:getTournamentBracket" as any,
+      { tournamentId }
+    )) as any[];
+  }
+
   close() {
     // ConvexHttpClient doesn't need explicit cleanup, but keep for symmetry
   }

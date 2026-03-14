@@ -93,8 +93,8 @@ public class BridgeGame extends BaseGame {
             initPlayerStats(p.getUniqueId());
         }
 
-        // Generate arena
-        generateArena();
+        // Load arena (schematic if available, else programmatic generation)
+        loadArena();
 
         // Teleport and setup
         teleportToSpawns(blueTeamPlayers, redTeamPlayers);
@@ -266,36 +266,117 @@ public class BridgeGame extends BaseGame {
 
     // ==================== Arena Generation ====================
 
-    private void generateArena() {
+    @Override
+    protected void generateArena() {
         if (world == null) return;
 
-        // Blue platform
-        fillPlatform(BLUE_PLATFORM_X, PLATFORM_Y, PLATFORM_Z_MIN,
-                BLUE_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MAX, Material.BLUE_CONCRETE);
-
-        // Blue goal zone (3x3 at back — highest X values)
-        fillGoal(BLUE_PLATFORM_X + PLATFORM_SIZE - GOAL_DEPTH, PLATFORM_Y + 1,
-                -1, BLUE_PLATFORM_X + PLATFORM_SIZE - 1, 1, Material.BLUE_STAINED_GLASS);
-
-        // Red platform
-        fillPlatform(RED_PLATFORM_X, PLATFORM_Y, PLATFORM_Z_MIN,
-                RED_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MAX, Material.RED_CONCRETE);
-
-        // Red goal zone (3x3 at back — lowest X values)
-        fillGoal(RED_PLATFORM_X, PLATFORM_Y + 1,
-                -1, RED_PLATFORM_X + GOAL_DEPTH - 1, 1, Material.RED_STAINED_GLASS);
-
-        // Side walls (1-high) on both platforms
-        for (int x = RED_PLATFORM_X; x <= BLUE_PLATFORM_X + PLATFORM_SIZE - 1; x++) {
-            // Only place walls on the platforms, not in the void
-            if ((x >= RED_PLATFORM_X && x <= RED_PLATFORM_X + PLATFORM_SIZE - 1) ||
-                (x >= BLUE_PLATFORM_X && x <= BLUE_PLATFORM_X + PLATFORM_SIZE - 1)) {
-                setBlock(x, PLATFORM_Y + 1, PLATFORM_Z_MIN, Material.STONE_BRICK_WALL);
-                setBlock(x, PLATFORM_Y + 1, PLATFORM_Z_MAX, Material.STONE_BRICK_WALL);
+        // === Blue Platform ===
+        // Main floor: checkerboard pattern
+        for (int x = BLUE_PLATFORM_X; x < BLUE_PLATFORM_X + PLATFORM_SIZE; x++) {
+            for (int z = PLATFORM_Z_MIN; z <= PLATFORM_Z_MAX; z++) {
+                Material floor = ((x + z) % 2 == 0) ? Material.BLUE_CONCRETE : Material.CYAN_TERRACOTTA;
+                setBlock(x, PLATFORM_Y, z, floor);
+            }
+        }
+        // Sub-floor for depth
+        for (int x = BLUE_PLATFORM_X; x < BLUE_PLATFORM_X + PLATFORM_SIZE; x++) {
+            for (int z = PLATFORM_Z_MIN; z <= PLATFORM_Z_MAX; z++) {
+                setBlock(x, PLATFORM_Y - 1, z, Material.BLUE_TERRACOTTA);
             }
         }
 
+        // === Red Platform ===
+        for (int x = RED_PLATFORM_X; x < RED_PLATFORM_X + PLATFORM_SIZE; x++) {
+            for (int z = PLATFORM_Z_MIN; z <= PLATFORM_Z_MAX; z++) {
+                Material floor = ((x + z) % 2 == 0) ? Material.RED_CONCRETE : Material.ORANGE_TERRACOTTA;
+                setBlock(x, PLATFORM_Y, z, floor);
+            }
+        }
+        for (int x = RED_PLATFORM_X; x < RED_PLATFORM_X + PLATFORM_SIZE; x++) {
+            for (int z = PLATFORM_Z_MIN; z <= PLATFORM_Z_MAX; z++) {
+                setBlock(x, PLATFORM_Y - 1, z, Material.RED_TERRACOTTA);
+            }
+        }
+
+        // === Goal Zones (glowing portals) ===
+        // Blue goal (back of blue side) — red team enters here
+        int blueGoalX1 = BLUE_PLATFORM_X + PLATFORM_SIZE - GOAL_DEPTH;
+        for (int x = blueGoalX1; x < blueGoalX1 + GOAL_DEPTH; x++) {
+            for (int z = -1; z <= 1; z++) {
+                setBlock(x, PLATFORM_Y, z, Material.DIAMOND_BLOCK);
+                setBlock(x, PLATFORM_Y + 1, z, Material.BLUE_STAINED_GLASS);
+            }
+        }
+        // Goal arch
+        for (int z = -1; z <= 1; z++) {
+            setBlock(blueGoalX1, PLATFORM_Y + 2, z, Material.BLUE_CONCRETE);
+            setBlock(blueGoalX1, PLATFORM_Y + 3, z, Material.SEA_LANTERN);
+        }
+
+        // Red goal (back of red side) — blue team enters here
+        for (int x = RED_PLATFORM_X; x < RED_PLATFORM_X + GOAL_DEPTH; x++) {
+            for (int z = -1; z <= 1; z++) {
+                setBlock(x, PLATFORM_Y, z, Material.GOLD_BLOCK);
+                setBlock(x, PLATFORM_Y + 1, z, Material.RED_STAINED_GLASS);
+            }
+        }
+        for (int z = -1; z <= 1; z++) {
+            setBlock(RED_PLATFORM_X + GOAL_DEPTH - 1, PLATFORM_Y + 2, z, Material.RED_CONCRETE);
+            setBlock(RED_PLATFORM_X + GOAL_DEPTH - 1, PLATFORM_Y + 3, z, Material.GLOWSTONE);
+        }
+
+        // === Side Walls with pillars ===
+        for (int x = BLUE_PLATFORM_X; x < BLUE_PLATFORM_X + PLATFORM_SIZE; x++) {
+            buildSideWall(x, PLATFORM_Z_MIN, Material.BLUE_CONCRETE);
+            buildSideWall(x, PLATFORM_Z_MAX, Material.BLUE_CONCRETE);
+        }
+        for (int x = RED_PLATFORM_X; x < RED_PLATFORM_X + PLATFORM_SIZE; x++) {
+            buildSideWall(x, PLATFORM_Z_MIN, Material.RED_CONCRETE);
+            buildSideWall(x, PLATFORM_Z_MAX, Material.RED_CONCRETE);
+        }
+
+        // Corner pillars (3-high) on each platform
+        buildPillar(BLUE_PLATFORM_X, PLATFORM_Z_MIN, Material.QUARTZ_BLOCK, 3);
+        buildPillar(BLUE_PLATFORM_X, PLATFORM_Z_MAX, Material.QUARTZ_BLOCK, 3);
+        buildPillar(BLUE_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MIN, Material.QUARTZ_BLOCK, 3);
+        buildPillar(BLUE_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MAX, Material.QUARTZ_BLOCK, 3);
+        buildPillar(RED_PLATFORM_X, PLATFORM_Z_MIN, Material.QUARTZ_BLOCK, 3);
+        buildPillar(RED_PLATFORM_X, PLATFORM_Z_MAX, Material.QUARTZ_BLOCK, 3);
+        buildPillar(RED_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MIN, Material.QUARTZ_BLOCK, 3);
+        buildPillar(RED_PLATFORM_X + PLATFORM_SIZE - 1, PLATFORM_Z_MAX, Material.QUARTZ_BLOCK, 3);
+
+        // === Cover structures on each platform (2-block high walls for combat) ===
+        // Blue side cover
+        int blueMid = BLUE_PLATFORM_X + PLATFORM_SIZE / 2;
+        for (int z = -3; z <= 3; z++) {
+            setBlock(blueMid, PLATFORM_Y + 1, z, Material.STONE_BRICKS);
+            setBlock(blueMid, PLATFORM_Y + 2, z, Material.STONE_BRICK_WALL);
+        }
+        // Red side cover
+        int redMid = RED_PLATFORM_X + PLATFORM_SIZE / 2;
+        for (int z = -3; z <= 3; z++) {
+            setBlock(redMid, PLATFORM_Y + 1, z, Material.STONE_BRICKS);
+            setBlock(redMid, PLATFORM_Y + 2, z, Material.STONE_BRICK_WALL);
+        }
+
+        // === Spawn platforms (slightly raised) ===
+        // Blue spawn marker
+        setBlock(blueMid, PLATFORM_Y, 0, Material.LAPIS_BLOCK);
+        // Red spawn marker
+        setBlock(redMid, PLATFORM_Y, 0, Material.REDSTONE_BLOCK);
+
         LOGGER.info("Bridge arena generated");
+    }
+
+    private void buildSideWall(int x, int z, Material accent) {
+        setBlock(x, PLATFORM_Y + 1, z, Material.STONE_BRICK_WALL);
+    }
+
+    private void buildPillar(int x, int z, Material material, int height) {
+        for (int y = PLATFORM_Y + 1; y <= PLATFORM_Y + height; y++) {
+            setBlock(x, y, z, material);
+        }
+        setBlock(x, PLATFORM_Y + height + 1, z, Material.TORCH);
     }
 
     private void fillPlatform(int x1, int y, int z1, int x2, int z2, Material material) {

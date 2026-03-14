@@ -71,7 +71,11 @@ export class MatchOrchestrator {
       winnerTeamId?: string;
       blueTeamId: string;
       redTeamId: string;
-    }) => void
+    }) => void,
+    options?: {
+      finishTimeoutMs?: number;
+      spawnDelayMs?: number;
+    }
   ): Promise<ScenarioResult> {
     const startTime = Date.now();
     this.stages = [];
@@ -212,8 +216,9 @@ export class MatchOrchestrator {
       log("Bot scripts completed");
 
       // Stage 7: Wait for match to finish
+      const finishTimeout = options?.finishTimeoutMs ?? 120000;
       const finalMatch = await this.stage("Wait for match to finish", async () => {
-        return await this.convex.waitForStatus(matchId, "Finished", 120000);
+        return await this.convex.waitForStatus(matchId, "Finished", finishTimeout);
       });
       log(`Match finished — winner: ${finalMatch.winner_team_id || "none"}`);
 

@@ -3,6 +3,19 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { MatchOrchestratorConfig, ScenarioResult } from "./MatchOrchestrator.js";
 import { runPvp1v1 } from "./scenarios/pvp-1v1.js";
+import { runBridge1v1 } from "./scenarios/bridge-1v1.js";
+import { runCtf4v4 } from "./scenarios/ctf-4v4.js";
+import { runTournamentFlow } from "./scenarios/tournament-flow.js";
+
+// Prevent unhandled errors from crashing the process (e.g., bot keepalive timeouts)
+process.on("uncaughtException", (err) => {
+  if (err.message?.includes("timed out") || err.message?.includes("EPIPE") || err.message?.includes("ECONNRESET")) {
+    // Expected during bot disconnection — suppress
+    return;
+  }
+  console.error("Uncaught exception:", err);
+  process.exitCode = 1;
+});
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, "..", "..", "..");
@@ -44,6 +57,9 @@ type ScenarioFn = (config: MatchOrchestratorConfig) => Promise<ScenarioResult>;
 
 const SCENARIOS: Record<string, ScenarioFn> = {
   "pvp-1v1": runPvp1v1,
+  "bridge-1v1": runBridge1v1,
+  "ctf-4v4": runCtf4v4,
+  "tournament-flow": runTournamentFlow,
 };
 
 async function main() {
