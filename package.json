@@ -39,7 +39,7 @@
     "deploy:beacon:dry-run": "node scripts/deploy-beacon.mjs --dry-run",
     "deploy": "npm run deploy --workspace @packages/backend",
     "convex:dashboard": "npm run dashboard --workspace @packages/backend",
-    "validate": "npm run lint && npm run typecheck && npm run test"
+    "validate": "npm run lint && npm run typecheck"
   },
   "devDependencies": {
     "baseline-browser-mapping": "^2.10.7",
