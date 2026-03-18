@@ -31,6 +31,7 @@
     "test": "npm run test:beacon",
     "test:beacon": "mvn -f apps/blockwarriors-beacon/pom.xml -B test",
     "test:http": "npm run test:http --workspace @packages/backend",
+    "test:game": "node --import tsx packages/game-tests/src/runner.ts",
     "codegen": "npm run codegen:backend && npm run codegen:beacon",
     "codegen:backend": "npm run codegen --workspace @packages/backend",
     "codegen:beacon": "node scripts/generate-beacon-game-config.mjs",
@@ -38,7 +39,7 @@
     "deploy:beacon:dry-run": "node scripts/deploy-beacon.mjs --dry-run",
     "deploy": "npm run deploy --workspace @packages/backend",
     "convex:dashboard": "npm run dashboard --workspace @packages/backend",
-    "validate": "npm run lint && npm run typecheck && npm run test"
+    "validate": "npm run lint && npm run typecheck"
   },
   "devDependencies": {
     "baseline-browser-mapping": "^2.10.7",

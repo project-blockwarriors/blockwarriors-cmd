@@ -157,6 +157,7 @@ export const updateMatches = mutation({
         matchStatus: v.optional(v.string()),
         matchState: v.optional(v.any()),
         winnerPlayerId: v.optional(v.string()),
+        winnerTeamId: v.optional(v.string()),
       })
     ),
   },
@@ -199,8 +200,13 @@ export const updateMatches = mutation({
           patchData.match_state = update.matchState;
         }
 
-        // Look up winner's team if provided
-        if (update.winnerPlayerId !== undefined) {
+        // Set winner team directly if provided
+        if (update.winnerTeamId !== undefined) {
+          patchData.winner_team_id = update.winnerTeamId as Id<"game_teams">;
+        }
+
+        // Look up winner's team from player ID if provided (fallback)
+        if (update.winnerPlayerId !== undefined && patchData.winner_team_id === undefined) {
           const tokens = await ctx.db
             .query("game_tokens")
             .withIndex("by_match_id", (q) => q.eq("match_id", update.matchId))

@@ -58,7 +58,7 @@ export default function TournamentMatchPage() {
     try {
       const result = await createTournamentGame({
         tournamentMatchId: matchId as Id<'tournament_matches'>,
-        matchType: 'pvp', // Default to PvP, could be configurable
+        matchType: 'auto', // Resolved server-side from tournament's game_type
         mode: 'ranked', // Tournament matches are ranked
       });
 
