@@ -301,7 +301,13 @@ http.route({
           winner_player_id?: string;
           winner_team_id?: string;
         }) => {
-          const mapped: Record<string, unknown> = {
+          const mapped: {
+            matchId: Id<"matches">;
+            matchStatus?: string;
+            matchState?: any;
+            winnerPlayerId?: string;
+            winnerTeamId?: string;
+          } = {
             matchId: u.match_id as Id<"matches">,
           };
           if (u.match_status !== undefined) mapped.matchStatus = u.match_status;
