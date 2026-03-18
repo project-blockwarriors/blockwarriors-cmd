@@ -1,6 +1,5 @@
 'use client';
 
-import { CodeBlock } from '../../components/CodeBlock';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Blocks, Info } from 'lucide-react';
