@@ -1,0 +1,29 @@
+# Bridge Arena Configuration
+# 1v1 — two platforms separated by void, score by entering enemy goal
+
+name: "Bridge Arena"
+game_type: "bridge"
+
+spawns:
+  blue_team:
+    - {x: 27, y: 66, z: 0, yaw: -90, pitch: 0}
+  red_team:
+    - {x: -27, y: 66, z: 0, yaw: 90, pitch: 0}
+
+boundaries:
+  min: {x: -40, y: 0, z: -15}
+  max: {x: 40, y: 100, z: 15}
+
+objectives:
+  score_to_win: 5
+  time_limit_seconds: 300
+
+special_blocks:
+  blue_goal:
+    - {x: 32, y: 66, z: -1}
+    - {x: 34, y: 66, z: 1}
+  red_goal:
+    - {x: -34, y: 66, z: -1}
+    - {x: -32, y: 66, z: 1}
+
+resources: []

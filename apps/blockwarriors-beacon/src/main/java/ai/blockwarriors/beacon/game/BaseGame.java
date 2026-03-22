@@ -1,11 +1,14 @@
 package ai.blockwarriors.beacon.game;
 
 import ai.blockwarriors.beacon.arena.ArenaConfig;
+import ai.blockwarriors.beacon.arena.ArenaManager;
+import ai.blockwarriors.beacon.arena.SchematicLoader;
 
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.io.File;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -41,6 +44,9 @@ public abstract class BaseGame {
     
     /** Arena configuration (spawns, boundaries, objectives) */
     protected ArenaConfig arenaConfig;
+
+    /** Arena manager for schematic resolution */
+    protected ArenaManager arenaManager;
     
     /** Current game state */
     protected GameState state = GameState.INITIALIZING;
@@ -233,6 +239,14 @@ public abstract class BaseGame {
     public ArenaConfig getArenaConfig() {
         return arenaConfig;
     }
+
+    /**
+     * Set the arena manager for schematic resolution.
+     * Called by MatchInitializer before initialize().
+     */
+    public void setArenaManager(ArenaManager arenaManager) {
+        this.arenaManager = arenaManager;
+    }
     
     /**
      * Check if a player is in this game.
@@ -297,8 +311,59 @@ public abstract class BaseGame {
         return state == GameState.FINISHED || state == GameState.TERMINATED;
     }
     
+    // ==================== Event Methods ====================
+
+    /**
+     * Handle damage dealt by one player to another.
+     * Default implementation is a no-op. Override in game implementations
+     * that need to track damage (e.g., PvP).
+     *
+     * @param damager The player dealing damage
+     * @param target The player receiving damage
+     * @param damage The final damage amount
+     */
+    public void handleDamage(Player damager, Player target, double damage) {
+        // Default no-op — override in subclasses that track damage
+    }
+
+    // ==================== Arena Loading ====================
+
+    /**
+     * Load the arena for this game. Tries to load a WorldEdit schematic first;
+     * if unavailable or no schematic exists, falls back to programmatic generation
+     * via {@link #generateArena()}.
+     */
+    protected void loadArena() {
+        try {
+            if (arenaConfig != null && arenaManager != null && SchematicLoader.isAvailable()) {
+                File schematicFile = arenaManager.getSchematicFile(arenaConfig.getName());
+                if (schematicFile != null && schematicFile.exists()) {
+                    boolean success = SchematicLoader.pasteSchematic(schematicFile, world, 0, 65, 0);
+                    if (success) {
+                        LOGGER.info("Arena loaded from schematic for match " + matchId);
+                        return;
+                    }
+                    LOGGER.warning("Schematic paste failed for match " + matchId + ", falling back to programmatic generation");
+                }
+            }
+        } catch (NoClassDefFoundError e) {
+            // WorldEdit classes not on classpath — expected when WorldEdit is not installed
+            LOGGER.info("WorldEdit not available (classes not found), using programmatic arena generation");
+        }
+        generateArena();
+    }
+
+    /**
+     * Generate the arena programmatically. Called as a fallback when no
+     * schematic is available. Subclasses should override this to place
+     * blocks for their specific arena layout.
+     */
+    protected void generateArena() {
+        // Default no-op — subclasses override with block placement logic
+    }
+
     // ==================== Utility Methods ====================
-    
+
     /**
      * Get players on the opposing team.
      * 

@@ -1,22 +1,22 @@
-import js from "@eslint/js";
-import tseslint from "typescript-eslint";
-import nextPlugin from "@next/eslint-plugin-next";
-import reactPlugin from "eslint-plugin-react";
-import hooksPlugin from "eslint-plugin-react-hooks";
-import prettierConfig from "eslint-config-prettier";
-import globals from "globals";
+import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
+import nextPlugin from '@next/eslint-plugin-next';
+import reactPlugin from 'eslint-plugin-react';
+import hooksPlugin from 'eslint-plugin-react-hooks';
+import prettierConfig from 'eslint-config-prettier';
+import globals from 'globals';
 
 export default [
   {
-    ignores: [".next/**", "node_modules/**"],
+    ignores: ['.next/**', 'node_modules/**'],
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ["**/*.{js,jsx,ts,tsx}"],
+    files: ['**/*.{js,jsx,ts,tsx}'],
     languageOptions: {
-      ecmaVersion: "latest",
-      sourceType: "module",
+      ecmaVersion: 'latest',
+      sourceType: 'module',
       globals: {
         ...globals.browser,
         ...globals.node,
@@ -28,23 +28,29 @@ export default [
       },
     },
     plugins: {
-      "@next/next": nextPlugin,
+      '@next/next': nextPlugin,
       react: reactPlugin,
-      "react-hooks": hooksPlugin,
+      'react-hooks': hooksPlugin,
     },
     settings: {
       react: {
-        version: "detect",
+        version: 'detect',
       },
     },
     rules: {
       ...reactPlugin.configs.recommended.rules,
-      ...reactPlugin.configs["jsx-runtime"].rules,
+      ...reactPlugin.configs['jsx-runtime'].rules,
       ...hooksPlugin.configs.recommended.rules,
       ...nextPlugin.configs.recommended.rules,
-      ...nextPlugin.configs["core-web-vitals"].rules,
+      ...nextPlugin.configs['core-web-vitals'].rules,
       // Disable prop-types rule - TypeScript handles type checking
-      "react/prop-types": "off",
+      'react/prop-types': 'off',
+    },
+  },
+  {
+    files: ['src/app/api/og/**/*.tsx', 'src/lib/og-utils.tsx'],
+    rules: {
+      '@next/next/no-img-element': 'off',
     },
   },
   prettierConfig,

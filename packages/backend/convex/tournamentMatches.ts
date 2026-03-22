@@ -397,6 +397,13 @@ export const createTournamentGame = mutation({
       return { success: false, error: "Tournament match is already decided" };
     }
 
+    // Resolve match type: use explicit arg, or fall back to tournament's game_type
+    let matchType = args.matchType;
+    if (!matchType || matchType === "auto") {
+      const tournament = await ctx.db.get(tournamentMatch.tournament_id);
+      matchType = tournament?.game_type || "pvp";
+    }
+
     // Create game teams for this match
     const redTeamId = await ctx.db.insert("game_teams", { bots: [] });
     const blueTeamId = await ctx.db.insert("game_teams", { bots: [] });
@@ -406,7 +413,7 @@ export const createTournamentGame = mutation({
 
     // Create the game match
     const matchId = await ctx.db.insert("matches", {
-      match_type: args.matchType,
+      match_type: matchType,
       match_status: "Queuing",
       blue_team_id: blueTeamId,
       red_team_id: redTeamId,

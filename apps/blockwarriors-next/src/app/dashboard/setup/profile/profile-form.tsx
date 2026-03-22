@@ -15,7 +15,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { updateUserProfile } from '@/server/actions/users';
-import { UserProfile } from '@/types/user';
 import { Team } from '@/types/team';
 import toast from 'react-hot-toast';
 
@@ -79,12 +78,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             name="first_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white">First Name <span className="text-primary">*</span></FormLabel>
+                <FormLabel className="text-white">
+                  First Name <span className="text-primary">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="John" 
-                    {...field} 
-                    value={field.value || ''} 
+                  <Input
+                    placeholder="John"
+                    {...field}
+                    value={field.value || ''}
                     required
                     className="border-primary/20 focus:border-primary"
                   />
@@ -99,12 +100,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
             name="last_name"
             render={({ field }) => (
               <FormItem>
-                <FormLabel className="text-white">Last Name <span className="text-primary">*</span></FormLabel>
+                <FormLabel className="text-white">
+                  Last Name <span className="text-primary">*</span>
+                </FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Doe" 
-                    {...field} 
-                    value={field.value || ''} 
+                  <Input
+                    placeholder="Doe"
+                    {...field}
+                    value={field.value || ''}
                     required
                     className="border-primary/20 focus:border-primary"
                   />
@@ -120,12 +123,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="institution"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white">Institution <span className="text-primary">*</span></FormLabel>
+              <FormLabel className="text-white">
+                Institution <span className="text-primary">*</span>
+              </FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="Princeton University" 
-                  {...field} 
-                  value={field.value || ''} 
+                <Input
+                  placeholder="Princeton University"
+                  {...field}
+                  value={field.value || ''}
                   required
                   className="border-primary/20 focus:border-primary"
                 />
@@ -140,12 +145,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
           name="geographic_location"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-white">Geographic Location <span className="text-primary">*</span></FormLabel>
+              <FormLabel className="text-white">
+                Geographic Location <span className="text-primary">*</span>
+              </FormLabel>
               <FormControl>
-                <Input 
-                  placeholder="Princeton, NJ" 
-                  {...field} 
-                  value={field.value || ''} 
+                <Input
+                  placeholder="Princeton, NJ"
+                  {...field}
+                  value={field.value || ''}
                   required
                   className="border-primary/20 focus:border-primary"
                 />

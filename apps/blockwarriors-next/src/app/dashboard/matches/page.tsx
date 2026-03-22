@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { useQuery } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -12,7 +12,6 @@ import {
   Play,
   CheckCircle,
   XCircle,
-  Filter,
   ChevronRight,
   Users,
 } from 'lucide-react';
@@ -27,15 +26,13 @@ import {
   type TournamentMatchStatus,
 } from '@/lib/tournament-constants';
 
-type FilterStatus = 'all' | 'upcoming' | 'in_progress' | 'completed';
-
 // Tournament card with its matches
 function TournamentMatchesCard({
   tournament,
   teamId,
 }: {
   tournament: {
-    _id: string;
+    _id: Id<'tournaments'>;
     name: string;
     status: 'registration' | 'in_progress' | 'completed' | 'cancelled';
     format: string;
@@ -44,7 +41,7 @@ function TournamentMatchesCard({
   teamId: string;
 }) {
   const bracket = useQuery(api.tournamentMatches.getTournamentBracket, {
-    tournamentId: tournament._id as any,
+    tournamentId: tournament._id,
   });
 
   // Filter to team's matches only
@@ -89,10 +86,7 @@ function TournamentMatchesCard({
     }
   };
 
-  const getResultBadge = (
-    match: (typeof teamMatches)[0],
-    isTeam1: boolean
-  ) => {
+  const getResultBadge = (match: (typeof teamMatches)[0], isTeam1: boolean) => {
     if (match.status !== 'completed' || !match.winner_team_id) return null;
     const isWinner = isTeam1
       ? match.winner_team_id === match.team1_id
@@ -130,7 +124,9 @@ function TournamentMatchesCard({
             </div>
             <div>
               <CardTitle className="text-lg">{tournament.name}</CardTitle>
-              <p className={`text-sm ${TOURNAMENT_STATUSES[tournament.status].color}`}>
+              <p
+                className={`text-sm ${TOURNAMENT_STATUSES[tournament.status].color}`}
+              >
                 {TOURNAMENT_STATUSES[tournament.status].name}
               </p>
             </div>
@@ -175,20 +171,30 @@ function TournamentMatchesCard({
                       <div>
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="font-semibold text-white">
-                            vs {isTeam1 ? match.team2_name ?? 'TBD' : match.team1_name ?? 'TBD'}
+                            vs{' '}
+                            {isTeam1
+                              ? (match.team2_name ?? 'TBD')
+                              : (match.team1_name ?? 'TBD')}
                           </p>
                           <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 animate-pulse">
                             Live
                           </Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">Round {match.round}</p>
+                        <p className="text-sm text-muted-foreground">
+                          Round {match.round}
+                        </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
                       <div className="text-right">
                         <p className="text-xl font-bold text-white">
-                          {isTeam1 ? match.team1_games_won : match.team2_games_won} -{' '}
-                          {isTeam1 ? match.team2_games_won : match.team1_games_won}
+                          {isTeam1
+                            ? match.team1_games_won
+                            : match.team2_games_won}{' '}
+                          -{' '}
+                          {isTeam1
+                            ? match.team2_games_won
+                            : match.team1_games_won}
                         </p>
                         <p className="text-sm text-yellow-400">In Progress</p>
                       </div>
@@ -215,19 +221,31 @@ function TournamentMatchesCard({
                       <div>
                         <div className="flex items-center gap-2 mb-0.5">
                           <p className="font-semibold text-white">
-                            vs {isTeam1 ? match.team2_name ?? 'TBD' : match.team1_name ?? 'TBD'}
+                            vs{' '}
+                            {isTeam1
+                              ? (match.team2_name ?? 'TBD')
+                              : (match.team1_name ?? 'TBD')}
                           </p>
                         </div>
                         <p className="text-sm text-muted-foreground">
                           Round {match.round}
                           {match.scheduled_time && (
-                            <> • {new Date(match.scheduled_time).toLocaleDateString()}</>
+                            <>
+                              {' '}
+                              •{' '}
+                              {new Date(
+                                match.scheduled_time
+                              ).toLocaleDateString()}
+                            </>
                           )}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4">
-                      <Badge variant="outline" className="text-muted-foreground">
+                      <Badge
+                        variant="outline"
+                        className="text-muted-foreground"
+                      >
                         {TOURNAMENT_MATCH_STATUSES[match.status].name}
                       </Badge>
                       <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors" />
@@ -256,18 +274,28 @@ function TournamentMatchesCard({
                         <div>
                           <div className="flex items-center gap-2 mb-0.5">
                             <p className="font-semibold text-white">
-                              vs {isTeam1 ? match.team2_name ?? 'TBD' : match.team1_name ?? 'TBD'}
+                              vs{' '}
+                              {isTeam1
+                                ? (match.team2_name ?? 'TBD')
+                                : (match.team1_name ?? 'TBD')}
                             </p>
                             {getResultBadge(match, isTeam1)}
                           </div>
-                          <p className="text-sm text-muted-foreground">Round {match.round}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Round {match.round}
+                          </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
                         <div className="text-right">
                           <p className="text-xl font-bold text-white">
-                            {isTeam1 ? match.team1_games_won : match.team2_games_won} -{' '}
-                            {isTeam1 ? match.team2_games_won : match.team1_games_won}
+                            {isTeam1
+                              ? match.team1_games_won
+                              : match.team2_games_won}{' '}
+                            -{' '}
+                            {isTeam1
+                              ? match.team2_games_won
+                              : match.team1_games_won}
                           </p>
                           <p className="text-sm text-muted-foreground">Final</p>
                         </div>
@@ -382,8 +410,12 @@ export default function MatchesPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Active Tournaments</p>
-                <p className="text-3xl font-bold text-white">{activeTournaments.length}</p>
+                <p className="text-sm text-muted-foreground">
+                  Active Tournaments
+                </p>
+                <p className="text-3xl font-bold text-white">
+                  {activeTournaments.length}
+                </p>
               </div>
               <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                 <Trophy className="h-6 w-6 text-primary" />
@@ -420,28 +452,32 @@ export default function MatchesPage() {
               <div className="h-12 w-12 rounded-xl bg-green-500/10 flex items-center justify-center">
                 <Swords className="h-6 w-6 text-green-400" />
               </div>
-          </div>
+            </div>
           </CardContent>
         </Card>
 
         <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
-        <CardContent className="pt-6">
+          <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">W/L Record</p>
                 <p className="text-3xl font-bold">
-                  <span className="text-green-400">{userProfile.team.team_wins}</span>
+                  <span className="text-green-400">
+                    {userProfile.team.team_wins}
+                  </span>
                   <span className="text-muted-foreground mx-1">/</span>
-                  <span className="text-red-400">{userProfile.team.team_losses}</span>
+                  <span className="text-red-400">
+                    {userProfile.team.team_losses}
+                  </span>
                 </p>
               </div>
               <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
                 <Trophy className="h-6 w-6 text-amber-400" />
               </div>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       {/* Active Tournaments */}
       {activeTournaments.length > 0 && (
@@ -492,8 +528,8 @@ export default function MatchesPage() {
               No Tournament Matches Yet
             </h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Your team hasn't joined any tournaments yet. Browse available tournaments
-              and join one to start competing!
+              Your team hasn&apos;t joined any tournaments yet. Browse available
+              tournaments and join one to start competing!
             </p>
             <Link href="/dashboard/tournaments">
               <Button>

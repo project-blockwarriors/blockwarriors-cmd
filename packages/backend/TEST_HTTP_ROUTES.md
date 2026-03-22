@@ -5,7 +5,8 @@ This test client validates all the Convex HTTP routes for match management.
 ## Prerequisites
 
 1. A running Convex deployment with the HTTP routes deployed
-2. Environment variables in `.env.local` file:
+2. Environment variables in `.env.local` file
+   (copy `packages/backend/.env.example` as a starting point):
    - `CONVEX_URL` - Your Convex deployment URL (e.g., `https://your-deployment.convex.cloud`)
    - `CONVEX_SITE_URL` - Your Convex site URL for HTTP routes (e.g., `https://your-deployment.convex.site`)
 
@@ -49,11 +50,11 @@ The test suite validates:
    - ✅ Creating matches with `match_state` JSON blob
    - ✅ Error handling for missing required fields
 
-2. **GET /matches/{\_id}**
+2. **GET /matches?id={matchId}**
    - ✅ Retrieving match by ID
    - ✅ Error handling for non-existent matches
 
-3. **POST /matches/{\_id}**
+3. **POST /matches/update**
    - ✅ Updating `match_status` (Queuing → Waiting → Playing → Finished)
    - ✅ Updating `match_state` independently
    - ✅ Updating both `match_status` and `match_state` together

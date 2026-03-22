@@ -100,6 +100,7 @@ export default defineSchema({
     created_by: v.string(), // user_id of creator
     min_teams: v.number(),
     max_teams: v.number(),
+    game_type: v.optional(v.string()), // pvp, bridge, ctf — determines match type for games
     games_per_match: v.number(), // for best-of-N (e.g., 1 for single game, 2 for best-of-3)
     registration_deadline: v.optional(v.number()),
     start_time: v.optional(v.number()),

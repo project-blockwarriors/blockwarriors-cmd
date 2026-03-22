@@ -1,6 +1,7 @@
 'use client';
 
 import { useQuery, useMutation } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -43,7 +44,9 @@ export default function ProfilePage() {
         <div className="text-center">
           <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-white mb-2">Not Logged In</h1>
-          <p className="text-muted-foreground mb-4">Please log in to view your profile.</p>
+          <p className="text-muted-foreground mb-4">
+            Please log in to view your profile.
+          </p>
           <Link href="/login">
             <Button>Log In</Button>
           </Link>
@@ -65,8 +68,12 @@ export default function ProfilePage() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="text-center">
           <User className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h1 className="text-2xl font-bold text-white mb-2">Profile Not Found</h1>
-          <p className="text-muted-foreground mb-4">Let&apos;s set up your profile.</p>
+          <h1 className="text-2xl font-bold text-white mb-2">
+            Profile Not Found
+          </h1>
+          <p className="text-muted-foreground mb-4">
+            Let&apos;s set up your profile.
+          </p>
           <Link href="/dashboard/setup/profile">
             <Button>Create Profile</Button>
           </Link>
@@ -80,7 +87,9 @@ export default function ProfilePage() {
   const winRate = profile.team
     ? profile.team.team_wins + profile.team.team_losses > 0
       ? Math.round(
-          (profile.team.team_wins / (profile.team.team_wins + profile.team.team_losses)) * 100
+          (profile.team.team_wins /
+            (profile.team.team_wins + profile.team.team_losses)) *
+            100
         )
       : 0
     : 0;
@@ -102,8 +111,8 @@ export default function ProfilePage() {
           <div className="absolute -top-16 left-8">
             <ImageUpload
               currentImageUrl={profile.profile_image_url}
-              onUploadComplete={async (storageId) => {
-                await updateProfileImage({ userId, storageId: storageId as any });
+              onUploadComplete={async (storageId: Id<'_storage'>) => {
+                await updateProfileImage({ userId, storageId });
               }}
               onDelete={async () => {
                 await deleteProfileImage({ userId });
@@ -138,7 +147,9 @@ export default function ProfilePage() {
             </div>
 
             {profile.bio && (
-              <p className="mt-4 text-muted-foreground max-w-2xl">{profile.bio}</p>
+              <p className="mt-4 text-muted-foreground max-w-2xl">
+                {profile.bio}
+              </p>
             )}
           </div>
         </CardContent>
@@ -182,7 +193,9 @@ export default function ProfilePage() {
               <CardContent>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="text-center p-4 rounded-lg bg-secondary/30">
-                    <p className="text-3xl font-bold text-primary">{profile.team.team_elo}</p>
+                    <p className="text-3xl font-bold text-primary">
+                      {profile.team.team_elo}
+                    </p>
                     <p className="text-xs text-muted-foreground">Team ELO</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-secondary/30">
@@ -190,11 +203,15 @@ export default function ProfilePage() {
                     <p className="text-xs text-muted-foreground">Win Rate</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-secondary/30">
-                    <p className="text-3xl font-bold text-green-400">{profile.team.team_wins}</p>
+                    <p className="text-3xl font-bold text-green-400">
+                      {profile.team.team_wins}
+                    </p>
                     <p className="text-xs text-muted-foreground">Wins</p>
                   </div>
                   <div className="text-center p-4 rounded-lg bg-secondary/30">
-                    <p className="text-3xl font-bold text-red-400">{profile.team.team_losses}</p>
+                    <p className="text-3xl font-bold text-red-400">
+                      {profile.team.team_losses}
+                    </p>
                     <p className="text-xs text-muted-foreground">Losses</p>
                   </div>
                 </div>
@@ -244,7 +261,9 @@ export default function ProfilePage() {
 
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <h3 className="text-xl font-bold text-white">{profile.team.team_name}</h3>
+                        <h3 className="text-xl font-bold text-white">
+                          {profile.team.team_name}
+                        </h3>
                         {isTeamLeader && (
                           <Badge className="bg-amber-500/20 text-amber-400 border-amber-500/30">
                             <Crown className="h-3 w-3 mr-1" />
@@ -262,13 +281,18 @@ export default function ProfilePage() {
                         </div>
                         <div className="flex items-center gap-1 text-muted-foreground">
                           <Users className="h-4 w-4" />
-                          <span>{profile.team.members?.length || 0} members</span>
+                          <span>
+                            {profile.team.members?.length || 0} members
+                          </span>
                         </div>
                         {profile.team.created_at && (
                           <div className="flex items-center gap-1 text-muted-foreground">
                             <Calendar className="h-4 w-4" />
                             <span>
-                              Created {new Date(profile.team.created_at).toLocaleDateString()}
+                              Created{' '}
+                              {new Date(
+                                profile.team.created_at
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         )}
@@ -278,7 +302,9 @@ export default function ProfilePage() {
 
                   {/* Team Members */}
                   <div>
-                    <h4 className="text-sm font-medium text-muted-foreground mb-3">Team Members</h4>
+                    <h4 className="text-sm font-medium text-muted-foreground mb-3">
+                      Team Members
+                    </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       {profile.team.members?.map((member) => (
                         <div
@@ -334,7 +360,9 @@ export default function ProfilePage() {
                   <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                     <Users className="h-8 w-8 text-primary" />
                   </div>
-                  <h3 className="font-semibold text-white mb-2">Not on a Team</h3>
+                  <h3 className="font-semibold text-white mb-2">
+                    Not on a Team
+                  </h3>
                   <p className="text-muted-foreground text-sm mb-4">
                     Join or create a team to compete in tournaments.
                   </p>

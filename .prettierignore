@@ -1,0 +1,6 @@
+.claude
+.next
+.turbo
+node_modules
+package-lock.json
+apps/blockwarriors-beacon/target

@@ -1,18 +1,18 @@
 /**
  * Game type definitions and constants.
- * 
- * This is the single source of truth for game type configurations.
- * The Beacon plugin (Java) should be manually kept in sync with these values.
- * See: packages/shared/constants/game-config.json
+ *
+ * The source of truth is packages/shared/constants/game-config.json.
+ * Run `npm run codegen:beacon` after changing that file to regenerate
+ * the Beacon plugin constants.
  */
 
 import gameConfig from '../constants/game-config.json';
 
-// Game types (pvp, bedwars, ctf) - determines the game being played
-export type GameType = 'pvp' | 'bedwars' | 'ctf';
+// Game types determine the game being played.
+export type GameType = keyof typeof gameConfig.gameTypes;
 
 // Match modes - determines competitive context (practice vs ranked)
-export type MatchMode = 'practice' | 'ranked';
+export type MatchMode = keyof typeof gameConfig.matchModes;
 
 // Game type configuration
 export interface GameTypeConfig {
@@ -21,6 +21,7 @@ export interface GameTypeConfig {
   description: string;
   tokensPerTeam: number;
   players: string;
+  defaultArena: string;
 }
 
 // Match mode configuration
@@ -34,10 +35,12 @@ export interface MatchModeConfig {
 export const GAME_CONFIG = gameConfig;
 
 // Game types mapped by ID
-export const GAME_TYPES: Record<GameType, GameTypeConfig> = gameConfig.gameTypes as Record<GameType, GameTypeConfig>;
+export const GAME_TYPES: Record<GameType, GameTypeConfig> =
+  gameConfig.gameTypes as Record<GameType, GameTypeConfig>;
 
 // Match modes mapped by ID
-export const MATCH_MODES: Record<MatchMode, MatchModeConfig> = gameConfig.matchModes as Record<MatchMode, MatchModeConfig>;
+export const MATCH_MODES: Record<MatchMode, MatchModeConfig> =
+  gameConfig.matchModes as Record<MatchMode, MatchModeConfig>;
 
 /**
  * Get game type configuration by ID

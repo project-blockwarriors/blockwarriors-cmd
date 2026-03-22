@@ -1,25 +1,64 @@
 # BlockWarriors Command Block
 
-Welcome to the BlockWarriors Command Block! This is a monolithic repository for managing BlockWarriors tournaments and teams.
+BlockWarriors is a monorepo for the tournament platform, Convex backend, and Minecraft integrations used by the project.
 
-## Applications
+## Active Packages
 
-### BlockWarriors Command Block - Next.js Application
+- `apps/blockwarriors-next`: Next.js 16 dashboard and public site
+- `packages/backend`: Convex functions, HTTP routes, auth, schema, and seed helpers
+- `apps/blockwarriors-beacon`: Minecraft/Paper plugin for match orchestration
+- `apps/bot-orchestrator`: Mineflayer bot control UI and socket server
+- `packages/shared`: Shared TypeScript constants and types
 
-A modern web dashboard for BlockWarriors tournament and team management.
+## Quick Start
 
-**Tech Stack:** Next.js, TypeScript, Tailwind CSS, Radix UI, Convex
+1. Install dependencies:
+   ```bash
+   npm ci
+   ```
+2. Copy the example env files for the runtimes you need:
+   - `apps/blockwarriors-next/.env.example`
+   - `packages/backend/.env.example`
+   - `apps/bot-orchestrator/.env.example`
+   - `apps/blockwarriors-beacon/.env.example`
+   - `.env.example` if you want to use Beacon deploy automation
+3. Generate the Beacon game config from the shared JSON source:
+   ```bash
+   npm run codegen:beacon
+   ```
+4. Start the stack you need:
+   ```bash
+   npm run dev
+   ```
 
-### BlockWarriors Command Block - Backend
+Use targeted commands if you only need part of the stack:
 
-Real-time communication server handling live updates and events.
+- `npm run dev:web`
+- `npm run dev:backend`
+- `npm run dev:bot-orchestrator`
 
-**Tech Stack:** Node.js, Convex
+## Common Commands
+
+- `npm run lint`
+- `npm run typecheck`
+- `npm run test`
+- `npm run build`
+- `npm run deploy:beacon`
+- `npm run deploy:beacon:dry-run`
+- `npm run validate`
+- `npm run test:http`
+
+## Branch Flow
+
+Day-to-day work flows through `staging`, not directly into `main`.
+
+- Feature branches target `staging`
+- Release PRs promote `staging` into `main`
 
 ## Documentation
 
-For detailed information about the project, please refer to our documentation in the [docs](./docs) directory:
-
-- [Onboarding Guide](./docs/onboarding.md) - Get started with the project
-- [Technology Stack](./docs/stack.md) - Detailed architecture and technology stack
-- [Contributing Guidelines](./docs/contributing.md) - Learn how to contribute
+- [Onboarding Guide](./docs/onboarding.md)
+- [Beacon Deploy Guide](./docs/beacon-deploy.md)
+- [Technology Stack](./docs/stack.md)
+- [Match System Architecture](./docs/match-system-architecture.md)
+- [Contributing Guidelines](./docs/contributing.md)

@@ -40,6 +40,9 @@ public class MatchManager {
     // Map match ID to BaseGame instance
     private final Map<String, BaseGame> matchGames = new HashMap<>();
 
+    // Map match ID to team IDs (blue_team_id, red_team_id from Convex)
+    private final Map<String, String[]> matchTeamIds = new HashMap<>();
+
     public MatchManager(JavaPlugin plugin, String convexSiteUrl, String convexHttpSecret) {
         this.plugin = plugin;
         this.convexClient = new ConvexClient(convexSiteUrl, convexHttpSecret);
@@ -58,39 +61,37 @@ public class MatchManager {
     }
 
     /**
-     * Register a match with its world and players (legacy, no game instance).
-     */
-    public void registerMatch(String matchId, String worldName, List<Player> players) {
-        registerMatch(matchId, worldName, players, null);
-    }
-
-    /**
      * Register a match with its world, players, and game instance.
-     * 
+     * All matches must have a game instance — no legacy matches.
+     *
      * @param matchId Unique match identifier
      * @param worldName Name of the world for this match
      * @param players List of players in the match
-     * @param game BaseGame instance (may be null for legacy matches)
+     * @param game BaseGame instance (required)
      */
     public void registerMatch(String matchId, String worldName, List<Player> players, BaseGame game) {
         matchWorlds.put(matchId, worldName);
-        
+
         Set<UUID> playerIds = new HashSet<>();
         for (Player player : players) {
             playerIds.add(player.getUniqueId());
             playerMatches.put(player.getUniqueId(), matchId);
         }
         matchPlayers.put(matchId, playerIds);
-        
-        // Store game instance if provided
+
         if (game != null) {
             matchGames.put(matchId, game);
-            LOGGER.info("Registered match " + matchId + " with game type " + game.getGameType() + 
-                       ", world " + worldName + " and " + players.size() + " players");
-        } else {
-            LOGGER.info("Registered match " + matchId + " (legacy) with world " + worldName + 
-                       " and " + players.size() + " players");
         }
+        LOGGER.info("Registered match " + matchId + " with game type " +
+                   (game != null ? game.getGameType() : "unknown") +
+                   ", world " + worldName + " and " + players.size() + " players");
+    }
+
+    /**
+     * Store team IDs (from Convex) for a match so we can resolve winner team.
+     */
+    public void setMatchTeamIds(String matchId, String blueTeamId, String redTeamId) {
+        matchTeamIds.put(matchId, new String[]{blueTeamId, redTeamId});
     }
 
     /**
@@ -166,8 +167,26 @@ public class MatchManager {
             telemetryService.queueFinalMatchState(matchId, winnerPlayerId);
         }
 
+        // Resolve winner team ID from game state
+        String winnerTeamId = null;
+        if (winnerPlayerId != null && game != null) {
+            UUID winnerUUID;
+            try {
+                winnerUUID = UUID.fromString(winnerPlayerId);
+            } catch (IllegalArgumentException e) {
+                winnerUUID = null;
+            }
+            if (winnerUUID != null) {
+                String team = game.getTeamForPlayer(winnerUUID);
+                String[] teamIds = matchTeamIds.get(matchId);
+                if (teamIds != null && team != null) {
+                    winnerTeamId = "blue".equals(team) ? teamIds[0] : teamIds[1];
+                }
+            }
+        }
+
         // Update match status to Finished and set the winner
-        updateMatchStatus(matchId, "Finished", winnerPlayerId);
+        updateMatchStatus(matchId, "Finished", winnerPlayerId, winnerTeamId);
 
         // Kick players and delete world after a short delay
         new BukkitRunnable() {
@@ -184,8 +203,8 @@ public class MatchManager {
                     }
                 }
 
-                // Delete the world using MatchPollingService's static method
-                MatchPollingService.deleteMatchWorld(worldName);
+                // Delete the world
+                MatchWorldManager.deleteWorld(worldName);
 
                 // Unregister players from telemetry service
                 if (telemetryService != null) {
@@ -198,6 +217,7 @@ public class MatchManager {
                 matchWorlds.remove(matchId);
                 matchPlayers.remove(matchId);
                 matchGames.remove(matchId);
+                matchTeamIds.remove(matchId);
                 for (UUID playerId : playerIds) {
                     playerMatches.remove(playerId);
                 }
@@ -210,10 +230,13 @@ public class MatchManager {
     /**
      * Update match status and winner in Convex
      */
-    private void updateMatchStatus(String matchId, String status, String winnerPlayerId) {
+    private void updateMatchStatus(String matchId, String status, String winnerPlayerId, String winnerTeamId) {
         JSONObject update = new JSONObject();
         update.put("match_id", matchId);
         update.put("match_status", status);
+        if (winnerTeamId != null) {
+            update.put("winner_team_id", winnerTeamId);
+        }
         if (winnerPlayerId != null) {
             update.put("winner_player_id", winnerPlayerId);
         }
@@ -283,8 +306,8 @@ public class MatchManager {
         }
 
         BaseGame game = matchGames.get(matchId);
-        if (game == null || !game.isActive()) {
-            return null; // No game instance, return null for legacy handling
+        if (game == null || game.hasEnded()) {
+            return null; // No game instance or already ended
         }
 
         // Delegate to game

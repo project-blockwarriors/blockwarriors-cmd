@@ -22,6 +22,8 @@ import ai.blockwarriors.events.PlayerEventListener;
 import ai.blockwarriors.beacon.arena.ArenaManager;
 import ai.blockwarriors.beacon.constants.GameConfig;
 import ai.blockwarriors.beacon.game.GameRegistry;
+import ai.blockwarriors.beacon.game.impl.BridgeGame;
+import ai.blockwarriors.beacon.game.impl.CTFGame;
 import ai.blockwarriors.beacon.game.impl.PvPGame;
 import ai.blockwarriors.beacon.service.MatchPollingService;
 import ai.blockwarriors.beacon.service.MatchTelemetryService;
@@ -116,7 +118,33 @@ public class Plugin extends JavaPlugin {
                 .build()
         );
         
-        LOGGER.info("GameRegistry initialized. Registered game types: " + 
+        // Register Bridge game type
+        registry.registerGame(
+            GameConfig.GAME_TYPE_BRIDGE,
+            BridgeGame::new,
+            GameRegistry.GameMetadata.builder()
+                .displayName("Bridge Challenge")
+                .description("1v1 bridge building — reach the enemy goal zone to score")
+                .playersPerTeam(1)
+                .teamCount(2)
+                .defaultArena("bridge")
+                .build()
+        );
+
+        // Register CTF game type
+        registry.registerGame(
+            GameConfig.GAME_TYPE_CTF,
+            CTFGame::new,
+            GameRegistry.GameMetadata.builder()
+                .displayName("Capture the Flag")
+                .description("4v4 team-based flag capture")
+                .playersPerTeam(4)
+                .teamCount(2)
+                .defaultArena("ctf")
+                .build()
+        );
+
+        LOGGER.info("GameRegistry initialized. Registered game types: " +
                    registry.getRegisteredTypes());
 
         // Initialize login command with Convex URL and secret

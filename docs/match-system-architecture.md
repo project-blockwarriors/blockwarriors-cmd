@@ -8,15 +8,20 @@ Game configuration constants (game types, match statuses, etc.) are defined in a
 
 - **Source of truth**: `packages/shared/constants/game-config.json`
 - **TypeScript types**: `packages/shared/src/` (game-types.ts, match-status.ts, http-responses.ts)
-- **Java constants**: `apps/blockwarriors-beacon/src/main/java/ai/blockwarriors/beacon/constants/GameConfig.java`
+- **Generated Java constants**: `apps/blockwarriors-beacon/src/main/java/ai/blockwarriors/beacon/constants/GameConfig.java`
 
-**IMPORTANT**: When updating game configuration, update both the JSON source AND the Java constants file.
+**IMPORTANT**: When updating shared game configuration, regenerate Beacon constants with:
+
+```bash
+npm run codegen:beacon
+```
 
 ## HTTP Response Format
 
 All Convex HTTP routes use a standardized response format:
 
 **Success Response:**
+
 ```json
 {
   "success": true,
@@ -25,6 +30,7 @@ All Convex HTTP routes use a standardized response format:
 ```
 
 **Error Response:**
+
 ```json
 {
   "success": false,

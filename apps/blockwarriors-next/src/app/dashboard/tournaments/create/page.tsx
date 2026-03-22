@@ -24,9 +24,11 @@ import {
 import Link from 'next/link';
 import {
   TOURNAMENT_FORMATS,
+  GAME_TYPES,
   GAMES_PER_MATCH_OPTIONS,
   DEFAULT_TOURNAMENT_CONFIG,
   type TournamentFormat,
+  type GameType,
 } from '@/lib/tournament-constants';
 import { authClient } from '@/lib/auth-client';
 
@@ -42,6 +44,7 @@ export default function CreateTournamentPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [format, setFormat] = useState<TournamentFormat>('round_robin');
+  const [gameType, setGameType] = useState<GameType>(DEFAULT_TOURNAMENT_CONFIG.gameType);
   const [minTeams, setMinTeams] = useState(DEFAULT_TOURNAMENT_CONFIG.minTeams);
   const [maxTeams, setMaxTeams] = useState(DEFAULT_TOURNAMENT_CONFIG.maxTeams);
   const [gamesPerMatch, setGamesPerMatch] = useState(
@@ -90,6 +93,7 @@ export default function CreateTournamentPage() {
         name: name.trim(),
         description: description.trim(),
         format,
+        gameType,
         isOfficial,
         createdBy: session.user.id,
         minTeams,
@@ -184,6 +188,30 @@ export default function CreateTournamentPage() {
                       <SelectItem key={key} value={key}>
                         <div className="flex flex-col">
                           <span>{info.name}</span>
+                          <span className="text-xs text-gray-400">
+                            {info.description}
+                          </span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="gameType">Game Type</Label>
+                <Select
+                  value={gameType}
+                  onValueChange={(value) => setGameType(value as GameType)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(GAME_TYPES).map(([key, info]) => (
+                      <SelectItem key={key} value={key}>
+                        <div className="flex flex-col">
+                          <span>{info.name} ({info.players})</span>
                           <span className="text-xs text-gray-400">
                             {info.description}
                           </span>

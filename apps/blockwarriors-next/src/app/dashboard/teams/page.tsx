@@ -12,7 +12,6 @@ import {
   TrendingUp,
   TrendingDown,
   Minus,
-  ChevronRight,
   User,
   Target,
 } from 'lucide-react';
@@ -104,7 +103,9 @@ export default function TeamsPage() {
               <Users className="h-6 w-6 text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold text-white">Tournament Teams</h1>
+              <h1 className="text-3xl font-bold text-white">
+                Tournament Teams
+              </h1>
               <p className="text-muted-foreground">
                 <span className="text-primary font-medium">{totalTeams}</span>{' '}
                 teams competing for glory
@@ -141,7 +142,9 @@ export default function TeamsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Players</p>
-                <p className="text-3xl font-bold text-blue-400">{totalMembers}</p>
+                <p className="text-3xl font-bold text-blue-400">
+                  {totalMembers}
+                </p>
               </div>
               <div className="h-12 w-12 rounded-xl bg-blue-500/10 flex items-center justify-center">
                 <User className="h-6 w-6 text-blue-400" />

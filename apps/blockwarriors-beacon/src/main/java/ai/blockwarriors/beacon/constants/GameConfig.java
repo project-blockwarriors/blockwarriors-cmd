@@ -1,30 +1,24 @@
 package ai.blockwarriors.beacon.constants;
 
 /**
- * Game configuration constants.
- * 
- * IMPORTANT: Keep in sync with packages/shared/constants/game-config.json
- * This file should be manually updated when the JSON source changes.
- * The Beacon plugin trusts the backend for actual values; these are for
- * documentation and local validation purposes.
- * 
- * @see packages/shared/constants/game-config.json
+ * Generated from packages/shared/constants/game-config.json.
+ * Run `npm run codegen:beacon` after updating shared game config.
  */
 public final class GameConfig {
-    
+
     private GameConfig() {
         // Prevent instantiation
     }
-    
+
     // ==================== Game Types ====================
-    
+
     public static final String GAME_TYPE_PVP = "pvp";
     public static final String GAME_TYPE_SKY_TILES = "sky_tiles";
     public static final String GAME_TYPE_WOOL_WARS = "wool_wars";
     public static final String GAME_TYPE_BRIDGE = "bridge";
     public static final String GAME_TYPE_BEDWARS = "bedwars";
     public static final String GAME_TYPE_CTF = "ctf";
-    
+
     /**
      * All valid game types
      */
@@ -36,20 +30,18 @@ public final class GameConfig {
         GAME_TYPE_BEDWARS,
         GAME_TYPE_CTF
     };
-    
+
     // ==================== Tokens Per Team ====================
-    // Note: These values should match the backend, but the backend is the source of truth
-    
+
     public static final int PVP_TOKENS_PER_TEAM = 1;
     public static final int SKY_TILES_TOKENS_PER_TEAM = 1;
     public static final int WOOL_WARS_TOKENS_PER_TEAM = 4;
     public static final int BRIDGE_TOKENS_PER_TEAM = 1;
     public static final int BEDWARS_TOKENS_PER_TEAM = 4;
-    public static final int CTF_TOKENS_PER_TEAM = 5;
-    
+    public static final int CTF_TOKENS_PER_TEAM = 4;
+
     /**
-     * Get tokens per team for a game type
-     * Note: The backend is the source of truth for this value
+     * Get tokens per team for a game type.
      */
     public static int getTokensPerTeam(String gameType) {
         switch (gameType) {
@@ -66,14 +58,14 @@ public final class GameConfig {
             case GAME_TYPE_CTF:
                 return CTF_TOKENS_PER_TEAM;
             default:
-                return 1; // Default to 1 for unknown types
+                return 1;
         }
     }
-    
+
     // ==================== Arena Defaults ====================
-    
+
     /**
-     * Get the default arena name for a game type
+     * Get the default arena name for a game type.
      */
     public static String getDefaultArena(String gameType) {
         switch (gameType) {
@@ -85,13 +77,17 @@ public final class GameConfig {
                 return "wool_wars";
             case GAME_TYPE_BRIDGE:
                 return "bridge";
+            case GAME_TYPE_BEDWARS:
+                return "bedwars";
+            case GAME_TYPE_CTF:
+                return "ctf";
             default:
-                return "pvp"; // Default to pvp arena
+                return "pvp";
         }
     }
-    
+
     /**
-     * Check if a game type is valid
+     * Check if a game type is valid.
      */
     public static boolean isValidGameType(String gameType) {
         for (String type : GAME_TYPES) {
@@ -101,15 +97,15 @@ public final class GameConfig {
         }
         return false;
     }
-    
+
     // ==================== Match Statuses ====================
-    
+
     public static final String STATUS_QUEUING = "Queuing";
     public static final String STATUS_WAITING = "Waiting";
     public static final String STATUS_PLAYING = "Playing";
     public static final String STATUS_FINISHED = "Finished";
     public static final String STATUS_TERMINATED = "Terminated";
-    
+
     /**
      * All valid match statuses
      */
@@ -120,19 +116,19 @@ public final class GameConfig {
         STATUS_FINISHED,
         STATUS_TERMINATED
     };
-    
+
     /**
-     * Check if a status is a terminal status (no further transitions)
+     * Check if a status is terminal.
      */
     public static boolean isTerminalStatus(String status) {
         return STATUS_FINISHED.equals(status) || STATUS_TERMINATED.equals(status);
     }
-    
+
     // ==================== Match Modes ====================
-    
+
     public static final String MODE_PRACTICE = "practice";
     public static final String MODE_RANKED = "ranked";
-    
+
     /**
      * All valid match modes
      */

@@ -3,35 +3,36 @@
  *
  * Usage:
  * 1. Set CONVEX_URL and CONVEX_SITE_URL in .env.local file
+ *    (copy packages/backend/.env.example if needed)
  * 2. Run: npm run test:http
  *
  * The script will automatically load environment variables from .env.local
  */
 
-import { config } from "dotenv";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "./convex/_generated/api";
-import { Id } from "./convex/_generated/dataModel";
+import { config } from 'dotenv';
+import { ConvexHttpClient } from 'convex/browser';
+import { api } from './convex/_generated/api';
+import { Id } from './convex/_generated/dataModel';
 
 // Load environment variables from .env.local (in current directory)
-config({ path: ".env.local" });
+config({ path: '.env.local' });
 
-const CONVEX_URL = process.env.CONVEX_URL || "";
+const CONVEX_URL = process.env.CONVEX_URL || '';
 // Derive CONVEX_SITE_URL from CONVEX_URL if not set
 // Convex site URL is typically the deployment URL with .convex.site instead of .convex.cloud
 const CONVEX_SITE_URL =
   process.env.CONVEX_SITE_URL ||
-  (CONVEX_URL ? CONVEX_URL.replace(".convex.cloud", ".convex.site") : "");
+  (CONVEX_URL ? CONVEX_URL.replace('.convex.cloud', '.convex.site') : '');
 
 if (!CONVEX_URL) {
-  console.error("Error: CONVEX_URL environment variable is not set");
+  console.error('Error: CONVEX_URL environment variable is not set');
   process.exit(1);
 }
 
 if (!CONVEX_SITE_URL) {
-  console.error("Error: CONVEX_SITE_URL environment variable is not set");
+  console.error('Error: CONVEX_SITE_URL environment variable is not set');
   console.error(
-    "Set it to your Convex site URL, e.g., https://your-deployment.convex.site"
+    'Set it to your Convex site URL, e.g., https://your-deployment.convex.site'
   );
   process.exit(1);
 }
@@ -65,15 +66,15 @@ async function test(name: string, fn: () => Promise<any>): Promise<void> {
 }
 
 async function main() {
-  console.log("🚀 Starting HTTP Routes Test Suite");
+  console.log('🚀 Starting HTTP Routes Test Suite');
   console.log(`📡 Convex URL: ${CONVEX_URL}`);
   console.log(`🌐 Convex Site URL: ${CONVEX_SITE_URL}`);
 
   // Step 1: Create test game teams
-  let blueTeamId: Id<"game_teams"> | undefined;
-  let redTeamId: Id<"game_teams"> | undefined;
+  let blueTeamId: Id<'game_teams'> | undefined;
+  let redTeamId: Id<'game_teams'> | undefined;
 
-  await test("Create game teams for testing", async () => {
+  await test('Create game teams for testing', async () => {
     const teams = await convexClient.mutation(
       api.gameTeams.createGameTeamsForMatch,
       {
@@ -87,22 +88,22 @@ async function main() {
   });
 
   if (!blueTeamId || !redTeamId) {
-    console.error("Failed to create game teams. Cannot continue tests.");
+    console.error('Failed to create game teams. Cannot continue tests.');
     process.exit(1);
   }
 
   // Step 2: Test POST /matches/new
-  let createdMatchId: Id<"matches"> | undefined;
+  let createdMatchId: Id<'matches'> | undefined;
 
-  await test("POST /matches/new - Create match with Queuing status", async () => {
+  await test('POST /matches/new - Create match with Queuing status', async () => {
     const response = await fetch(`${CONVEX_SITE_URL}/matches/new`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        match_type: "pvp",
-        mode: "pvp",
+        match_type: 'pvp',
+        mode: 'practice',
         blue_team_id: blueTeamId,
         red_team_id: redTeamId,
       }),
@@ -118,21 +119,21 @@ async function main() {
     return match;
   });
 
-  await test("POST /matches/new - Create match with match_state", async () => {
+  await test('POST /matches/new - Create match with match_state', async () => {
     const matchState = {
       score: { blue: 0, red: 0 },
-      phase: "setup",
+      phase: 'setup',
       players: [],
     };
 
     const response = await fetch(`${CONVEX_SITE_URL}/matches/new`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        match_type: "bedwars",
-        mode: "bedwars",
+        match_type: 'bedwars',
+        mode: 'bedwars',
         blue_team_id: blueTeamId,
         red_team_id: redTeamId,
         match_state: matchState,
@@ -158,19 +159,19 @@ async function main() {
       Object.keys(expectedState || {}).sort()
     );
     if (savedStr !== expectedStr) {
-      throw new Error("match_state was not saved correctly");
+      throw new Error('match_state was not saved correctly');
     }
     return match;
   });
 
-  await test("POST /matches/new - Missing required fields", async () => {
+  await test('POST /matches/new - Missing required fields', async () => {
     const response = await fetch(`${CONVEX_SITE_URL}/matches/new`, {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        match_type: "pvp",
+        match_type: 'pvp',
         // Missing mode, blue_team_id, red_team_id
       }),
     });
@@ -185,7 +186,7 @@ async function main() {
 
   // Step 3: Test GET /matches?id={_id} (Convex doesn't support path parameters)
   if (createdMatchId) {
-    await test("GET /matches?id={_id} - Get match by ID", async () => {
+    await test('GET /matches?id={_id} - Get match by ID', async () => {
       const response = await fetch(
         `${CONVEX_SITE_URL}/matches?id=${createdMatchId}`
       );
@@ -197,9 +198,9 @@ async function main() {
 
       const match = await response.json();
       if (match.match_id !== createdMatchId) {
-        throw new Error("Match ID mismatch");
+        throw new Error('Match ID mismatch');
       }
-      if (match.match_status !== "Queuing") {
+      if (match.match_status !== 'Queuing') {
         throw new Error(
           `Expected status 'Queuing', got '${match.match_status}'`
         );
@@ -207,8 +208,8 @@ async function main() {
       return match;
     });
 
-    await test("GET /matches?id={_id} - Non-existent match", async () => {
-      const fakeId = "j0000000000000000000000000" as Id<"matches">;
+    await test('GET /matches?id={_id} - Non-existent match', async () => {
+      const fakeId = 'j0000000000000000000000000' as Id<'matches'>;
       const response = await fetch(`${CONVEX_SITE_URL}/matches?id=${fakeId}`);
 
       if (response.status !== 404) {
@@ -223,15 +224,15 @@ async function main() {
   // Step 4: Test POST /matches/update - Update status
   // Note: Convex doesn't support path parameters, so we use /matches/update with match_id in body
   if (createdMatchId) {
-    await test("POST /matches/update - Update match_status to Waiting", async () => {
+    await test('POST /matches/update - Update match_status to Waiting', async () => {
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
-          match_status: "Waiting",
+          match_status: 'Waiting',
         }),
       });
 
@@ -241,7 +242,7 @@ async function main() {
       }
 
       const match = await response.json();
-      if (match.match_status !== "Waiting") {
+      if (match.match_status !== 'Waiting') {
         throw new Error(
           `Expected status 'Waiting', got '${match.match_status}'`
         );
@@ -249,15 +250,15 @@ async function main() {
       return match;
     });
 
-    await test("POST /matches/update - Update match_status to Playing", async () => {
+    await test('POST /matches/update - Update match_status to Playing', async () => {
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
-          match_status: "Playing",
+          match_status: 'Playing',
         }),
       });
 
@@ -267,7 +268,7 @@ async function main() {
       }
 
       const match = await response.json();
-      if (match.match_status !== "Playing") {
+      if (match.match_status !== 'Playing') {
         throw new Error(
           `Expected status 'Playing', got '${match.match_status}'`
         );
@@ -275,18 +276,18 @@ async function main() {
       return match;
     });
 
-    await test("POST /matches/update - Update match_state", async () => {
+    await test('POST /matches/update - Update match_state', async () => {
       const newState = {
         score: { blue: 5, red: 3 },
-        phase: "active",
-        players: ["player1", "player2"],
+        phase: 'active',
+        players: ['player1', 'player2'],
         timestamp: Date.now(),
       };
 
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
@@ -312,26 +313,26 @@ async function main() {
         Object.keys(expectedState || {}).sort()
       );
       if (savedStr !== expectedStr) {
-        throw new Error("match_state was not updated correctly");
+        throw new Error('match_state was not updated correctly');
       }
       return match;
     });
 
-    await test("POST /matches/update - Update both status and state", async () => {
+    await test('POST /matches/update - Update both status and state', async () => {
       const newState = {
         score: { blue: 10, red: 7 },
-        phase: "final",
-        winner: "blue",
+        phase: 'final',
+        winner: 'blue',
       };
 
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
-          match_status: "Finished",
+          match_status: 'Finished',
           match_state: newState,
         }),
       });
@@ -342,7 +343,7 @@ async function main() {
       }
 
       const match = await response.json();
-      if (match.match_status !== "Finished") {
+      if (match.match_status !== 'Finished') {
         throw new Error(
           `Expected status 'Finished', got '${match.match_status}'`
         );
@@ -359,21 +360,21 @@ async function main() {
         Object.keys(expectedState || {}).sort()
       );
       if (savedStr !== expectedStr) {
-        throw new Error("match_state was not updated correctly");
+        throw new Error('match_state was not updated correctly');
       }
       return match;
     });
 
-    await test("POST /matches/update - Invalid status transition", async () => {
+    await test('POST /matches/update - Invalid status transition', async () => {
       // Try to go from Finished back to Playing (should fail)
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
-          match_status: "Playing",
+          match_status: 'Playing',
         }),
       });
 
@@ -384,17 +385,17 @@ async function main() {
       }
 
       const error = await response.json();
-      if (!error.error.includes("Invalid status transition")) {
+      if (!error.error.includes('Invalid status transition')) {
         throw new Error("Error message doesn't mention invalid transition");
       }
       return error;
     });
 
-    await test("POST /matches/update - Missing both fields", async () => {
+    await test('POST /matches/update - Missing both fields', async () => {
       const response = await fetch(`${CONVEX_SITE_URL}/matches/update`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           match_id: createdMatchId,
@@ -411,7 +412,7 @@ async function main() {
   }
 
   // Step 5: Test GET /matches - List matches
-  await test("GET /matches - List all matches", async () => {
+  await test('GET /matches - List all matches', async () => {
     const response = await fetch(`${CONVEX_SITE_URL}/matches`);
 
     if (!response.ok) {
@@ -421,12 +422,12 @@ async function main() {
 
     const matches = await response.json();
     if (!Array.isArray(matches)) {
-      throw new Error("Expected array of matches");
+      throw new Error('Expected array of matches');
     }
     return { count: matches.length, matches: matches.slice(0, 3) };
   });
 
-  await test("GET /matches?status=Queuing - Filter by status", async () => {
+  await test('GET /matches?status=Queuing - Filter by status', async () => {
     const response = await fetch(`${CONVEX_SITE_URL}/matches?status=Queuing`);
 
     if (!response.ok) {
@@ -436,10 +437,10 @@ async function main() {
 
     const matches = await response.json();
     if (!Array.isArray(matches)) {
-      throw new Error("Expected array of matches");
+      throw new Error('Expected array of matches');
     }
     for (const match of matches) {
-      if (match.match_status !== "Queuing") {
+      if (match.match_status !== 'Queuing') {
         throw new Error(
           `Found match with status '${match.match_status}', expected 'Queuing'`
         );
@@ -448,7 +449,7 @@ async function main() {
     return { count: matches.length, allQueuing: true };
   });
 
-  await test("GET /matches?status=Playing - Filter by status", async () => {
+  await test('GET /matches?status=Playing - Filter by status', async () => {
     const response = await fetch(`${CONVEX_SITE_URL}/matches?status=Playing`);
 
     if (!response.ok) {
@@ -458,10 +459,10 @@ async function main() {
 
     const matches = await response.json();
     if (!Array.isArray(matches)) {
-      throw new Error("Expected array of matches");
+      throw new Error('Expected array of matches');
     }
     for (const match of matches) {
-      if (match.match_status !== "Playing") {
+      if (match.match_status !== 'Playing') {
         throw new Error(
           `Found match with status '${match.match_status}', expected 'Playing'`
         );
@@ -471,9 +472,9 @@ async function main() {
   });
 
   // Print summary
-  console.log("\n" + "=".repeat(60));
-  console.log("📊 Test Summary");
-  console.log("=".repeat(60));
+  console.log('\n' + '='.repeat(60));
+  console.log('📊 Test Summary');
+  console.log('='.repeat(60));
   const passed = results.filter((r) => r.passed).length;
   const failed = results.filter((r) => !r.passed).length;
   console.log(`✅ Passed: ${passed}`);
@@ -481,7 +482,7 @@ async function main() {
   console.log(`📝 Total: ${results.length}`);
 
   if (failed > 0) {
-    console.log("\n❌ Failed Tests:");
+    console.log('\n❌ Failed Tests:');
     results
       .filter((r) => !r.passed)
       .forEach((r) => {
@@ -489,12 +490,12 @@ async function main() {
       });
     process.exit(1);
   } else {
-    console.log("\n🎉 All tests passed!");
+    console.log('\n🎉 All tests passed!');
     process.exit(0);
   }
 }
 
 main().catch((error) => {
-  console.error("Fatal error:", error);
+  console.error('Fatal error:', error);
   process.exit(1);
 });

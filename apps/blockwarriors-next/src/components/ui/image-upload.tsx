@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from 'react';
 import { useMutation } from 'convex/react';
+import type { Id } from '@packages/backend/convex/_generated/dataModel';
 import { api } from '@/lib/convex';
 import { Button } from '@/components/ui/button';
 import { Camera, Trash2, Upload, User, Users } from 'lucide-react';
@@ -9,7 +10,7 @@ import Image from 'next/image';
 
 interface ImageUploadProps {
   currentImageUrl?: string | null;
-  onUploadComplete: (storageId: string) => Promise<void>;
+  onUploadComplete: (storageId: Id<'_storage'>) => Promise<void>;
   onDelete?: () => Promise<void>;
   type: 'profile' | 'team';
   size?: 'sm' | 'md' | 'lg';
@@ -87,7 +88,9 @@ export function ImageUpload({
           throw new Error('Upload failed');
         }
 
-        const { storageId } = await response.json();
+        const { storageId } = (await response.json()) as {
+          storageId: Id<'_storage'>;
+        };
 
         // Call parent callback
         await onUploadComplete(storageId);
@@ -104,7 +107,7 @@ export function ImageUpload({
 
   const handleDelete = useCallback(async () => {
     if (!onDelete) return;
-    
+
     if (!confirm('Are you sure you want to remove this image?')) return;
 
     try {
