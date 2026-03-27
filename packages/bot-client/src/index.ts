@@ -2,6 +2,7 @@ export { BotClient } from "./BotClient.js";
 export type {
   BotState,
   BotCommand,
+  BotAuthMode,
   BotPosition,
   BotHealth,
   InventoryItem,

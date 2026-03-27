@@ -108,7 +108,7 @@ public class ArenaManager {
      */
     private void saveDefaultArenas() {
         // List of default arena configs to save
-        String[] defaultArenas = {"pvp.yml", "bridge.yml", "ctf.yml"};
+        String[] defaultArenas = {"pvp.yml", "bridge.yml", "ctf.yml", "build_uhc.yml"};
         
         for (String arenaName : defaultArenas) {
             String resourcePath = ARENAS_FOLDER + "/" + arenaName;
@@ -145,6 +145,15 @@ public class ArenaManager {
                 .name(name)
                 .gameType(gameType)
                 .schematicPath(yaml.getString("schematic"));
+
+        // Load optional schematic paste origin (defaults to 0,65,0)
+        ConfigurationSection schematicOriginSection = yaml.getConfigurationSection("schematic_origin");
+        if (schematicOriginSection != null) {
+            int originX = schematicOriginSection.getInt("x", 0);
+            int originY = schematicOriginSection.getInt("y", 65);
+            int originZ = schematicOriginSection.getInt("z", 0);
+            builder.schematicOrigin(originX, originY, originZ);
+        }
         
         // Load spawns
         ConfigurationSection spawnsSection = yaml.getConfigurationSection("spawns");
