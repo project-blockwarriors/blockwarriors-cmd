@@ -1,5 +1,5 @@
 # Build UHC Arena Configuration
-# 1v1 duel with building, bow, melee, and healing
+# 2v2 duel with building, bow, melee, and healing
 
 name: "Build UHC Arena"
 game_type: "build_uhc"
@@ -13,9 +13,11 @@ schematic_origin: {x: 0, y: 65, z: 0}
 # Team spawn points (tune these to match the schematic layout)
 spawns:
   blue_team:
-    - {x: 25, y: 65, z: 0, yaw: -90, pitch: 0}
+    - {x: 25, y: 65, z: -4, yaw: -90, pitch: 0}
+    - {x: 25, y: 65, z: 4, yaw: -90, pitch: 0}
   red_team:
-    - {x: -25, y: 65, z: 0, yaw: 90, pitch: 0}
+    - {x: -25, y: 65, z: -4, yaw: 90, pitch: 0}
+    - {x: -25, y: 65, z: 4, yaw: 90, pitch: 0}
 
 # Arena boundaries — max Y enforces build height limit (floor 65 + 16)
 boundaries:

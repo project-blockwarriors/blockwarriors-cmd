@@ -49,6 +49,9 @@ public class BuildUHCGame extends BaseGame {
     /** Locations of blocks placed by players during the match */
     private final Set<Long> playerPlacedBlocks = new HashSet<>();
 
+    /** Players who have been eliminated (dead, no respawns) */
+    private final Set<UUID> eliminatedPlayers = new HashSet<>();
+
     private BukkitTask countdownTask;
     private BukkitTask timerTask;
     private BukkitTask suddenDeathTask;
@@ -109,23 +112,52 @@ public class BuildUHCGame extends BaseGame {
 
         UUID deadId = deadPlayer.getUniqueId();
         deaths.merge(deadId, 1, Integer::sum);
+        eliminatedPlayers.add(deadId);
 
         if (killer != null) {
-            UUID killerId = killer.getUniqueId();
-            kills.merge(killerId, 1, Integer::sum);
-            winnerId = killerId;
+            kills.merge(killer.getUniqueId(), 1, Integer::sum);
             broadcastMessage("\u00a7c" + deadPlayer.getName() +
-                    " \u00a77was killed by \u00a7a" + killer.getName());
+                    " \u00a77was eliminated by \u00a7a" + killer.getName() + "!");
         } else {
-            List<UUID> opponents = getOpponents(deadId);
-            if (!opponents.isEmpty()) {
-                winnerId = opponents.get(0);
-            }
-            broadcastMessage("\u00a7c" + deadPlayer.getName() + " \u00a77died");
+            broadcastMessage("\u00a7c" + deadPlayer.getName() + " \u00a77was eliminated!");
         }
 
-        LOGGER.info("Player death in Build UHC match " + matchId + ": " + deadPlayer.getName() +
-                (killer != null ? " killed by " + killer.getName() : " (environmental)"));
+        // Announce remaining teammates
+        String deadTeam = getTeamForPlayer(deadId);
+        List<UUID> teammates = getTeammates(deadId);
+        long aliveTeammates = teammates.stream()
+                .filter(id -> !eliminatedPlayers.contains(id))
+                .count();
+        if (aliveTeammates > 0) {
+            broadcastMessage("\u00a7e" + aliveTeammates + " \u00a77player(s) remaining on \u00a7" +
+                    ("blue".equals(deadTeam) ? "9blue" : "cred") + " team\u00a77.");
+        }
+
+        // Only end the game when the entire opposing team is eliminated
+        String opponentTeam = "blue".equals(deadTeam) ? "red" : "blue";
+        List<UUID> opponentTeamList = "blue".equals(opponentTeam) ? blueTeam : redTeam;
+        boolean allEliminated = opponentTeamList.stream().allMatch(eliminatedPlayers::contains);
+        // Actually check the dead player's own team
+        List<UUID> deadTeamList = "blue".equals(deadTeam) ? blueTeam : redTeam;
+        boolean deadTeamWiped = deadTeamList.stream().allMatch(eliminatedPlayers::contains);
+
+        if (deadTeamWiped) {
+            // Pick the first alive opponent as the representative winner
+            List<UUID> opponents = getOpponents(deadId);
+            for (UUID id : opponents) {
+                if (!eliminatedPlayers.contains(id)) {
+                    winnerId = id;
+                    break;
+                }
+            }
+            if (winnerId == null && !opponents.isEmpty()) {
+                winnerId = opponents.get(0);
+            }
+        }
+
+        LOGGER.info("Player eliminated in Build UHC 2v2 match " + matchId + ": " + deadPlayer.getName() +
+                (killer != null ? " by " + killer.getName() : " (environmental)") +
+                " | Eliminated: " + eliminatedPlayers.size() + "/" + players.size());
 
         return true;
     }
@@ -194,6 +226,7 @@ public class BuildUHCGame extends BaseGame {
         }
 
         playerPlacedBlocks.clear();
+        eliminatedPlayers.clear();
         LOGGER.info("Build UHC game cleanup for match " + matchId);
     }
 
@@ -210,17 +243,33 @@ public class BuildUHCGame extends BaseGame {
     public DisconnectResult handlePlayerDisconnect(UUID playerId, DisconnectReason reason) {
         if (!hasPlayer(playerId)) return null;
 
-        LOGGER.info("Player " + playerId + " disconnected from Build UHC match " + matchId +
+        LOGGER.info("Player " + playerId + " disconnected from Build UHC 2v2 match " + matchId +
                 " (reason: " + reason + ")");
 
-        List<UUID> opponents = getOpponents(playerId);
-        if (!opponents.isEmpty()) {
-            winnerId = opponents.get(0);
+        disconnectedPlayers.put(playerId, System.currentTimeMillis());
+
+        // In 2v2, forfeit only if the whole team has disconnected or been eliminated
+        String team = getTeamForPlayer(playerId);
+        List<UUID> teamList = "blue".equals(team) ? blueTeam : redTeam;
+        boolean teamWiped = teamList.stream().allMatch(
+                id -> disconnectedPlayers.containsKey(id) || eliminatedPlayers.contains(id));
+
+        if (teamWiped) {
+            List<UUID> opponents = getOpponents(playerId);
+            for (UUID id : opponents) {
+                if (!eliminatedPlayers.contains(id) && !disconnectedPlayers.containsKey(id)) {
+                    winnerId = id;
+                    break;
+                }
+            }
+            if (winnerId == null && !opponents.isEmpty()) winnerId = opponents.get(0);
             broadcastMessage("\u00a7c" + getPlayerName(playerId) +
-                    " \u00a77disconnected. \u00a7aOpponent wins!");
+                    "\u00a77's team forfeited. \u00a7aOpposing team wins!");
+        } else {
+            broadcastMessage("\u00a7c" + getPlayerName(playerId) +
+                    " \u00a77disconnected. Their teammate fights on!");
         }
 
-        disconnectedPlayers.put(playerId, System.currentTimeMillis());
         return DisconnectResult.FORFEIT;
     }
 

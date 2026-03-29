@@ -51,9 +51,9 @@
     "build_uhc": {
       "id": "build_uhc",
       "name": "Build UHC",
-      "description": "1v1 duel with building, bow, melee, and healing",
-      "tokensPerTeam": 1,
-      "players": "1v1",
+      "description": "2v2 duel with building, bow, melee, and healing",
+      "tokensPerTeam": 2,
+      "players": "2v2",
       "defaultArena": "build_uhc"
     }
   },
