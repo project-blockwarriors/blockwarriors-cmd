@@ -9,6 +9,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
@@ -148,6 +149,11 @@ public class MatchEventListener implements Listener {
 
         if (game instanceof BuildUHCGame) {
             BuildUHCGame uhcGame = (BuildUHCGame) game;
+            if (uhcGame.isFighter(playerId)) {
+                event.setCancelled(true);
+                player.sendMessage("\u00a7cFighters cannot place blocks!");
+                return;
+            }
             if (event.getBlock().getY() > uhcGame.getBuildHeightLimit()) {
                 event.setCancelled(true);
                 player.sendMessage("\u00a7cBuild height limit reached!");
@@ -177,6 +183,11 @@ public class MatchEventListener implements Listener {
 
         if (game instanceof BuildUHCGame) {
             BuildUHCGame uhcGame = (BuildUHCGame) game;
+            if (uhcGame.isFighter(playerId)) {
+                event.setCancelled(true);
+                player.sendMessage("\u00a7cFighters cannot break blocks!");
+                return;
+            }
             if (!uhcGame.isPlayerPlacedBlock(event.getBlock().getLocation())) {
                 event.setCancelled(true);
                 return;
@@ -185,6 +196,24 @@ public class MatchEventListener implements Listener {
             uhcGame.untrackPlacedBlock(event.getBlock().getLocation());
         } else {
             event.setCancelled(true);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onCraftItem(CraftItemEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+        UUID playerId = player.getUniqueId();
+
+        if (!matchManager.isPlayerInMatch(playerId)) return;
+
+        BaseGame game = matchManager.getGameForPlayer(playerId);
+        if (!(game instanceof BuildUHCGame)) return;
+
+        BuildUHCGame uhcGame = (BuildUHCGame) game;
+        if (uhcGame.isFighter(playerId)) {
+            event.setCancelled(true);
+            player.sendMessage("\u00a7cFighters cannot craft items!");
         }
     }
 

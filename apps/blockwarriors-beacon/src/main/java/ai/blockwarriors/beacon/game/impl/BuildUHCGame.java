@@ -52,6 +52,14 @@ public class BuildUHCGame extends BaseGame {
     /** Players who have been eliminated (dead, no respawns) */
     private final Set<UUID> eliminatedPlayers = new HashSet<>();
 
+    // ==================== Role System ====================
+
+    /** Roles available in a 2v2 Build UHC match */
+    public enum PlayerRole { BUILDER, FIGHTER }
+
+    /** Role assigned to each player */
+    private final Map<UUID, PlayerRole> playerRoles = new HashMap<>();
+
     private BukkitTask countdownTask;
     private BukkitTask timerTask;
     private BukkitTask suddenDeathTask;
@@ -70,15 +78,19 @@ public class BuildUHCGame extends BaseGame {
         this.world = world;
         this.arenaConfig = arenaConfig;
 
-        for (Player p : blueTeamPlayers) {
+        for (int i = 0; i < blueTeamPlayers.size(); i++) {
+            Player p = blueTeamPlayers.get(i);
             players.add(p.getUniqueId());
             blueTeam.add(p.getUniqueId());
             initPlayerStats(p.getUniqueId());
+            playerRoles.put(p.getUniqueId(), i == 0 ? PlayerRole.FIGHTER : PlayerRole.BUILDER);
         }
-        for (Player p : redTeamPlayers) {
+        for (int i = 0; i < redTeamPlayers.size(); i++) {
+            Player p = redTeamPlayers.get(i);
             players.add(p.getUniqueId());
             redTeam.add(p.getUniqueId());
             initPlayerStats(p.getUniqueId());
+            playerRoles.put(p.getUniqueId(), i == 0 ? PlayerRole.FIGHTER : PlayerRole.BUILDER);
         }
 
         loadArena();
@@ -227,6 +239,7 @@ public class BuildUHCGame extends BaseGame {
 
         playerPlacedBlocks.clear();
         eliminatedPlayers.clear();
+        playerRoles.clear();
         LOGGER.info("Build UHC game cleanup for match " + matchId);
     }
 
@@ -326,6 +339,21 @@ public class BuildUHCGame extends BaseGame {
         return suddenDeath;
     }
 
+    /** Get the role assigned to a player. Returns null if the player is not in this game. */
+    public PlayerRole getRole(UUID playerId) {
+        return playerRoles.get(playerId);
+    }
+
+    /** Returns true if the player's role is BUILDER. */
+    public boolean isBuilder(UUID playerId) {
+        return playerRoles.get(playerId) == PlayerRole.BUILDER;
+    }
+
+    /** Returns true if the player's role is FIGHTER. */
+    public boolean isFighter(UUID playerId) {
+        return playerRoles.get(playerId) == PlayerRole.FIGHTER;
+    }
+
     public int getBuildHeightLimit() {
         if (arenaConfig != null) {
             Object limit = arenaConfig.getObjective("build_height_limit");
@@ -380,20 +408,27 @@ public class BuildUHCGame extends BaseGame {
         player.setGameMode(GameMode.SURVIVAL);
         player.getInventory().clear();
 
-        // UHC loadout
-        player.getInventory().addItem(new ItemStack(Material.IRON_SWORD, 1));
-        player.getInventory().addItem(new ItemStack(Material.BOW, 1));
-        player.getInventory().addItem(new ItemStack(Material.ARROW, 32));
-        player.getInventory().addItem(new ItemStack(Material.FISHING_ROD, 1));
-
-        // Team-colored blocks
+        PlayerRole role = playerRoles.getOrDefault(player.getUniqueId(), PlayerRole.FIGHTER);
         String team = getTeamForPlayer(player.getUniqueId());
         Material blockMaterial = "blue".equals(team) ? Material.BLUE_CONCRETE : Material.RED_CONCRETE;
-        player.getInventory().addItem(new ItemStack(blockMaterial, 64));
 
-        // Healing and utility
-        player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 2));
-        player.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
+        if (role == PlayerRole.FIGHTER) {
+            // Fighter: full combat loadout, no blocks
+            player.getInventory().addItem(new ItemStack(Material.IRON_SWORD, 1));
+            player.getInventory().addItem(new ItemStack(Material.BOW, 1));
+            player.getInventory().addItem(new ItemStack(Material.ARROW, 32));
+            player.getInventory().addItem(new ItemStack(Material.FISHING_ROD, 1));
+            player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 2));
+            player.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
+            player.sendMessage("\u00a7c\u00a7lROLE: FIGHTER \u00a7r\u00a77\u2014 Combat only. No building or crafting.");
+        } else {
+            // Builder: building materials + light combat, no bow
+            player.getInventory().addItem(new ItemStack(blockMaterial, 128));
+            player.getInventory().addItem(new ItemStack(Material.STONE_SWORD, 1));
+            player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 2));
+            player.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
+            player.sendMessage("\u00a72\u00a7lROLE: BUILDER \u00a7r\u00a77\u2014 Place/break blocks and craft. Light combat only.");
+        }
 
         // Reset health and hunger
         player.setHealth(20.0);
