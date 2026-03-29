@@ -1,74 +1,130 @@
-# Build UHC duel
+# Build UHC
 
-A 1v1 duel where you win by mixing melee, bow pressure, smart building, and healing timing.
+A 1v1 duel combining melee, bow, building, rod play, and healing. Two players fight in a mirrored arena until one is eliminated or time runs out.
 
-**Game Overview**
+## Game Overview
 
-Format: 1v1 (optional: 2v2)
+| Detail | Value |
+|--------|-------|
+| Format | 1v1 |
+| Duration | 5 minutes (300 seconds) |
+| Countdown | 5 seconds (players frozen) |
+| Map | Mirrored arena loaded from schematic (`builduhcmap1.schem`) |
+| Teams | Blue vs Red |
+| Disconnect | Instant forfeit — opponent wins immediately |
+| Difficulty | Hard |
 
-Duration: 5 minutes per round
+## Starting Kit
 
-Map: Custom Arena with flat mid and side cover
+Every player spawns with the same fixed loadout:
 
-[Server] The center of the arena is at (X, Y, Z)
+| Slot | Item | Quantity |
+|------|------|----------|
+| 1 | Iron Sword | 1 |
+| 2 | Bow | 1 |
+| 3 | Arrow | 32 |
+| 4 | Fishing Rod | 1 |
+| 5 | Team-colored Concrete (Blue or Red) | 64 |
+| 6 | Golden Apple | 2 |
+| 7 | Water Bucket | 1 |
 
-![image.png](attachment:96797731-eef6-4829-89b2-be9f4facc6df:image.png)
+Players start at full health (20 HP), full hunger (20), and full saturation (20). All potion effects are cleared before the round.
 
-Inventory
+## Core Gameplay Loop
 
-**Core Loop**
+1. Players spawn on opposite sides of the arena, frozen for a 5-second countdown
+2. "FIGHT!" — PvP enables, freeze effects removed
+3. Early bow trades and positioning
+4. Build cover, create angles, deny pushes
+5. Use golden apples to stay ahead in HP
+6. First to kill the opponent wins
 
-1. Players spawn on opposite sides
-2. Early bow trades and positioning for first hit
-3. Build to create angles, deny pushes, and reset fights
-4. Use golden apples to stay ahead in HP
-5. First to kill wins the round
+## Building Mechanics
 
-**Building Mechanics**
+- Block placement is enabled using team-colored concrete
+- **Build height limit**: Y = 81 (16 blocks above the floor at Y 65)
+- Only **player-placed blocks** can be broken — original arena blocks are indestructible
+- Broken blocks **drop nothing** (keeps the arena clean)
+- Placement above the build height limit is cancelled
 
-- Block placement enabled
-- Build height limit: Y + (configurable, recommend +12 to +16 above floor)
-- No block drops on break (clean arena, less lag)
-- Lava and water allowed (configurable)
+## Win Conditions
 
-**Combat Rules**
+The round resolves in this order:
 
-- Starting kit: sword, bow, rod, blocks, water, lava, golden apples
-- On death: Drop NOTHING
-- Respawn: No respawn until next round
+1. **Kill** — first to eliminate the opponent wins
+2. **Time expires** — if the 5-minute timer runs out, the player (team) with **higher total HP** wins
+3. **Sudden death** — if HP is tied at time expiry, a 30-second sudden death phase begins:
+   - **Golden apple consumption is blocked** (no healing)
+   - After 30 seconds, higher HP wins
+   - If HP is **still** tied after sudden death, **blue team wins** as the tiebreak
 
-**Round Win Conditions**
+## Arena Configuration
 
-1. Kill the opponent
-2. If time expires: player with higher remaining health wins
-3. If tied: sudden death (no healing for 30s) or rerun (your choice)
+The arena is defined in `apps/blockwarriors-beacon/src/main/resources/arenas/build_uhc.yml`:
 
-**Bot Requirements**
+- **Schematic**: `builduhcmap1.schem` pasted at origin `(0, 65, 0)`
+- **Blue spawn**: `(25, 65, 0)` facing west
+- **Red spawn**: `(-25, 65, 0)` facing east
+- **Boundaries**: X: -40 to 40, Y: 50 to 81, Z: -40 to 40
+- **Fallback**: if the schematic can't load, a procedural arena is generated with a flat stone floor (Y 64), stone-brick cover walls, and oak-plank mid walls
 
-Navigation
+Configurable objectives in the arena YAML:
 
-- Bots must path to opponent and to safe reset spots behind cover
+| Key | Default | Description |
+|-----|---------|-------------|
+| `time_limit_seconds` | 300 | Round duration before timeout |
+| `build_height_limit` | 81 | Max Y for block placement |
+| `sudden_death_seconds` | 30 | Duration of sudden death phase |
 
-Aiming and Pressure
+## Bot Strategy Guide
 
-- Bow aim while strafing
-- Decide when to rod to break momentum vs commit to sword
+### Difficulty Ladder
 
-Building and Terrain Use
+| Level | Skills |
+|-------|--------|
+| **Baseline** | Move, aim, shoot, melee, heal |
+| **Intermediate** | Use cover, swap weapons intelligently, retreat/reset, rod combos |
+| **Advanced** | Build reactively, punish movement, manage terrain and tempo, block clutch |
 
-- Place blocks for cover, quick elevation, and blocking arrows
-- Block clutching and safe drops (basic)
-- Optional: walling, blocking lava, and cutoffs (advanced)
+### Key Bot Capabilities
 
-Item Management
+**Navigation**
+- Path toward the opponent for pressure
+- Path to cover or safer positions for resets
 
-- Use golden apples proactively (not at 0.5 hearts)
-- Place water to null lava and reduce fall damage risk
-- Track arrows and switch to melee when out of ammo
+**Combat**
+- Bow aim while strafing at range
+- Switch to melee when close
+- Use fishing rod to break momentum and open combos
 
-**Information Available to Bots**
+**Building**
+- Place blocks for cover, quick elevation, and arrow blocking
+- Block clutching and safe drops
 
-- Whatever a normal player screen would entail
-- Hotbar + inventory state
-- Health/armor indicators
-- Scoreboard with round wins
+**Item Management**
+- Use golden apples proactively (don't wait until critical HP)
+- Place water to reduce fall damage risk
+- Track remaining arrows and switch to melee when out
+
+### Information Available to Bots
+
+- Opponent position and movement (whatever a normal player would see)
+- Hotbar and inventory state
+- Health, hunger, and armor indicators
+- Round timer via scoreboard
+- Visible arena geometry and placed blocks
+
+## Implementation Reference
+
+| Component | Path |
+|-----------|------|
+| Game logic | `apps/blockwarriors-beacon/.../game/impl/BuildUHCGame.java` |
+| Event handling (blocks, healing) | `apps/blockwarriors-beacon/.../events/MatchEventListener.java` |
+| Arena config | `apps/blockwarriors-beacon/src/main/resources/arenas/build_uhc.yml` |
+| Arena schematic | `apps/blockwarriors-beacon/src/main/resources/schematics/builduhcmap1.schem` |
+| Shared game metadata | `packages/shared/constants/game-config.json` |
+| Generated Java constants | `apps/blockwarriors-beacon/.../constants/GameConfig.java` |
+
+## Design Rationale
+
+See [builduhcfleshedout.md](./builduhcfleshedout.md) for the original design spec, user story, feasibility analysis, and bot difficulty ladder that informed this implementation.

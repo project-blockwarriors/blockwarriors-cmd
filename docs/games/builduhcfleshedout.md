@@ -1,3 +1,9 @@
+# Build UHC — Original Design Spec
+
+> **Note**: This is the original design document that informed the Build UHC implementation. For the current, accurate game reference (actual kit, rules, and configuration), see **[builduhc.md](./builduhc.md)**.
+
+---
+
 ## **User Story**
 
 As a participant, I should be able to code a bot that can enter a duel arena, perceive the opponent and nearby terrain, manage its inventory and health, choose between bow and melee combat, place blocks for simple cover or positioning, and use healing items at the right time in order to win rounds.
@@ -51,34 +57,23 @@ The arena is a mirrored custom combat map designed for fairness and tactical dec
 
 ### **Environmental mechanics**
 
-- temporary structures placed by bots are part of gameplay
-- water and lava may be allowed as a configurable option
-- for MVP, water is acceptable, lava is optional and likely better disabled at first
+- Temporary structures placed by bots are part of gameplay
+- Water bucket is included in the starting kit
+- Lava is not included (excluded to reduce bot complexity)
 
 ## **Inventory / Starting Kit**
 
-Each player begins each round with a fixed kit. Suggested MVP loadout:
+Each player begins each round with a fixed kit. The implemented loadout is:
 
-- sword
-- bow
-- arrows
-- fishing rod
-- blocks
-- golden apples
-- optional water bucket
-- optional lava bucket
+- Iron Sword (1)
+- Bow (1)
+- Arrow (32)
+- Fishing Rod (1)
+- Team-colored Concrete — Blue or Red (64)
+- Golden Apple (2)
+- Water Bucket (1)
 
-Recommended first version:
-
-- iron or diamond sword
-- 1 bow
-- fixed arrow count
-- 32 to 64 blocks
-- 2 golden apples
-- 1 fishing rod
-- optionally 1 water bucket
-
-Lava should probably be excluded from the first implementation because it adds a lot of bot complexity without being necessary for the game to be fun.
+Lava was excluded from the implementation because it adds bot complexity without being necessary for the game to be fun.
 
 ## **Core Gameplay Loop**
 
@@ -139,10 +134,8 @@ A round is won by:
 
 If health is tied at time expiry:
 
-- **preferred option:** sudden death for 30 seconds with healing disabled
-- **backup option:** rerun the round
-
-A match winner is determined by round wins, for example best-of-3.
+- **Sudden death** begins for 30 seconds with healing (golden apples) disabled
+- After sudden death, higher HP wins; if still tied, **blue team wins** as the tiebreak
 
 ## **Why this game is good for a bot challenge**
 
@@ -166,29 +159,28 @@ So the challenge is both accessible and deep.
 
 ## **Feasibility**
 
-Yes, it is feasible for participants to build bots for this game.
+This game has been validated as feasible for participants to build bots for:
 
-Why:
-
-- the game loop is compact
-- there are only two players
-- no economy, drafting, or large-team coordination is required
-- no random item spawn logic is required
-- map is static and mirrored
-- a basic bot can already be competitive without solving every mechanic
+- The game loop is compact
+- There are only two players
+- No economy, drafting, or large-team coordination is required
+- No random item spawn logic is required
+- Map is static and mirrored
+- A basic bot can already be competitive without solving every mechanic
 
 The main reason this works well is that participants do **not** need to implement every advanced behavior for their bot to be valid. They can start with a simple combat bot and progressively improve it.
 
-## **Recommended MVP Scope**
+## **Implementation Status**
 
-To keep the implementation realistic, the first version should include:
+The following scope has been implemented and is playable:
 
-- 1v1 only
-- sword, bow, arrows, blocks, golden apples
-- mirrored arena with side cover
-- real-time rounds
-- health-based timeout win condition
-- no dropped items
-- no respawns during round
+- 1v1 format with blue vs red teams
+- Iron sword, bow (32 arrows), fishing rod, 64 team-colored blocks, 2 golden apples, water bucket
+- Mirrored arena loaded from schematic (`builduhcmap1.schem`)
+- Real-time rounds with 5-second countdown freeze
+- 300-second time limit with health-based timeout resolution
+- 30-second sudden death (healing disabled) if HP is tied
+- No block drops; only player-placed blocks can be broken
+- Instant forfeit on disconnect
 
-Optional mechanics like lava, advanced clutching, or 2v2 should be added only after the base mode is stable.
+Potential future additions: 2v2 mode, lava bucket, advanced block clutching mechanics.
