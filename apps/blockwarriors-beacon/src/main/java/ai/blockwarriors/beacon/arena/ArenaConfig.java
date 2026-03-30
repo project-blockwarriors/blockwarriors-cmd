@@ -22,6 +22,11 @@ public class ArenaConfig {
     
     /** Path to the WorldEdit schematic file (relative to schematics folder) */
     private final String schematicPath;
+
+    /** Paste origin for the schematic in the match world */
+    private final int schematicOriginX;
+    private final int schematicOriginY;
+    private final int schematicOriginZ;
     
     /** Spawn points by team name (e.g., "blue_team", "red_team") */
     private final Map<String, List<SpawnPoint>> spawns;
@@ -42,12 +47,16 @@ public class ArenaConfig {
      * Create an arena configuration with all parameters.
      */
     public ArenaConfig(String name, String gameType, String schematicPath,
+                       int schematicOriginX, int schematicOriginY, int schematicOriginZ,
                        Map<String, List<SpawnPoint>> spawns, ArenaBoundary boundaries,
                        Map<String, Object> objectives, List<ResourceSpawn> resources,
                        Map<String, List<SpawnPoint>> specialBlocks) {
         this.name = name;
         this.gameType = gameType;
         this.schematicPath = schematicPath;
+        this.schematicOriginX = schematicOriginX;
+        this.schematicOriginY = schematicOriginY;
+        this.schematicOriginZ = schematicOriginZ;
         this.spawns = spawns != null ? new HashMap<>(spawns) : new HashMap<>();
         this.boundaries = boundaries;
         this.objectives = objectives != null ? new HashMap<>(objectives) : new HashMap<>();
@@ -62,6 +71,9 @@ public class ArenaConfig {
         private String name;
         private String gameType;
         private String schematicPath;
+        private int schematicOriginX = 0;
+        private int schematicOriginY = 65;
+        private int schematicOriginZ = 0;
         private final Map<String, List<SpawnPoint>> spawns = new HashMap<>();
         private ArenaBoundary boundaries;
         private final Map<String, Object> objectives = new HashMap<>();
@@ -80,6 +92,13 @@ public class ArenaConfig {
         
         public Builder schematicPath(String path) {
             this.schematicPath = path;
+            return this;
+        }
+
+        public Builder schematicOrigin(int x, int y, int z) {
+            this.schematicOriginX = x;
+            this.schematicOriginY = y;
+            this.schematicOriginZ = z;
             return this;
         }
         
@@ -117,7 +136,9 @@ public class ArenaConfig {
             if (name == null || gameType == null) {
                 throw new IllegalStateException("Arena name and gameType are required");
             }
-            return new ArenaConfig(name, gameType, schematicPath, spawns, boundaries,
+            return new ArenaConfig(name, gameType, schematicPath,
+                    schematicOriginX, schematicOriginY, schematicOriginZ,
+                    spawns, boundaries,
                     objectives, resources, specialBlocks);
         }
     }
@@ -142,6 +163,18 @@ public class ArenaConfig {
     
     public boolean hasSchematic() {
         return schematicPath != null && !schematicPath.isEmpty();
+    }
+
+    public int getSchematicOriginX() {
+        return schematicOriginX;
+    }
+
+    public int getSchematicOriginY() {
+        return schematicOriginY;
+    }
+
+    public int getSchematicOriginZ() {
+        return schematicOriginZ;
     }
     
     /**
@@ -244,7 +277,13 @@ public class ArenaConfig {
             offsetResources.add(resource.withOffset(originX, originY, originZ));
         }
         
-        return new ArenaConfig(name, gameType, schematicPath, offsetSpawns, offsetBoundaries,
+        int offsetOriginX = schematicOriginX + (int) Math.round(originX);
+        int offsetOriginY = schematicOriginY + (int) Math.round(originY);
+        int offsetOriginZ = schematicOriginZ + (int) Math.round(originZ);
+
+        return new ArenaConfig(name, gameType, schematicPath,
+                offsetOriginX, offsetOriginY, offsetOriginZ,
+                offsetSpawns, offsetBoundaries,
                 objectives, offsetResources, offsetSpecialBlocks);
     }
     

@@ -23,6 +23,7 @@ import ai.blockwarriors.beacon.arena.ArenaManager;
 import ai.blockwarriors.beacon.constants.GameConfig;
 import ai.blockwarriors.beacon.game.GameRegistry;
 import ai.blockwarriors.beacon.game.impl.BridgeGame;
+import ai.blockwarriors.beacon.game.impl.BuildUHCGame;
 import ai.blockwarriors.beacon.game.impl.CTFGame;
 import ai.blockwarriors.beacon.game.impl.PvPGame;
 import ai.blockwarriors.beacon.service.MatchPollingService;
@@ -141,6 +142,19 @@ public class Plugin extends JavaPlugin {
                 .playersPerTeam(4)
                 .teamCount(2)
                 .defaultArena("ctf")
+                .build()
+        );
+
+        // Register Build UHC game type
+        registry.registerGame(
+            GameConfig.GAME_TYPE_BUILD_UHC,
+            BuildUHCGame::new,
+            GameRegistry.GameMetadata.builder()
+                .displayName("Build UHC")
+                .description("1v1 duel with building, bow, melee, and healing")
+                .playersPerTeam(1)
+                .teamCount(2)
+                .defaultArena("build_uhc")
                 .build()
         );
 

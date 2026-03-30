@@ -1,4 +1,5 @@
 export type BotStatus = "connecting" | "online" | "offline" | "error";
+export type BotAuthMode = "offline" | "microsoft";
 
 export interface BotPosition {
   x: number;

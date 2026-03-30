@@ -34,6 +34,14 @@ const games = [
     description:
       'Team-based flag capture. Coordinate 4 bots to steal the enemy flag and defend your own.',
   },
+  {
+    href: '/docs/games/build-uhc',
+    name: 'Build UHC',
+    format: '1v1',
+    status: 'Live',
+    description:
+      '1v1 duel with building, bow, melee, rod play, and healing. Outlast your opponent in a mirrored arena.',
+  },
 ];
 
 export default function GamesPage() {
