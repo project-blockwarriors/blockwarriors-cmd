@@ -1,6 +1,5 @@
 export type {
   BotStatus,
-  BotAuthMode,
   BotPosition,
   BotHealth,
   InventoryItem,

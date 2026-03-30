@@ -25,7 +25,6 @@ export function disconnectSocket(): void {
 export interface ServerConfig {
   host: string;
   port: number;
-  authMode: "offline" | "microsoft";
 }
 
 export interface SocketEvents {
@@ -59,10 +58,6 @@ export function requestServerConfig(): void {
   getSocket().emit("get_server_config");
 }
 
-export function updateServerConfig(
-  host: string,
-  port: number,
-  authMode: "offline" | "microsoft"
-): void {
-  getSocket().emit("update_server_config", { host, port, authMode });
+export function updateServerConfig(host: string, port: number): void {
+  getSocket().emit("update_server_config", { host, port });
 }

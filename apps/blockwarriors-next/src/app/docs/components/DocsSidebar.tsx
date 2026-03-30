@@ -43,7 +43,6 @@ const navItems: NavItem[] = [
       { href: '/docs/games/pvp', label: 'PvP (1v1)' },
       { href: '/docs/games/bridge', label: 'Bridge (1v1)' },
       { href: '/docs/games/ctf', label: 'CTF (4v4)' },
-      { href: '/docs/games/build-uhc', label: 'Build UHC (1v1)' },
     ],
   },
   {

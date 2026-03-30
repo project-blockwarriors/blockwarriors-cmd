@@ -338,14 +338,9 @@ public abstract class BaseGame {
             if (arenaConfig != null && arenaManager != null && SchematicLoader.isAvailable()) {
                 File schematicFile = arenaManager.getSchematicFile(arenaConfig.getName());
                 if (schematicFile != null && schematicFile.exists()) {
-                    int originX = arenaConfig.getSchematicOriginX();
-                    int originY = arenaConfig.getSchematicOriginY();
-                    int originZ = arenaConfig.getSchematicOriginZ();
-                    boolean success = SchematicLoader.pasteSchematic(
-                            schematicFile, world, originX, originY, originZ);
+                    boolean success = SchematicLoader.pasteSchematic(schematicFile, world, 0, 65, 0);
                     if (success) {
-                        LOGGER.info("Arena loaded from schematic for match " + matchId +
-                                " at (" + originX + ", " + originY + ", " + originZ + ")");
+                        LOGGER.info("Arena loaded from schematic for match " + matchId);
                         return;
                     }
                     LOGGER.warning("Schematic paste failed for match " + matchId + ", falling back to programmatic generation");

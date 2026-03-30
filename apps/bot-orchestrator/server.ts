@@ -7,7 +7,6 @@ import { v4 as uuidv4 } from 'uuid';
 import type {
   BotCommand,
   CreateBotRequest,
-  BotAuthMode,
   BotState,
 } from './src/types/bot.js';
 
@@ -24,14 +23,11 @@ const minecraftPortFromEnv = parseInt(
   process.env.MINECRAFT_PORT || '25565',
   10
 );
-const minecraftAuthModeFromEnv =
-  process.env.MINECRAFT_AUTH_MODE === 'microsoft' ? 'microsoft' : 'offline';
 const port = Number.isNaN(portFromEnv) ? 3001 : portFromEnv;
 
 let minecraftServerConfig = {
   host: process.env.MINECRAFT_HOST || 'mcpanel.blockwarriors.ai',
   port: Number.isNaN(minecraftPortFromEnv) ? 25565 : minecraftPortFromEnv,
-  authMode: minecraftAuthModeFromEnv as BotAuthMode,
 };
 
 const app = next({ dev, hostname, port });
@@ -84,8 +80,7 @@ app
             data.ign,
             data.token,
             minecraftServerConfig.host,
-            minecraftServerConfig.port,
-            minecraftServerConfig.authMode
+            minecraftServerConfig.port
           );
           socket.emit('bot_created', { id, state });
           io.emit('bots_list', botManager.getAllBots());
@@ -131,11 +126,10 @@ app
 
       socket.on(
         'update_server_config',
-        (data: { host: string; port: number; authMode: BotAuthMode }) => {
+        (data: { host: string; port: number }) => {
           minecraftServerConfig = {
             host: data.host,
             port: data.port,
-            authMode: data.authMode,
           };
           io.emit('server_config', minecraftServerConfig);
           console.log('Server configuration updated:', minecraftServerConfig);

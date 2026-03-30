@@ -4,7 +4,6 @@ const { pathfinder, Movements, goals } = pkg;
 import type {
   BotState,
   BotCommand,
-  BotAuthMode,
   BotPosition,
   BotHealth,
   InventoryItem,
@@ -57,14 +56,7 @@ export class BotClient {
     this.onBotError = onError;
   }
 
-  async createBot(
-    id: string,
-    ign: string,
-    token: string,
-    host?: string,
-    port?: number,
-    authMode: BotAuthMode = "offline"
-  ): Promise<BotState> {
+  async createBot(id: string, ign: string, token: string, host?: string, port?: number): Promise<BotState> {
     if (this.bots.has(id)) {
       throw new Error(`Bot with id ${id} already exists`);
     }
@@ -85,7 +77,7 @@ export class BotClient {
       host: host || DEFAULT_SERVER_HOST,
       port: port || DEFAULT_SERVER_PORT,
       username: ign,
-      auth: authMode,
+      auth: "offline",
       checkTimeoutInterval: 180000,
       keepAlive: true,
       hideErrors: false,
@@ -586,11 +578,7 @@ export class BotClient {
 
     this.cleanupBotIntervals(id);
     this.removeBotListeners(managedBot.bot);
-    if (typeof (managedBot.bot as any).quit === "function") {
-      (managedBot.bot as any).quit();
-    } else if (typeof (managedBot.bot as any).end === "function") {
-      (managedBot.bot as any).end();
-    }
+    managedBot.bot.quit();
     this.bots.delete(id);
     return true;
   }
