@@ -3,6 +3,11 @@ import { ConvexClient } from "convex/browser";
 import { exec } from "child_process";
 import path from "path";
 
+
+const activeContainers: string[] = [];
+const activeMatchIds = new Set<string>();
+let convexClient: ConvexClient | null = null;
+
 export function startConvexListener() {
     const convexUrl = process.env.CONVEX_URL || process.env.NEXT_PUBLIC_CONVEX_URL;
 
@@ -15,9 +20,9 @@ export function startConvexListener() {
     console.log(`🔗 Connected to Convex: ${convexUrl}`);
     console.log("📡 Listening for 'Queuing' matches...");
 
-    const client = new ConvexClient(convexUrl);
+    convexClient = new ConvexClient(convexUrl);
 
-    client.onUpdate("matches:getReadyMatches" as any, {}, (matches: any[]) => {
+    convexClient.onUpdate("matches:getReadyMatches" as any, {}, (matches: any[]) => {
         if (!matches || matches.length === 0) return;
 
         console.log(`\n🎉 BINGO! The Orchestrator "heard" ${matches.length} match(es) in the queue!`);
@@ -27,17 +32,24 @@ export function startConvexListener() {
 
             const sampleCodePath = path.resolve("../bot-runner/sample_bot.js");
 
-            // 1. Define BOTH commands
-            const blueCommand = `docker run -d --rm --name ${match._id}_BlueBot --network host -e MC_HOST=hteng.blockwarriors.ai -e MC_PORT=25568 -e BOT_USERNAME=BlueBot -e USER_CODE_PATH=/app/user_code.js -v "${sampleCodePath}:/app/user_code.js:ro" blockwarriors-bot`;
+            const blueName = `${match._id}_BlueBot`;
+            const redName = `${match._id}_RedBot`;
 
-            const redCommand = `docker run -d --rm --name ${match._id}_RedBot --network host -e MC_HOST=hteng.blockwarriors.ai -e MC_PORT=25568 -e BOT_USERNAME=RedBot -e USER_CODE_PATH=/app/user_code.js -v "${sampleCodePath}:/app/user_code.js:ro" blockwarriors-bot`;
+            // Store names for cleanup later
+            activeContainers.push(blueName, redName);
+            activeMatchIds.add(match._id);
 
-            client.mutation("matches:updateStatus" as any, {
-                matchId: match._id,
-                status: "Running"
-            })
-                .then(() => console.log(`✅ Convex status updated to 'Running'`))
-                .catch((err) => console.error("❌ Failed to update Convex status:", err));
+            const blueCommand = `docker run -d --rm --name ${blueName} --network host -e MC_HOST=hteng.blockwarriors.ai -e MC_PORT=25568 -e BOT_USERNAME=BlueBot -e USER_CODE_PATH=/app/user_code.js -v "${sampleCodePath}:/app/user_code.js:ro" blockwarriors-bot`;
+            const redCommand = `docker run -d --rm --name ${redName} --network host -e MC_HOST=hteng.blockwarriors.ai -e MC_PORT=25568 -e BOT_USERNAME=RedBot -e USER_CODE_PATH=/app/user_code.js -v "${sampleCodePath}:/app/user_code.js:ro" blockwarriors-bot`;
+
+            if (convexClient) {
+                convexClient.mutation("matches:updateStatus" as any, {
+                    matchId: match._id,
+                    status: "Running"
+                })
+                    .then(() => console.log(`✅ Convex status updated to 'Running'`))
+                    .catch((err) => console.error("❌ Failed to update Convex status:", err));
+            }
 
             // 2. Spawn Blue Bot
             console.log(`🚀 Spawning Blue Bot...`);
@@ -64,3 +76,40 @@ export function startConvexListener() {
         });
     });
 }
+
+// 2. The Cleanup Function
+async function cleanup() {
+    if (activeContainers.length === 0 && activeMatchIds.size === 0) process.exit();
+
+    console.log(`\n🛑 Shutting down... Processing cleanup...`);
+
+    // 1. Reset match statuses to 'Waiting'
+    if (activeMatchIds.size > 0 && convexClient) {
+        console.log(`🔄 Resetting ${activeMatchIds.size} active match(es) to 'Waiting'...`);
+        const updatePromises = Array.from(activeMatchIds).map((matchId) =>
+            convexClient!.mutation("matches:updateStatus" as any, {
+                matchId: matchId,
+                status: "Waiting"
+            })
+                .then(() => console.log(`✅ Match ${matchId} reset to 'Waiting'`))
+                .catch((err) => console.error(`❌ Failed to reset match ${matchId}:`, err))
+        );
+        await Promise.allSettled(updatePromises);
+    }
+
+    // 2. Kill containers
+    if (activeContainers.length > 0) {
+        console.log(`💀 Killing ${activeContainers.length} active bot containers...`);
+        const names = activeContainers.join(" ");
+        exec(`docker kill ${names}`, () => {
+            console.log("✅ All bot containers stopped.");
+            process.exit();
+        });
+    } else {
+        process.exit();
+    }
+}
+
+// 3. Listen for Ctrl+C (SIGINT) and terminal close (SIGTERM)
+process.on("SIGINT", cleanup);
+process.on("SIGTERM", cleanup);
