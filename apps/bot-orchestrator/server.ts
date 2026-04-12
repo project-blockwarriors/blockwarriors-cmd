@@ -3,6 +3,7 @@ import { parse } from 'url';
 import next from 'next';
 import { Server as SocketIOServer } from 'socket.io';
 import { botManager } from './src/server/BotManager.js';
+import { startConvexListener } from './src/listener.js';
 import { v4 as uuidv4 } from 'uuid';
 import type {
   BotCommand,
@@ -143,9 +144,11 @@ app
 
     httpServer.listen(port, () => {
       console.log(`> Bot Orchestrator ready on http://${hostname}:${port}`);
+      startConvexListener();
     });
   })
   .catch((error) => {
     console.error('Failed to prepare Next.js app:', error);
     process.exit(1);
   });
+

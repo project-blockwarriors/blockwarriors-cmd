@@ -1,8 +1,8 @@
 {
-  "name": "bot-runner",
+  "name": "@packages/bot-runner",
   "version": "1.0.0",
   "description": "",
-  "main": "harness.js",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

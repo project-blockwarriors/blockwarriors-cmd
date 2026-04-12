@@ -257,6 +257,48 @@ export const updateMatches = mutation({
   },
 });
 
+/**
+ * Handles user code submissions for a specific match.
+ * This mutation updates the match record with the storage ID of the uploaded 
+ * Mineflayer script. If both the blue and red teams have submitted their code, 
+ * it automatically promotes the match status to "Queuing", which signals the 
+ * Bot Orchestrator to download the files and spawn the Docker containers.
+ */
+export const submitCode = mutation({
+  args: {
+    matchId: v.id("matches"),
+    teamId: v.id("game_teams"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    const match = await ctx.db.get(args.matchId);
+    if (!match) throw new Error("Match not found");
+
+    // 1. Figure out which team submitted the code and prepare the update
+    let updatedFields = {};
+    if (match.blue_team_id === args.teamId) {
+      updatedFields = { blue_team_code_id: args.storageId };
+    } else if (match.red_team_id === args.teamId) {
+      updatedFields = { red_team_code_id: args.storageId };
+    } else {
+      throw new Error("Team is not part of this match");
+    }
+
+    // 2. Save the storage ID to the match record
+    await ctx.db.patch(args.matchId, updatedFields);
+
+    // 3. Fetch the fresh match data to see if both teams are now ready
+    const updatedMatch = (await ctx.db.get(args.matchId))!;
+
+    if (updatedMatch.blue_team_code_id && updatedMatch.red_team_code_id) {
+      // Both teams have uploaded! Tell the executioner to spin up the bots.
+      await ctx.db.patch(args.matchId, {
+        match_status: "Queuing",
+      });
+    }
+  },
+});
+
 // List matches by status
 export const listMatchesByStatus = query({
   args: {
@@ -265,11 +307,11 @@ export const listMatchesByStatus = query({
   handler: async (ctx, args) => {
     const matches = args.status
       ? await ctx.db
-          .query("matches")
-          .withIndex("by_match_status", (q) =>
-            q.eq("match_status", args.status!)
-          )
-          .collect()
+        .query("matches")
+        .withIndex("by_match_status", (q) =>
+          q.eq("match_status", args.status!)
+        )
+        .collect()
       : await ctx.db.query("matches").collect();
 
     return matches.map((match) => ({
@@ -284,6 +326,40 @@ export const listMatchesByStatus = query({
       expires_at: match.expires_at,
       match_state: match.match_state,
     }));
+  },
+});
+
+/**
+ * Fetches all matches that are currently in the "Queuing" state.
+ * This query is used by the long-living Bot Orchestrator process to 
+ * identify matches where both players have successfully uploaded 
+ * their code. It filters for matches that have valid storage IDs   
+ * for both the blue and red teams to ensure the environment is 
+ * ready for containerization.
+ */
+export const getReadyMatches = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db
+      .query("matches")
+      .filter((q) => q.eq(q.field("match_status"), "Queuing")) // Case-sensitive match!
+      .filter((q) => q.neq(q.field("blue_team_code_id"), undefined))
+      .filter((q) => q.neq(q.field("red_team_code_id"), undefined))
+      .collect();
+  },
+});
+
+/**
+ * Updates the match status. 
+ * Used by the orchestrator to move matches from "Queuing" to "Running".
+ */
+export const updateStatus = mutation({
+  args: {
+    matchId: v.id("matches"),
+    status: v.string(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.matchId, { match_status: args.status });
   },
 });
 

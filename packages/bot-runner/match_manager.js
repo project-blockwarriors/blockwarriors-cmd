@@ -51,12 +51,4 @@ function deleteContainer(containerName) {
     });
 }
 
-// --- SIMULATION ---
-const p1File = path.resolve('./sample_bot.js');
-const p2File = path.resolve('./sample_bot.js');
-
-spawnBot('match_101', 'Warrior_One', p1File);
-
-setTimeout(() => {
-    spawnBot('match_101', 'Warrior_Two', p2File);
-}, 5000);
+module.exports = { spawnBot };
