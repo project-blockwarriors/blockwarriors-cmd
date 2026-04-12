@@ -32,6 +32,13 @@ export function startConvexListener() {
 
             const redCommand = `docker run -d --rm --name ${match._id}_RedBot --network host -e MC_HOST=hteng.blockwarriors.ai -e MC_PORT=25568 -e BOT_USERNAME=RedBot -e USER_CODE_PATH=/app/user_code.js -v "${sampleCodePath}:/app/user_code.js:ro" blockwarriors-bot`;
 
+            client.mutation("matches:updateStatus" as any, {
+                matchId: match._id,
+                status: "Running"
+            })
+                .then(() => console.log(`✅ Convex status updated to 'Running'`))
+                .catch((err) => console.error("❌ Failed to update Convex status:", err));
+
             // 2. Spawn Blue Bot
             console.log(`🚀 Spawning Blue Bot...`);
             exec(blueCommand, (error, stdout, stderr) => {

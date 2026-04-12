@@ -8,24 +8,6 @@ const bot = mineflayer.createBot({
   version: '1.20.6' // Lock the version to match our server
 });
 
-// bot.on('spawn', () => {
-//     console.log('[System] Bot connected. Loading user logic...');
-
-//     try {
-//         // 2. Load the user code from a specific path (we will put the file here later)
-//         // Note: In Docker, this path will be fixed.
-//         const userPath = process.env.USER_CODE_PATH || './sample_bot.js';
-//         const userLogic = require(userPath);
-
-//         // 3. Execute the user's function
-//         userLogic(bot);
-//         console.log('[System] User logic injected successfully.');
-//     } catch (err) {
-//         console.error('[System] CRITICAL: User code crashed the interface!');
-//         console.error(err);
-//         // Do not exit immediately; maybe log the error to the database first
-//     }
-// });
 bot.on('spawn', () => {
   console.log('[System] Bot connected. Loading user logic...');
   try {
