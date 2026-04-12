@@ -1,0 +1,34 @@
+# Capture the Flag Arena Configuration
+# 4v4 — two bases with flags on an 80x80 map
+
+name: "CTF Arena"
+game_type: "ctf"
+
+spawns:
+  blue_team:
+    - {x: 34, y: 66, z: -2, yaw: -90, pitch: 0}
+    - {x: 34, y: 66, z: 2, yaw: -90, pitch: 0}
+    - {x: 36, y: 66, z: -2, yaw: -90, pitch: 0}
+    - {x: 36, y: 66, z: 2, yaw: -90, pitch: 0}
+  red_team:
+    - {x: -34, y: 66, z: -2, yaw: 90, pitch: 0}
+    - {x: -34, y: 66, z: 2, yaw: 90, pitch: 0}
+    - {x: -36, y: 66, z: -2, yaw: 90, pitch: 0}
+    - {x: -36, y: 66, z: 2, yaw: 90, pitch: 0}
+
+boundaries:
+  min: {x: -42, y: 0, z: -42}
+  max: {x: 42, y: 100, z: 42}
+
+objectives:
+  captures_to_win: 3
+  time_limit_seconds: 480
+  respawn_seconds: 5
+
+special_blocks:
+  blue_flag:
+    - {x: 35, y: 66, z: 0}
+  red_flag:
+    - {x: -35, y: 66, z: 0}
+
+resources: []

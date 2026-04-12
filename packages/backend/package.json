@@ -6,12 +6,16 @@
   "scripts": {
     "dev": "convex dev",
     "setup": "convex dev --until-success",
+    "build": "npm run typecheck",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "codegen": "convex codegen",
     "deploy": "convex deploy",
+    "dashboard": "convex dashboard",
     "test:http": "tsx test-http-routes.ts"
   },
   "dependencies": {
     "@convex-dev/better-auth": "^0.9.6",
+    "@packages/shared": "*",
     "convex": "^1.28.2"
   },
   "devDependencies": {

@@ -73,7 +73,7 @@ export default function PracticePage() {
     name: mode.name,
     description: mode.description,
     players: mode.players,
-    tokens: mode.tokensPerMatch,
+    tokens: mode.tokensPerTeam * 2, // Total tokens = tokens per team * 2 teams
   }));
 
   const serverAddress = 'play.blockwarriors.ai';

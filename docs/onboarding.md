@@ -1,137 +1,119 @@
-# Onboarding Guide for BlockWarriors
+# Onboarding Guide
 
-Welcome to the BlockWarriors project! This guide will help you get set up and ready to contribute.
+This repo contains multiple runtimes. Start with the smallest slice you need.
 
-## Project Overview
+## What Lives Here
 
-BlockWarriors Command Block is a monolithic repository for managing BlockWarriors tournaments and teams with the following components:
+- `apps/blockwarriors-next`: public site and dashboard
+- `packages/backend`: Convex backend and auth
+- `apps/blockwarriors-beacon`: Minecraft plugin for match orchestration
+- `apps/bot-orchestrator`: bot control surface for Mineflayer clients
+- `packages/shared`: shared constants and types
 
-- **BlockWarriors Next.js Application**: A modern web dashboard for tournament and team management
+## Prerequisites
 
-## Technology Stack
+- Node.js `20.9.0` or newer
+- npm `11+`
+- Java `21` and Maven if you are working on Beacon
+- A Convex deployment if you need auth, backend mutations, or HTTP routes
 
-The project uses the following technologies:
+## Initial Setup
 
-### Frontend
-
-- Next.js v15
-- React v18
-- TailwindCSS
-- Radix UI Components
-
-### Backend
-
-- Next.js Server Actions/API Routes
-- Convex (hosted backend for queries, mutations, HTTP routes)
-- Minecraft Server (Paper/Spigot API) + Pterodactyl
-
-### Authentication
-
-- Google OAuth
-- Email/Password
-
-## Getting Started
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/project-blockwarriors/blockwarriors-cmd.git
-cd blockwarriors-cmd
-```
-
-#### Prerequisites
-
-- Node.js (Latest LTS version recommended)
-- npm or yarn
-
-#### Install Dependencies (Turborepo)
-
-Run this once at the repository root.
-
-```bash
-# from repo root
-npm install
-```
-
-### 2. Set Up Convex (Auth + Data)
-
-Convex powers auth and backend queries/mutations. Set it up once and share across apps.
-
-1. Initialize Convex (if not already):
+1. Clone and install:
 
    ```bash
-   # First-time setup must be run from the backend package
-   cd packages/backend
-   npx convex dev
+   git clone https://github.com/project-blockwarriors/blockwarriors-cmd.git
+   cd blockwarriors-cmd
+   npm ci
    ```
 
-   When it prints the Convex onboarding link, open it and complete the setup.
-   After the initial setup completes, stop the process (Ctrl+C). You can then
-   run `npx convex dev` again whenever developing.
-
-If it fails again here run the following two commands
-
-```bash
-npm i convex
-npm i @convex-dev/better-auth
-npm i uuid
-
-npx convex dev
-```
-
-2. Configure Convex Environment Variables (Convex Cloud dashboard → Settings → Environment Variables):
-   Set them using the CLI (recommended):
+2. Copy the env examples you need:
 
    ```bash
+   cp .env.example .env.local
+   cp apps/blockwarriors-next/.env.example apps/blockwarriors-next/.env.local
+   cp packages/backend/.env.example packages/backend/.env.local
+   cp apps/bot-orchestrator/.env.example apps/bot-orchestrator/.env.local
+   cp apps/blockwarriors-beacon/.env.example apps/blockwarriors-beacon/.env.local
+   ```
+
+3. Generate Beacon constants from the shared JSON config:
+
+   ```bash
+   npm run codegen:beacon
+   ```
+
+## Convex Setup
+
+Convex powers auth, backend queries/mutations, and the HTTP routes used by the dashboard and Beacon plugin.
+
+1. Initialize the backend package once:
+
+   ```bash
+   npm run dev:backend
+   ```
+
+   Complete the Convex onboarding flow the first time it prompts you.
+
+2. Set the required Convex deployment env vars:
+
+   ```bash
+   npx convex env set SITE_URL http://localhost:3000
    npx convex env set GOOGLE_CLIENT_ID your_google_client_id
    npx convex env set GOOGLE_CLIENT_SECRET your_google_client_secret
    npx convex env set BETTER_AUTH_SECRET $(openssl rand -base64 32)
    npx convex env set CONVEX_HTTP_SECRET $(openssl rand -base64 32)
-   npx convex env set SITE_URL http://localhost:3000
-   # For production, set SITE_URL to your public site URL
+   npx convex env set CONVEX_SITE_URL https://your-deployment.convex.site
    ```
 
-   Note: `CONVEX_HTTP_SECRET` is used for server-to-server authentication between the Minecraft beacon plugin and Convex. Copy this same secret to `plugins/beacon/config.yml` on your Minecraft server.
+3. Update local app env files with your deployment values:
+   - `apps/blockwarriors-next/.env.local`
+   - `packages/backend/.env.local`
+   - `apps/blockwarriors-beacon/.env.local`
 
-   These are required because Convex auth (in `packages/backend/convex/auth.ts`) reads from `process.env` inside the Convex runtime.
+## Day-To-Day Commands
 
-3. Configure app environment variables that point to your Convex deployment:
-   - Next.js app (`apps/blockwarriors-next/.env.local`):
-     ```
-     NEXT_PUBLIC_CONVEX_DEPLOYMENT=your-convex-deployment-name
-     NEXT_PUBLIC_CONVEX_URL=https://your-deployment.convex.cloud
-     NEXT_PUBLIC_CONVEX_SITE_URL=http://your-deployment.convex.site
-     NEXT_PUBLIC_SITE_URL=http://localhost:3000
-     ```
-
-### 3. Run the Applications
-
-#### Next.js Application
+Run the full JS stack:
 
 ```bash
-# from root repo
 npm run dev
 ```
 
-## Development Workflow
+Run individual surfaces:
 
-1. Create a feature branch following the naming convention:
+```bash
+npm run dev:web
+npm run dev:backend
+npm run dev:bot-orchestrator
+```
 
-   ```
-   {first name initial}{lastname}-{feature}
-   ```
+Quality gates:
 
-   Example: `jdoe-login-page`
+```bash
+npm run lint
+npm run typecheck
+npm run test
+npm run validate
+```
 
-2. Make your changes and test them locally
+Minecraft plugin build:
 
-3. Follow the [Contributing Guidelines](./contributing.md) for submitting your work
+```bash
+npm run build:beacon
+```
 
-## Additional Resources
+Minecraft plugin deploy dry-run:
 
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Project Contributing Guide](./contributing.md)
+```bash
+npm run deploy:beacon:dry-run
+```
 
-## Need Help?
+See [Beacon Deploy Guide](./beacon-deploy.md) for the panel-backed deploy flow.
 
-If you're stuck or have questions, reach out to the project maintainers or check the existing documentation in the repository.
+## Git Workflow
+
+- Branch from `staging`
+- Open feature PRs into `staging`
+- Promote `staging` into `main` with a release PR
+
+See [Contributing Guidelines](./contributing.md) for the full workflow.

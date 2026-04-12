@@ -1,0 +1,29 @@
+# Default PvP Arena Configuration
+# This arena is used for 1v1 PvP matches
+
+name: "PvP Arena"
+game_type: "pvp"
+
+# Optional: WorldEdit schematic file (relative to schematics folder)
+# schematic: "pvp_arena.schem"
+
+# Team spawn points (relative to arena origin)
+spawns:
+  blue_team:
+    - {x: 10, y: 65, z: 0, yaw: -90, pitch: 0}
+  red_team:
+    - {x: -10, y: 65, z: 0, yaw: 90, pitch: 0}
+
+# Arena boundaries for out-of-bounds detection
+boundaries:
+  min: {x: -30, y: 50, z: -30}
+  max: {x: 30, y: 100, z: 30}
+
+# Game-specific objectives (none for basic PvP)
+objectives: {}
+
+# Resource spawns (none for basic PvP)
+resources: []
+
+# Special block locations (none for basic PvP)
+special_blocks: {}

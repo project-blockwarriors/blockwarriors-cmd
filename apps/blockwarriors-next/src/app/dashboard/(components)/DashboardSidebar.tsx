@@ -8,9 +8,13 @@ import {
   Trophy,
   Users,
   User,
+  Swords,
+  Shield,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import Image from 'next/image';
 import {
   Tooltip,
   TooltipContent,
@@ -53,20 +57,30 @@ interface NavButtonProps {
   href: string;
   children: React.ReactNode;
   hasCompletedSetup: boolean;
+  isActive: boolean;
 }
 
-const NavButton = ({ href, children, hasCompletedSetup }: NavButtonProps) => {
+const NavButton = ({ href, children, hasCompletedSetup, isActive }: NavButtonProps) => {
   if (!hasCompletedSetup && href !== '/dashboard/setup') {
     return <DisabledButton>{children}</DisabledButton>;
   }
   return (
-    <Button variant="ghost" className="w-full justify-start" asChild>
+    <Button
+      variant="ghost"
+      className={cn(
+        'w-full justify-start relative transition-colors',
+        isActive &&
+          'bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:h-3/5 before:w-[3px] before:rounded-full before:bg-primary'
+      )}
+      asChild
+    >
       <Link href={href}>{children}</Link>
     </Button>
   );
 };
 
 export function DashboardSidebar({ className = '' }: SidebarProps) {
+  const pathname = usePathname();
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
 
@@ -77,67 +91,82 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
 
   const hasCompletedSetup = Boolean(userProfile?.first_name && userProfile?.team);
 
-  const setupButton = (
-    <NavButton href="/dashboard/setup" hasCompletedSetup={hasCompletedSetup}>
-      <div
-        className={cn(
-          'flex items-center gap-2',
-          hasCompletedSetup && 'opacity-70'
-        )}
-      >
-        <User className="h-4 w-4" />
-        {hasCompletedSetup ? 'Profile & Team' : 'Get Started (Required)'}
-      </div>
-    </NavButton>
-  );
+  const isActive = (href: string) =>
+    href === '/dashboard' ? pathname === '/dashboard' : pathname.startsWith(href);
 
   return (
     <div className={cn('pb-12 min-h-screen', className)}>
       <div className="space-y-4 py-4">
-        <div className="px-4 py-4 border-b border-primary/20">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-              <User className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex flex-col min-w-0">
-              <div className="font-semibold text-white truncate">
-                {userProfile?.first_name} {userProfile?.last_name}
+        {/* User Profile Header */}
+        <Link href={hasCompletedSetup ? '/dashboard/profile' : '/dashboard/setup'}>
+          <div className="px-4 py-4 border-b border-primary/20 hover:bg-secondary/30 transition-colors cursor-pointer">
+            <div className="flex items-center gap-3">
+              <div className="relative h-10 w-10 rounded-full bg-primary/20 border border-primary/30 overflow-hidden flex items-center justify-center flex-shrink-0">
+                {userProfile?.profile_image_url ? (
+                  <Image
+                    src={userProfile.profile_image_url}
+                    alt="Profile"
+                    fill
+                    className="object-cover"
+                  />
+                ) : (
+                  <User className="h-5 w-5 text-primary" />
+                )}
               </div>
-              <div className="text-sm text-primary/70 truncate">
-                {userProfile?.team ? userProfile.team.team_name : 'No Team'}
+              <div className="flex flex-col min-w-0">
+                <div className="font-semibold text-white truncate">
+                  {userProfile?.first_name} {userProfile?.last_name}
+                </div>
+                <div className="text-sm text-primary/70 truncate">
+                  {userProfile?.team ? userProfile.team.team_name : 'No Team'}
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </Link>
+
         <div className="px-3">
           <div className="space-y-1">
-            {!hasCompletedSetup && setupButton}
+            {!hasCompletedSetup && (
+              <NavButton href="/dashboard/setup" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/setup')}>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4" />
+                  Get Started (Required)
+                </div>
+              </NavButton>
+            )}
 
-            <NavButton href="/dashboard" hasCompletedSetup={hasCompletedSetup}>
+            <NavButton href="/dashboard" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard')}>
               <div className="flex items-center gap-2">
                 <Home className="h-4 w-4" />
                 Overview
               </div>
             </NavButton>
-            <NavButton href="/dashboard/matches" hasCompletedSetup={hasCompletedSetup}>
+            <NavButton href="/dashboard/matches" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/matches')}>
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 Matches
               </div>
             </NavButton>
-            <NavButton href="/dashboard/teams" hasCompletedSetup={hasCompletedSetup}>
+            <NavButton href="/dashboard/teams" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/teams')}>
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
-                Teams
+                All Teams
               </div>
             </NavButton>
-            <NavButton href="/dashboard/leaderboard" hasCompletedSetup={hasCompletedSetup}>
+            <NavButton href="/dashboard/leaderboard" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/leaderboard')}>
               <div className="flex items-center gap-2">
                 <Trophy className="h-4 w-4" />
                 Leaderboard
               </div>
             </NavButton>
-            <NavButton href="/dashboard/practice" hasCompletedSetup={hasCompletedSetup}>
+            <NavButton href="/dashboard/tournaments" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/tournaments')}>
+              <div className="flex items-center gap-2">
+                <Swords className="h-4 w-4" />
+                Tournaments
+              </div>
+            </NavButton>
+            <NavButton href="/dashboard/practice" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/practice')}>
               <div className="flex items-center gap-2">
                 <Gamepad2 className="h-4 w-4" />
                 Practice
@@ -145,8 +174,19 @@ export function DashboardSidebar({ className = '' }: SidebarProps) {
             </NavButton>
 
             {hasCompletedSetup && (
-              <div className="pt-4 mt-4 border-t border-border">
-                {setupButton}
+              <div className="pt-4 mt-4 border-t border-border space-y-1">
+                <NavButton href="/dashboard/profile" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/profile')}>
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    My Profile
+                  </div>
+                </NavButton>
+                <NavButton href="/dashboard/team" hasCompletedSetup={hasCompletedSetup} isActive={isActive('/dashboard/team')}>
+                  <div className="flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    My Team
+                  </div>
+                </NavButton>
               </div>
             )}
 

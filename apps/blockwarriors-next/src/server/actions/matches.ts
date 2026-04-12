@@ -2,7 +2,7 @@
 
 import { getToken } from '@/lib/auth-server';
 import { getUser } from '@/auth/server';
-import { isValidGameType } from '@/lib/match-constants';
+import { getValidGameTypes, isValidGameType } from '@/lib/match-constants';
 
 const CONVEX_SITE_URL =
   process.env.CONVEX_SITE_URL || process.env.NEXT_PUBLIC_CONVEX_SITE_URL || '';
@@ -28,9 +28,7 @@ export interface UpdateMatchStatusResult {
  * Tokens will be generated when Minecraft server acknowledges the match
  * Calls Convex HTTP route /matches/new
  */
-export async function startMatch(
-  gameType: string
-): Promise<StartMatchResult> {
+export async function startMatch(gameType: string): Promise<StartMatchResult> {
   try {
     // Validate user is authenticated
     const user = await getUser();
@@ -51,18 +49,18 @@ export async function startMatch(
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error:
-          'Invalid game type. gameType is required and must be a string.',
+        error: 'Invalid game type. gameType is required and must be a string.',
       };
     }
 
     if (!isValidGameType(gameType)) {
+      const validGameTypes = getValidGameTypes().join(', ');
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error: `Invalid game type. Game type must be one of: pvp, bedwars, ctf`,
+        error: `Invalid game type. Game type must be one of: ${validGameTypes}`,
       };
     }
 
@@ -107,6 +105,7 @@ export async function startMatch(
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({
+        success: false,
         error: `HTTP ${response.status}: ${response.statusText}`,
       }));
       console.error('Convex HTTP route error:', {
@@ -114,20 +113,30 @@ export async function startMatch(
         errorData,
       });
 
+      // Handle new standardized error format: { success: false, error: string }
       return {
         matchId: '',
         tokens: { redTeam: [], blueTeam: [] },
         expiresAt: 0,
         matchType: '',
-        error:
-          errorData.error ||
-          errorData.details ||
-          errorData.message ||
-          `Failed to start match (${response.status})`,
+        error: errorData.error || `Failed to start match (${response.status})`,
       };
     }
 
-    const data = await response.json();
+    const responseData = await response.json();
+
+    // Handle new standardized response format: { success: true, data: {...} }
+    if (!responseData.success) {
+      return {
+        matchId: '',
+        tokens: { redTeam: [], blueTeam: [] },
+        expiresAt: 0,
+        matchType: '',
+        error: responseData.error || 'Failed to start match',
+      };
+    }
+
+    const data = responseData.data;
     // Match is created but tokens haven't been generated yet
     // Tokens will be generated when Minecraft server acknowledges the match
     return {
