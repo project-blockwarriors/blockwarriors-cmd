@@ -3,7 +3,7 @@
 import { CodeBlock } from '../../components/CodeBlock';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Swords, Info, Shield, Timer } from 'lucide-react';
+import { Swords, Info } from 'lucide-react';
 
 export default function BuildUHCPage() {
   return (
