@@ -9,3 +9,4 @@ target/
 .idea/
 .vscode/
 .cursor/mcp.json
+.vercel
