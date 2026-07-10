@@ -4,6 +4,11 @@ import ai.blockwarriors.beacon.arena.ArenaConfig;
 import ai.blockwarriors.beacon.arena.SpawnPoint;
 import ai.blockwarriors.beacon.constants.GameConfig;
 import ai.blockwarriors.beacon.game.*;
+import ai.blockwarriors.beacon.game.kit.Archetype;
+import ai.blockwarriors.beacon.game.kit.KitDefinition;
+import ai.blockwarriors.beacon.game.kit.KitSelectionGUI;
+import ai.blockwarriors.beacon.game.scoring.PointTracker;
+import ai.blockwarriors.beacon.game.scoring.PointTracker.PointAction;
 
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
@@ -37,6 +42,7 @@ import java.util.*;
 public class BuildUHCGame extends BaseGame {
 
     private static final DisconnectPolicy DISCONNECT_POLICY = DisconnectPolicy.instantForfeit();
+    private static final int KIT_SELECTION_SECONDS = 10;
     private static final int COUNTDOWN_SECONDS = 5;
     private static final int TIME_LIMIT_SECONDS = 300;
     private static final int SUDDEN_DEATH_SECONDS = 30;
@@ -49,6 +55,13 @@ public class BuildUHCGame extends BaseGame {
     /** Locations of blocks placed by players during the match */
     private final Set<Long> playerPlacedBlocks = new HashSet<>();
 
+    /** Archetype selected by each player */
+    private final Map<UUID, Archetype> playerArchetypes = new HashMap<>();
+
+    private final PointTracker pointTracker = new PointTracker();
+    private KitSelectionGUI kitSelectionGUI;
+
+    private BukkitTask kitSelectionTask;
     private BukkitTask countdownTask;
     private BukkitTask timerTask;
     private BukkitTask suddenDeathTask;
@@ -81,8 +94,15 @@ public class BuildUHCGame extends BaseGame {
         loadArena();
         teleportToSpawns(blueTeamPlayers, redTeamPlayers);
 
-        for (Player p : blueTeamPlayers) setupPlayer(p);
-        for (Player p : redTeamPlayers) setupPlayer(p);
+        // Prepare players (survival mode, clear inv, freeze) but don't give kit yet
+        for (Player p : blueTeamPlayers) preparePlayer(p);
+        for (Player p : redTeamPlayers) preparePlayer(p);
+
+        // Open the kit selection chest for every player
+        int teamSize = Math.max(blueTeamPlayers.size(), redTeamPlayers.size());
+        kitSelectionGUI = new KitSelectionGUI(blueTeam, redTeam, teamSize);
+        for (Player p : blueTeamPlayers) kitSelectionGUI.openFor(p);
+        for (Player p : redTeamPlayers) kitSelectionGUI.openFor(p);
 
         setState(GameState.READY);
         LOGGER.info("Build UHC game initialized for match " + matchId);
@@ -93,6 +113,69 @@ public class BuildUHCGame extends BaseGame {
         if (state != GameState.READY) {
             LOGGER.warning("Cannot start Build UHC — not READY (current: " + state + ")");
             return;
+        }
+
+        // Re-open kit selection for any player whose GUI was closed by the
+        // initialize -> start transition (they fire on the same tick).
+        if (kitSelectionGUI != null) {
+            for (UUID playerId : players) {
+                if (!kitSelectionGUI.hasSelected(playerId)) {
+                    Player p = Bukkit.getPlayer(playerId);
+                    if (p != null && p.isOnline()) {
+                        kitSelectionGUI.openFor(p);
+                    }
+                }
+            }
+        }
+
+        broadcastMessage("\u00a7d\u00a7lSelect your kit! \u00a77You have \u00a7e"
+                + KIT_SELECTION_SECONDS + " seconds\u00a77.");
+
+        // Kit selection phase — give players time to pick, then start countdown
+        kitSelectionTask = new BukkitRunnable() {
+            int remaining = KIT_SELECTION_SECONDS;
+
+            @Override
+            public void run() {
+                if (remaining > 0) {
+                    if (remaining <= 5) {
+                        broadcastMessage("\u00a7eKit selection closes in \u00a7c" + remaining + "s\u00a7e...");
+                    }
+                    remaining--;
+                } else {
+                    applyKitsAndStartCountdown();
+                    cancel();
+                }
+            }
+        }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    /**
+     * Called after the kit selection window closes. Applies kits and begins the
+     * fight countdown.
+     */
+    private void applyKitsAndStartCountdown() {
+        if (kitSelectionGUI != null) {
+            kitSelectionGUI.closeAll();
+        }
+
+        for (UUID playerId : players) {
+            Archetype arch = kitSelectionGUI != null
+                    ? kitSelectionGUI.getSelection(playerId)
+                    : Archetype.FIGHTER;
+            playerArchetypes.put(playerId, arch);
+
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                String team = getTeamForPlayer(playerId);
+                KitDefinition.applyKit(player, arch, team);
+                freezePlayer(player);
+
+                String msg = kitSelectionGUI != null && kitSelectionGUI.hasSelected(playerId)
+                        ? "\u00a7aKit locked: \u00a76" + arch.getDisplayName()
+                        : "\u00a7eNo kit selected \u2014 defaulting to \u00a76Fighter\u00a7e.";
+                player.sendMessage(msg);
+            }
         }
 
         if (world != null) {
@@ -113,6 +196,7 @@ public class BuildUHCGame extends BaseGame {
         if (killer != null) {
             UUID killerId = killer.getUniqueId();
             kills.merge(killerId, 1, Integer::sum);
+            pointTracker.addPoints(killerId, PointAction.KILL, 1.0);
             winnerId = killerId;
             broadcastMessage("\u00a7c" + deadPlayer.getName() +
                     " \u00a77was killed by \u00a7a" + killer.getName());
@@ -158,7 +242,13 @@ public class BuildUHCGame extends BaseGame {
             stats.put("kills", kills.getOrDefault(playerId, 0));
             stats.put("deaths", deaths.getOrDefault(playerId, 0));
             stats.put("damageDealt", damageDealt.getOrDefault(playerId, 0.0));
+            stats.put("points", pointTracker.getPoints(playerId));
             stats.put("disconnected", isPlayerDisconnected(playerId));
+
+            Archetype arch = playerArchetypes.get(playerId);
+            if (arch != null) {
+                stats.put("archetype", arch.name());
+            }
 
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {
@@ -179,6 +269,7 @@ public class BuildUHCGame extends BaseGame {
 
     @Override
     public void cleanup() {
+        if (kitSelectionTask != null && !kitSelectionTask.isCancelled()) kitSelectionTask.cancel();
         if (countdownTask != null && !countdownTask.isCancelled()) countdownTask.cancel();
         if (timerTask != null && !timerTask.isCancelled()) timerTask.cancel();
         if (suddenDeathTask != null && !suddenDeathTask.isCancelled()) suddenDeathTask.cancel();
@@ -193,6 +284,9 @@ public class BuildUHCGame extends BaseGame {
             }
         }
 
+        if (kitSelectionGUI != null) {
+            kitSelectionGUI.closeAll();
+        }
         playerPlacedBlocks.clear();
         LOGGER.info("Build UHC game cleanup for match " + matchId);
     }
@@ -201,6 +295,7 @@ public class BuildUHCGame extends BaseGame {
     public void handleDamage(Player damager, Player target, double damage) {
         if (isActive() && pvpEnabled) {
             damageDealt.merge(damager.getUniqueId(), damage, Double::sum);
+            pointTracker.addPoints(damager.getUniqueId(), PointAction.DAMAGE, damage);
         }
     }
 
@@ -287,12 +382,27 @@ public class BuildUHCGame extends BaseGame {
         return BUILD_HEIGHT_LIMIT;
     }
 
+    /**
+     * Get the kit selection GUI (used by MatchEventListener for click delegation).
+     */
+    public KitSelectionGUI getKitSelectionGUI() {
+        return kitSelectionGUI;
+    }
+
+    /**
+     * Get the point tracker for this match.
+     */
+    public PointTracker getPointTracker() {
+        return pointTracker;
+    }
+
     // ==================== Player Setup ====================
 
     private void initPlayerStats(UUID playerId) {
         kills.put(playerId, 0);
         deaths.put(playerId, 0);
         damageDealt.put(playerId, 0.0);
+        pointTracker.registerPlayer(playerId);
     }
 
     private void teleportToSpawns(List<Player> bluePlayers, List<Player> redPlayers) {
@@ -327,40 +437,36 @@ public class BuildUHCGame extends BaseGame {
         }
     }
 
-    private void setupPlayer(Player player) {
+    /**
+     * Put the player in survival mode, clear inventory, reset health, and freeze.
+     * The actual kit is applied later in {@link #start()} after kit selection.
+     */
+    private void preparePlayer(Player player) {
         player.setGameMode(GameMode.SURVIVAL);
         player.getInventory().clear();
-
-        // UHC loadout
-        player.getInventory().addItem(new ItemStack(Material.IRON_SWORD, 1));
-        player.getInventory().addItem(new ItemStack(Material.BOW, 1));
-        player.getInventory().addItem(new ItemStack(Material.ARROW, 32));
-        player.getInventory().addItem(new ItemStack(Material.FISHING_ROD, 1));
-
-        // Team-colored blocks
-        String team = getTeamForPlayer(player.getUniqueId());
-        Material blockMaterial = "blue".equals(team) ? Material.BLUE_CONCRETE : Material.RED_CONCRETE;
-        player.getInventory().addItem(new ItemStack(blockMaterial, 64));
-
-        // Healing and utility
-        player.getInventory().addItem(new ItemStack(Material.GOLDEN_APPLE, 2));
-        player.getInventory().addItem(new ItemStack(Material.WATER_BUCKET, 1));
-
-        // Reset health and hunger
+        player.getInventory().setArmorContents(null);
         player.setHealth(20.0);
         player.setFoodLevel(20);
         player.setSaturation(20.0f);
 
-        // Clear potion effects
         for (PotionEffect effect : player.getActivePotionEffects()) {
             player.removePotionEffect(effect.getType());
         }
 
-        // Freeze during countdown
+        // Freeze for the entire kit-selection + countdown window
+        freezePlayer(player, KIT_SELECTION_SECONDS + COUNTDOWN_SECONDS + 2);
+    }
+
+    private void freezePlayer(Player player) {
+        freezePlayer(player, COUNTDOWN_SECONDS + 1);
+    }
+
+    private void freezePlayer(Player player, int seconds) {
+        int ticks = seconds * 20;
         player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,
-                (COUNTDOWN_SECONDS + 1) * 20, 255, false, false));
+                ticks, 255, false, false));
         player.addPotionEffect(new PotionEffect(PotionEffectType.JUMP_BOOST,
-                (COUNTDOWN_SECONDS + 1) * 20, 128, false, false));
+                ticks, 128, false, false));
     }
 
     // ==================== Game Flow ====================
@@ -559,43 +665,154 @@ public class BuildUHCGame extends BaseGame {
     protected void generateArena() {
         if (world == null) return;
 
-        int floorY = 64;
+        int y = 64;
 
-        // Flat central area
+        // --- Ground layers ---
         for (int x = -30; x <= 30; x++) {
             for (int z = -20; z <= 20; z++) {
-                setBlock(x, floorY, z, Material.SMOOTH_STONE);
+                // Sub-floor (fill beneath so it doesn't look hollow)
+                setBlock(x, y - 1, z, Material.STONE);
+
+                double dist = Math.sqrt(x * x + z * z);
+
+                // Team-coloured spawn platforms
+                if (x >= 20 && x <= 28 && Math.abs(z) <= 4) {
+                    setBlock(x, y, z, Material.BLUE_CONCRETE);
+                } else if (x <= -20 && x >= -28 && Math.abs(z) <= 4) {
+                    setBlock(x, y, z, Material.RED_CONCRETE);
+                }
+                // Central ring
+                else if (dist <= 5) {
+                    setBlock(x, y, z, Material.POLISHED_DEEPSLATE);
+                }
+                // Main lane (stone bricks along z=0 corridor)
+                else if (Math.abs(z) <= 2) {
+                    setBlock(x, y, z, Material.STONE_BRICKS);
+                }
+                // Decorative path edges
+                else if (Math.abs(z) == 3) {
+                    setBlock(x, y, z, Material.POLISHED_ANDESITE);
+                }
+                // Grassy flanking areas
+                else if (Math.abs(z) <= 12) {
+                    setBlock(x, y, z, Material.MOSS_BLOCK);
+                }
+                // Outer stone border
+                else {
+                    setBlock(x, y, z, Material.SMOOTH_STONE);
+                }
             }
         }
 
-        // Symmetric cover structures — blue side
-        buildCoverWall(15, floorY, -10);
-        buildCoverWall(15, floorY, 10);
+        // --- Raised centre platform (2-high, 5x5) ---
+        for (int x = -2; x <= 2; x++) {
+            for (int z = -2; z <= 2; z++) {
+                setBlock(x, y + 1, z, Material.POLISHED_DEEPSLATE);
+            }
+        }
+        // Centre pillar/beacon-look
+        setBlock(0, y + 2, 0, Material.SEA_LANTERN);
 
-        // Symmetric cover structures — red side
-        buildCoverWall(-15, floorY, -10);
-        buildCoverWall(-15, floorY, 10);
+        // --- Spawn platforms (slightly raised, with walls behind) ---
+        buildSpawnPlatform(24, y, Material.BLUE_CONCRETE, Material.BLUE_STAINED_GLASS, true);
+        buildSpawnPlatform(-24, y, Material.RED_CONCRETE, Material.RED_STAINED_GLASS, false);
 
-        // Mid cover (smaller walls near center)
-        buildSmallCover(0, floorY, -8);
-        buildSmallCover(0, floorY, 8);
+        // --- Cover structures (symmetric, varied) ---
+        // Inner cover — angled stone brick walls near mid
+        buildLShapedCover(8, y, -6, true);
+        buildLShapedCover(8, y, 6, true);
+        buildLShapedCover(-8, y, -6, false);
+        buildLShapedCover(-8, y, 6, false);
 
-        LOGGER.info("Build UHC fallback arena generated for match " + matchId);
+        // Outer cover — tall pillars with slabs
+        buildPillarCover(16, y, -9);
+        buildPillarCover(16, y, 9);
+        buildPillarCover(-16, y, -9);
+        buildPillarCover(-16, y, 9);
+
+        // Flank cover — low oak walls on the grassy sides
+        buildFlankWall(12, y, -14);
+        buildFlankWall(12, y, 14);
+        buildFlankWall(-12, y, -14);
+        buildFlankWall(-12, y, 14);
+
+        // --- Boundary walls (3 high, decorative) ---
+        for (int x = -30; x <= 30; x++) {
+            for (int h = 1; h <= 3; h++) {
+                setBlock(x, y + h, -20, Material.DARK_OAK_PLANKS);
+                setBlock(x, y + h, 20, Material.DARK_OAK_PLANKS);
+            }
+        }
+        for (int z = -20; z <= 20; z++) {
+            for (int h = 1; h <= 3; h++) {
+                setBlock(-30, y + h, z, Material.DARK_OAK_PLANKS);
+                setBlock(30, y + h, z, Material.DARK_OAK_PLANKS);
+            }
+        }
+        // Fence-post tops on boundaries
+        for (int x = -30; x <= 30; x += 3) {
+            setBlock(x, y + 4, -20, Material.DARK_OAK_FENCE);
+            setBlock(x, y + 4, 20, Material.DARK_OAK_FENCE);
+        }
+        for (int z = -20; z <= 20; z += 3) {
+            setBlock(-30, y + 4, z, Material.DARK_OAK_FENCE);
+            setBlock(30, y + 4, z, Material.DARK_OAK_FENCE);
+        }
+
+        // --- Corner lanterns ---
+        setBlock(-29, y + 4, -19, Material.LANTERN);
+        setBlock(-29, y + 4, 19, Material.LANTERN);
+        setBlock(29, y + 4, -19, Material.LANTERN);
+        setBlock(29, y + 4, 19, Material.LANTERN);
+
+        LOGGER.info("Build UHC arena generated for match " + matchId);
     }
 
-    private void buildCoverWall(int x, int floorY, int z) {
+    private void buildSpawnPlatform(int cx, int y, Material floor, Material glass, boolean isBlue) {
+        // Raised 1-block platform
+        for (int dx = -2; dx <= 2; dx++) {
+            for (int dz = -2; dz <= 2; dz++) {
+                setBlock(cx + dx, y + 1, dz, floor);
+            }
+        }
+        // Back wall with glass window
+        int backX = isBlue ? cx + 3 : cx - 3;
         for (int dz = -2; dz <= 2; dz++) {
-            setBlock(x, floorY + 1, z + dz, Material.STONE_BRICKS);
-            setBlock(x, floorY + 2, z + dz, Material.STONE_BRICKS);
+            setBlock(backX, y + 2, dz, floor);
+            setBlock(backX, y + 3, dz, Math.abs(dz) <= 1 ? glass : floor);
+            setBlock(backX, y + 4, dz, floor);
         }
-        setBlock(x, floorY + 3, z, Material.STONE_BRICK_WALL);
     }
 
-    private void buildSmallCover(int x, int floorY, int z) {
+    private void buildLShapedCover(int x, int y, int z, boolean mirrorX) {
+        // L-shaped wall for interesting angles
         for (int dz = -1; dz <= 1; dz++) {
-            setBlock(x, floorY + 1, z + dz, Material.OAK_PLANKS);
-            setBlock(x, floorY + 2, z + dz, Material.OAK_PLANKS);
+            setBlock(x, y + 1, z + dz, Material.STONE_BRICKS);
+            setBlock(x, y + 2, z + dz, Material.STONE_BRICKS);
         }
+        int wingX = mirrorX ? x - 1 : x + 1;
+        setBlock(wingX, y + 1, z, Material.STONE_BRICKS);
+        setBlock(wingX, y + 2, z, Material.STONE_BRICKS);
+        setBlock(x, y + 3, z, Material.STONE_BRICK_WALL);
+    }
+
+    private void buildPillarCover(int x, int y, int z) {
+        // 3-high pillar with slab cap
+        setBlock(x, y + 1, z, Material.DEEPSLATE_BRICKS);
+        setBlock(x, y + 2, z, Material.DEEPSLATE_BRICKS);
+        setBlock(x, y + 3, z, Material.DEEPSLATE_BRICKS);
+        setBlock(x, y + 4, z, Material.DEEPSLATE_BRICK_SLAB);
+        // Flanking low walls
+        setBlock(x, y + 1, z - 1, Material.DEEPSLATE_BRICK_WALL);
+        setBlock(x, y + 1, z + 1, Material.DEEPSLATE_BRICK_WALL);
+    }
+
+    private void buildFlankWall(int x, int y, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            setBlock(x + dx, y + 1, z, Material.OAK_LOG);
+            setBlock(x + dx, y + 2, z, Material.OAK_PLANKS);
+        }
+        setBlock(x, y + 3, z, Material.OAK_FENCE);
     }
 
     private void setBlock(int x, int y, int z, Material material) {
