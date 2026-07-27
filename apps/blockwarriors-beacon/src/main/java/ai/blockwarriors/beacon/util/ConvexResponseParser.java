@@ -113,6 +113,19 @@ public class ConvexResponseParser {
      * @return ObjectResult containing the parsed data or error
      */
     public static ObjectResult parseObject(String responseBody, String context) {
+        // Handle null or empty response
+        if (responseBody == null || responseBody.trim().isEmpty()) {
+            LOGGER.warning(context + " - Response body is empty or null");
+            return ObjectResult.error("Empty response from server");
+        }
+
+        // Check for HTML responses (common error pages)
+        String trimmed = responseBody.trim();
+        if (trimmed.startsWith("<") || trimmed.startsWith("<!")) {
+            LOGGER.warning(context + " - Received HTML instead of JSON (possible error page)");
+            return ObjectResult.error("Server returned HTML instead of JSON");
+        }
+
         try {
             JSONObject response = new JSONObject(responseBody);
 
@@ -150,6 +163,11 @@ public class ConvexResponseParser {
         } catch (JSONException e) {
             String error = "Failed to parse response: " + e.getMessage();
             LOGGER.warning(context + " - " + error);
+            // Log the actual response for debugging (truncated for safety)
+            String preview = responseBody.length() > 200 
+                ? responseBody.substring(0, 200) + "..." 
+                : responseBody;
+            LOGGER.warning(context + " - Response body: " + preview);
             return ObjectResult.error(error);
         }
     }
@@ -163,6 +181,19 @@ public class ConvexResponseParser {
      * @return ArrayResult containing the parsed array or error
      */
     public static ArrayResult parseArray(String responseBody, String context) {
+        // Handle null or empty response
+        if (responseBody == null || responseBody.trim().isEmpty()) {
+            LOGGER.warning(context + " - Response body is empty or null");
+            return ArrayResult.error("Empty response from server");
+        }
+
+        // Check for HTML responses (common error pages)
+        String trimmed = responseBody.trim();
+        if (trimmed.startsWith("<") || trimmed.startsWith("<!")) {
+            LOGGER.warning(context + " - Received HTML instead of JSON (possible error page)");
+            return ArrayResult.error("Server returned HTML instead of JSON");
+        }
+
         try {
             JSONObject response = new JSONObject(responseBody);
 
@@ -188,6 +219,11 @@ public class ConvexResponseParser {
         } catch (JSONException e) {
             String error = "Failed to parse response: " + e.getMessage();
             LOGGER.warning(context + " - " + error);
+            // Log the actual response for debugging (truncated for safety)
+            String preview = responseBody.length() > 200 
+                ? responseBody.substring(0, 200) + "..." 
+                : responseBody;
+            LOGGER.warning(context + " - Response body: " + preview);
             return ArrayResult.error(error);
         }
     }
