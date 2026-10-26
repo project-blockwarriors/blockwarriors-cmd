@@ -413,140 +413,145 @@ export const getTeamTournamentMatches = query({
  */
 async function createTournamentGameImpl(
   ctx: MutationCtx,
-  args: { tournamentMatchId: Id<"tournament_matches">; matchType: string; mode: string; userId?: string }
+  args: {
+    tournamentMatchId: Id<"tournament_matches">;
+    matchType: string;
+    mode: string;
+    userId?: string;
+  }
 ) {
-    // Get tournament match
-    const tournamentMatch = await ctx.db.get(args.tournamentMatchId);
-    if (!tournamentMatch) {
-      return { success: false, error: "Tournament match not found" };
+  // Get tournament match
+  const tournamentMatch = await ctx.db.get(args.tournamentMatchId);
+  if (!tournamentMatch) {
+    return { success: false, error: "Tournament match not found" };
+  }
+
+  if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
+    return { success: false, error: "Tournament match teams are not set" };
+  }
+
+  if (args.userId) {
+    const userTeamId = await getUserTeamId(ctx, args.userId);
+    if (!userTeamId) {
+      return { success: false, error: "You must be on a team to start a game" };
+    }
+    if (
+      userTeamId !== tournamentMatch.team1_id &&
+      userTeamId !== tournamentMatch.team2_id
+    ) {
+      return {
+        success: false,
+        error: "You can only start games for your team's matches",
+      };
     }
 
-    if (!tournamentMatch.team1_id || !tournamentMatch.team2_id) {
-      return { success: false, error: "Tournament match teams are not set" };
-    }
+    const priorMatches = await ctx.db
+      .query("tournament_matches")
+      .withIndex("by_tournament_id", (q) =>
+        q.eq("tournament_id", tournamentMatch.tournament_id)
+      )
+      .collect();
 
-    if (args.userId) {
-      const userTeamId = await getUserTeamId(ctx, args.userId);
-      if (!userTeamId) {
-        return { success: false, error: "You must be on a team to start a game" };
-      }
+    if (tournamentMatch.round > 1) {
+      const priorRound = tournamentMatch.round - 1;
+      const priorRoundMatches = priorMatches.filter(
+        (match) =>
+          match.round === priorRound &&
+          (match.team1_id === tournamentMatch.team1_id ||
+            match.team2_id === tournamentMatch.team1_id ||
+            match.team1_id === tournamentMatch.team2_id ||
+            match.team2_id === tournamentMatch.team2_id)
+      );
       if (
-        userTeamId !== tournamentMatch.team1_id &&
-        userTeamId !== tournamentMatch.team2_id
+        priorRoundMatches.length > 0 &&
+        priorRoundMatches.some((match) => match.status !== "completed")
       ) {
         return {
           success: false,
-          error: "You can only start games for your team's matches",
+          error: `Round ${priorRound} must be completed before this game can start`,
         };
       }
-
-      const priorMatches = await ctx.db
-        .query("tournament_matches")
-        .withIndex("by_tournament_id", (q) =>
-          q.eq("tournament_id", tournamentMatch.tournament_id)
-        )
-        .collect();
-
-      if (tournamentMatch.round > 1) {
-        const priorRound = tournamentMatch.round - 1;
-        const priorRoundMatches = priorMatches.filter(
-          (match) =>
-            match.round === priorRound &&
-            (match.team1_id === tournamentMatch.team1_id ||
-              match.team2_id === tournamentMatch.team1_id ||
-              match.team1_id === tournamentMatch.team2_id ||
-              match.team2_id === tournamentMatch.team2_id)
-        );
-        if (
-          priorRoundMatches.length > 0 &&
-          priorRoundMatches.some((match) => match.status !== "completed")
-        ) {
-          return {
-            success: false,
-            error: `Round ${priorRound} must be completed before this game can start`,
-          };
-        }
-      }
     }
+  }
 
-    // Check match status
-    if (tournamentMatch.status === "completed" || tournamentMatch.status === "cancelled") {
-      return { success: false, error: "Tournament match is already completed or cancelled" };
-    }
+  // Check match status
+  if (tournamentMatch.status === "completed" || tournamentMatch.status === "cancelled") {
+    return { success: false, error: "Tournament match is already completed or cancelled" };
+  }
 
-    // Check if match is already decided (one team has won enough games)
-    if (
-      tournamentMatch.team1_games_won >= tournamentMatch.games_required ||
-      tournamentMatch.team2_games_won >= tournamentMatch.games_required
-    ) {
-      return { success: false, error: "Tournament match is already decided" };
-    }
+  // Check if match is already decided (one team has won enough games)
+  if (
+    tournamentMatch.team1_games_won >= tournamentMatch.games_required ||
+    tournamentMatch.team2_games_won >= tournamentMatch.games_required
+  ) {
+    return { success: false, error: "Tournament match is already decided" };
+  }
 
-    if (tournamentMatch.games.length > 0) {
-      const existingGames = await Promise.all(
-        tournamentMatch.games.map((gameId) => ctx.db.get(gameId))
+  if (tournamentMatch.games.length > 0) {
+    const existingGames = await Promise.all(
+      tournamentMatch.games.map((gameId) => ctx.db.get(gameId))
+    );
+    const hasActiveGame = existingGames.some((game) => {
+      return (
+        game &&
+        game.match_status !== "Finished" &&
+        game.match_status !== "Terminated"
       );
-      const hasActiveGame = existingGames.some((game) => {
-        return (
-          game &&
-          game.match_status !== "Finished" &&
-          game.match_status !== "Terminated"
-        );
-      });
-
-      if (hasActiveGame) {
-        return {
-          success: false,
-          error: "A game is already in progress for this match",
-        };
-      }
-    }
-
-    // Resolve match type: use explicit arg, or fall back to tournament's game_type
-    let matchType = args.matchType;
-    if (!matchType || matchType === "auto") {
-      const tournament = await ctx.db.get(tournamentMatch.tournament_id);
-      matchType = tournament?.game_type || "pvp";
-    }
-
-    // Create game teams for this match
-    const redTeamId = await ctx.db.insert("game_teams", { bots: [] });
-    const blueTeamId = await ctx.db.insert("game_teams", { bots: [] });
-
-    const now = Date.now();
-    const expiresAt = now + 15 * 60 * 1000; // 15 minutes
-
-    // Create the game match
-    const matchId = await ctx.db.insert("matches", {
-      match_type: matchType,
-      match_status: "Queuing",
-      tournament_match_id: args.tournamentMatchId,
-      tournament_id: tournamentMatch.tournament_id,
-      blue_team_id: blueTeamId,
-      red_team_id: redTeamId,
-      mode: args.mode,
-      expires_at: expiresAt,
     });
 
-    if (tournamentMatch.team1_id) {
-      await ctx.db.patch(tournamentMatch.team1_id, {
-        game_team_id: blueTeamId.toString(),
-      });
+    if (hasActiveGame) {
+      return {
+        success: false,
+        error: "A game is already in progress for this match",
+      };
     }
-    if (tournamentMatch.team2_id) {
-      await ctx.db.patch(tournamentMatch.team2_id, {
-        game_team_id: redTeamId.toString(),
-      });
-    }
+  }
 
-    // Update tournament match status and add game reference
-    const updatedGames = [...tournamentMatch.games, matchId];
-    await ctx.db.patch(args.tournamentMatchId, {
-      status: "in_progress",
-      games: updatedGames,
+  // Resolve match type: use explicit arg, or fall back to tournament's game_type
+  let matchType = args.matchType;
+  if (!matchType || matchType === "auto") {
+    const tournament = await ctx.db.get(tournamentMatch.tournament_id);
+    matchType = tournament?.game_type || "pvp";
+  }
+
+  // Create game teams for this match
+  const redTeamId = await ctx.db.insert("game_teams", { bots: [] });
+  const blueTeamId = await ctx.db.insert("game_teams", { bots: [] });
+
+  const now = Date.now();
+  const expiresAt = now + 15 * 60 * 1000; // 15 minutes
+
+  // Create the game match
+  const matchId = await ctx.db.insert("matches", {
+    match_type: matchType,
+    match_status: "Queuing",
+    tournament_match_id: args.tournamentMatchId,
+    tournament_id: tournamentMatch.tournament_id,
+    blue_team_id: blueTeamId,
+    red_team_id: redTeamId,
+    mode: args.mode,
+    expires_at: expiresAt,
+  });
+
+  if (tournamentMatch.team1_id) {
+    await ctx.db.patch(tournamentMatch.team1_id, {
+      game_team_id: blueTeamId.toString(),
     });
+  }
+  if (tournamentMatch.team2_id) {
+    await ctx.db.patch(tournamentMatch.team2_id, {
+      game_team_id: redTeamId.toString(),
+    });
+  }
 
-    return { success: true, matchId };
+  // Update tournament match status and add game reference
+  const updatedGames = [...tournamentMatch.games, matchId];
+  await ctx.db.patch(args.tournamentMatchId, {
+    status: "in_progress",
+    games: updatedGames,
+  });
+
+  return { success: true, matchId };
 }
 
 export const createTournamentGame = mutation({

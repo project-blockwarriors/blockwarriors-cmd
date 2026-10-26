@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -344,14 +344,14 @@ export default function TournamentDetailPage() {
 
   const shouldLockRightPanelHeight = (standings?.length ?? 0) >= 5;
 
-  const measureStandingsHeight = () => {
+  const measureStandingsHeight = useCallback(() => {
     if (!standingsHeightRef.current) return;
     if (!shouldLockRightPanelHeight) {
       setRightPanelHeight(undefined);
       return;
     }
     setRightPanelHeight(standingsHeightRef.current.offsetHeight);
-  };
+  }, [shouldLockRightPanelHeight]);
 
   useEffect(() => {
     if (!standingsHeightRef.current) return;
@@ -380,6 +380,7 @@ export default function TournamentDetailPage() {
   useLayoutEffect(() => {
     measureStandingsHeight();
   }, [
+    measureStandingsHeight,
     standingsPages.length,
     standingsPageSize,
     selectedTeamId,
