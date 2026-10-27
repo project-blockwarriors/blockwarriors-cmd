@@ -48,7 +48,7 @@ async function main() {
 
   if (config.mode === 'upload' && !config.skipBuild) {
     logStep('Building Beacon JAR');
-    await runCommand(getNpmCommand(), ['run', 'build:beacon']);
+    await runCommand('npm', ['run', 'build:beacon']);
   }
 
   if (config.mode === 'upload') {
@@ -756,15 +756,12 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function getNpmCommand() {
-  return process.platform === 'win32' ? 'npm.cmd' : 'npm';
-}
-
 function runCommand(command, args) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: repoRoot,
       stdio: 'inherit',
+      shell: process.platform === 'win32',
     });
 
     child.on('error', reject);

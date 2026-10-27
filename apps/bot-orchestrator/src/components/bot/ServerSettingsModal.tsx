@@ -20,18 +20,22 @@ export function ServerSettingsModal() {
   const [isOpen, setIsOpen] = useState(false);
   const [host, setHost] = useState(serverConfig.host);
   const [port, setPort] = useState(serverConfig.port.toString());
+  const [authMode, setAuthMode] = useState<"offline" | "microsoft">(
+    serverConfig.authMode
+  );
 
   useEffect(() => {
     setHost(serverConfig.host);
     setPort(serverConfig.port.toString());
+    setAuthMode(serverConfig.authMode);
   }, [serverConfig]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const portNum = parseInt(port, 10);
     if (host && !isNaN(portNum) && portNum > 0 && portNum <= 65535) {
-      console.log("Updating server config to:", host, portNum);
-      updateServerConfig(host, portNum);
+      console.log("Updating server config to:", host, portNum, authMode);
+      updateServerConfig(host, portNum, authMode);
       setIsOpen(false);
     }
   };
@@ -41,6 +45,7 @@ export function ServerSettingsModal() {
       // Reset form to current server config when opening
       setHost(serverConfig.host);
       setPort(serverConfig.port.toString());
+      setAuthMode(serverConfig.authMode);
     }
     setIsOpen(open);
   };
@@ -89,6 +94,22 @@ export function ServerSettingsModal() {
                 max="65535"
                 required
               />
+            </div>
+            <div className="grid gap-2">
+              <label htmlFor="authMode" className="text-sm font-medium">
+                Authentication Mode
+              </label>
+              <select
+                id="authMode"
+                value={authMode}
+                onChange={(e) =>
+                  setAuthMode(e.target.value as "offline" | "microsoft")
+                }
+                className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="offline">Offline (for offline-mode servers)</option>
+                <option value="microsoft">Microsoft (for online-mode servers)</option>
+              </select>
             </div>
             <div className="text-sm text-muted-foreground border-l-2 border-yellow-500 pl-3 py-1">
               <strong>Note:</strong> This will only affect new bots. Existing

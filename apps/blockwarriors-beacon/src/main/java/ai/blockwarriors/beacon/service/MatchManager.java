@@ -260,6 +260,17 @@ public class MatchManager {
         return playerMatches.containsKey(playerId);
     }
 
+    /**
+     * Get the game instance for a player, if they are in a match.
+     *
+     * @param playerId UUID of the player
+     * @return BaseGame instance, or null if player is not in a match
+     */
+    public BaseGame getGameForPlayer(UUID playerId) {
+        String matchId = getMatchIdForPlayer(playerId);
+        return matchId != null ? getGameForMatch(matchId) : null;
+    }
+
     // ==================== Event Delegation ====================
 
     /**

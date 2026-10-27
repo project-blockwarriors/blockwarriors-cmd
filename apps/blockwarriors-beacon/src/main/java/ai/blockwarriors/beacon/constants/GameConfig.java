@@ -18,6 +18,7 @@ public final class GameConfig {
     public static final String GAME_TYPE_BRIDGE = "bridge";
     public static final String GAME_TYPE_BEDWARS = "bedwars";
     public static final String GAME_TYPE_CTF = "ctf";
+    public static final String GAME_TYPE_BUILD_UHC = "build_uhc";
 
     /**
      * All valid game types
@@ -28,7 +29,8 @@ public final class GameConfig {
         GAME_TYPE_WOOL_WARS,
         GAME_TYPE_BRIDGE,
         GAME_TYPE_BEDWARS,
-        GAME_TYPE_CTF
+        GAME_TYPE_CTF,
+        GAME_TYPE_BUILD_UHC
     };
 
     // ==================== Tokens Per Team ====================
@@ -39,6 +41,7 @@ public final class GameConfig {
     public static final int BRIDGE_TOKENS_PER_TEAM = 1;
     public static final int BEDWARS_TOKENS_PER_TEAM = 4;
     public static final int CTF_TOKENS_PER_TEAM = 4;
+    public static final int BUILD_UHC_TOKENS_PER_TEAM = 1;
 
     /**
      * Get tokens per team for a game type.
@@ -57,6 +60,8 @@ public final class GameConfig {
                 return BEDWARS_TOKENS_PER_TEAM;
             case GAME_TYPE_CTF:
                 return CTF_TOKENS_PER_TEAM;
+            case GAME_TYPE_BUILD_UHC:
+                return BUILD_UHC_TOKENS_PER_TEAM;
             default:
                 return 1;
         }
@@ -81,6 +86,8 @@ public final class GameConfig {
                 return "bedwars";
             case GAME_TYPE_CTF:
                 return "ctf";
+            case GAME_TYPE_BUILD_UHC:
+                return "build_uhc";
             default:
                 return "pvp";
         }

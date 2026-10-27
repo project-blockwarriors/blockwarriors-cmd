@@ -9,5 +9,4 @@ target/
 .idea/
 .vscode/
 .cursor/mcp.json
-
-.env.local
+.vercel

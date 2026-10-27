@@ -47,6 +47,14 @@
       "tokensPerTeam": 4,
       "players": "4v4",
       "defaultArena": "ctf"
+    },
+    "build_uhc": {
+      "id": "build_uhc",
+      "name": "Build UHC",
+      "description": "1v1 duel with building, bow, melee, and healing",
+      "tokensPerTeam": 1,
+      "players": "1v1",
+      "defaultArena": "build_uhc"
     }
   },
   "matchStatuses": ["Queuing", "Waiting", "Playing", "Finished", "Terminated"],
