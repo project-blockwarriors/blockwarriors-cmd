@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { motion } from 'framer-motion';
@@ -31,10 +31,24 @@ export default function TournamentMatchPage() {
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const userProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    session?.user?.id ? { userId: session.user.id } : 'skip'
+  );
+
+  const userTeamId = userProfile?.team?.id;
+
   // Fetch tournament match
   const tournamentMatch = useQuery(
     api.tournamentMatches.getTournamentMatch,
     matchId ? { matchId: matchId as Id<'tournament_matches'> } : 'skip'
+  );
+
+  const tournamentBracket = useQuery(
+    api.tournamentMatches.getTournamentBracket,
+    tournamentMatch?.tournament_id
+      ? { tournamentId: tournamentMatch.tournament_id }
+      : 'skip'
   );
 
   // Fetch game matches for this tournament match
@@ -49,7 +63,6 @@ export default function TournamentMatchPage() {
   const createTournamentGame = useMutation(
     api.tournamentMatches.createTournamentGame
   );
-
   const handleCreateGame = async () => {
     if (!session?.user?.id || !tournamentMatch) return;
     setActionLoading(true);
@@ -60,6 +73,7 @@ export default function TournamentMatchPage() {
         tournamentMatchId: matchId as Id<'tournament_matches'>,
         matchType: 'auto', // Resolved server-side from tournament's game_type
         mode: 'ranked', // Tournament matches are ranked
+        userId: session.user.id,
       });
 
       if (!result.success) {
@@ -74,6 +88,37 @@ export default function TournamentMatchPage() {
       setActionLoading(false);
     }
   };
+
+  const isUserTeamInMatch =
+    Boolean(userTeamId) &&
+    (tournamentMatch?.team1_id === userTeamId ||
+      tournamentMatch?.team2_id === userTeamId);
+  const hasIncompletePriorRound = useMemo(() => {
+    if (!tournamentMatch || !tournamentBracket) return false;
+    if (tournamentMatch.round <= 1) return false;
+    const priorRound = tournamentMatch.round - 1;
+    const priorRoundMatches = tournamentBracket.filter(
+      (match) =>
+        match.round === priorRound &&
+        (match.team1_id === tournamentMatch.team1_id ||
+          match.team2_id === tournamentMatch.team1_id ||
+          match.team1_id === tournamentMatch.team2_id ||
+          match.team2_id === tournamentMatch.team2_id)
+    );
+    if (priorRoundMatches.length === 0) return false;
+    return priorRoundMatches.some((match) => match.status !== 'completed');
+  }, [tournamentBracket, tournamentMatch]);
+  const hasActiveGame = useMemo(() => {
+    if (!tournamentMatch || !gameMatches) return false;
+    return tournamentMatch.games.some((gameId) => {
+      const game = gameMatches[gameId];
+      return (
+        game &&
+        game.match_status !== 'Finished' &&
+        game.match_status !== 'Terminated'
+      );
+    });
+  }, [gameMatches, tournamentMatch]);
 
   // Loading state
   if (tournamentMatch === undefined) {
@@ -104,14 +149,17 @@ export default function TournamentMatchPage() {
 
   const statusInfo = TOURNAMENT_MATCH_STATUSES[tournamentMatch.status];
   const maxGames = getMaxGamesInMatch(tournamentMatch.games_required);
-  const totalGamesPlayed =
-    tournamentMatch.team1_games_won + tournamentMatch.team2_games_won;
+  const totalGamesPlayed = tournamentMatch.games.length;
   const canCreateGame =
     tournamentMatch.status !== 'completed' &&
     tournamentMatch.status !== 'cancelled' &&
     totalGamesPlayed < maxGames &&
     tournamentMatch.team1_games_won < tournamentMatch.games_required &&
-    tournamentMatch.team2_games_won < tournamentMatch.games_required;
+    tournamentMatch.team2_games_won < tournamentMatch.games_required &&
+    !hasIncompletePriorRound &&
+    !hasActiveGame &&
+    isUserTeamInMatch;
+  const shouldShowStartButton = canCreateGame;
 
   return (
     <motion.div
@@ -141,6 +189,14 @@ export default function TournamentMatchPage() {
       {error && (
         <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
           <p className="text-red-400 text-sm">{error}</p>
+        </div>
+      )}
+
+      {hasIncompletePriorRound && (
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-lg p-4 mb-6">
+          <p className="text-amber-400 text-sm">
+            Round {tournamentMatch.round - 1} must be completed before this game can start.
+          </p>
         </div>
       )}
 
@@ -225,7 +281,7 @@ export default function TournamentMatchPage() {
           <h2 className="text-lg font-semibold text-white">
             Games ({totalGamesPlayed} / {maxGames})
           </h2>
-          {canCreateGame && (
+          {shouldShowStartButton && (
             <Button
               onClick={handleCreateGame}
               disabled={actionLoading}
@@ -236,7 +292,7 @@ export default function TournamentMatchPage() {
               ) : (
                 <>
                   <PlayIcon className="w-4 h-4 mr-2" />
-                  Start Game {totalGamesPlayed + 1}
+                  {`Start Game ${totalGamesPlayed + 1}`}
                 </>
               )}
             </Button>
@@ -248,7 +304,10 @@ export default function TournamentMatchPage() {
             {tournamentMatch.games.map((gameId, index) => {
               const game = gameMatches?.[gameId];
               return (
-                <Link key={gameId} href={`/dashboard/matches/${gameId}`}>
+                <Link
+                  key={gameId}
+                  href={`/dashboard/matches/${gameId}?tournamentId=${tournamentId}&tournamentMatchId=${matchId}`}
+                >
                   <div className="bg-white/5 rounded-lg p-4 hover:bg-white/10 transition-colors cursor-pointer">
                     <div className="flex items-center justify-between">
                       <div>

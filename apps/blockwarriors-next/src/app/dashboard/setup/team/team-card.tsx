@@ -8,7 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { joinTeam, leaveTeam, disbandTeam } from '@/server/actions/teams';
+import { joinTeam, leaveTeam, disbandTeam, cancelJoinRequest } from '@/server/actions/teams';
 import { useRouter } from 'next/navigation';
 import { TeamMember, TeamWithUsers } from '@/types/team';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useQuery } from 'convex/react';
+import { api } from '@/lib/convex';
 
 interface TeamCardProps extends Omit<TeamWithUsers, 'members'> {
   members: TeamMember[];
@@ -49,17 +51,28 @@ export function TeamCard({
 
   const isLeader = currentUserId === leader_id;
   const isMember = currentUserTeamId === id;
-  const canJoin = !currentUserTeamId && !isMember;
+  const isFull = members.length >= 5;
+  const canRequest = !currentUserTeamId && !isMember;
+  const pendingRequest = useQuery(
+    api.teams.getJoinRequestForTeam,
+    canRequest ? { teamId: id, userId: currentUserId } : 'skip'
+  );
+  const isPendingLoading = canRequest && pendingRequest === undefined;
+  const hasPendingRequest = Boolean(pendingRequest);
 
   async function handleJoinTeam() {
     try {
       setIsLoading(true);
-      await joinTeam(id, currentUserId);
+      const { error } = await joinTeam(id, currentUserId);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success('Join request sent.');
       router.refresh();
-      router.push('/dashboard/setup');
     } catch (error) {
       console.error('Failed to join team:', error);
-      toast.error('Failed to join team. Please try again.');
+      toast.error('Failed to request to join. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -86,6 +99,24 @@ export function TeamCard({
     } catch (error) {
       console.error('Failed to disband team:', error);
       toast.error('Failed to disband team. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  async function handleCancelRequest() {
+    try {
+      setIsLoading(true);
+      const { error } = await cancelJoinRequest(id, currentUserId);
+      if (error) {
+        toast.error(error);
+        return;
+      }
+      toast.success('Join request canceled.');
+      router.refresh();
+    } catch (error) {
+      console.error('Failed to cancel request:', error);
+      toast.error('Failed to cancel request. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -141,14 +172,29 @@ export function TeamCard({
       </CardContent>
 
       <CardFooter className="p-5 pt-0">
-        {canJoin && (
+        {canRequest && isPendingLoading && (
+          <Button className="w-full" disabled>
+            Checking...
+          </Button>
+        )}
+        {canRequest && !isPendingLoading && hasPendingRequest && (
+          <Button className="w-full" variant="outline" onClick={handleCancelRequest} disabled={isLoading}>
+            Requested
+          </Button>
+        )}
+        {canRequest && !isPendingLoading && !hasPendingRequest && !isFull && (
           <Button
             className="w-full"
             onClick={handleJoinTeam}
             disabled={isLoading}
           >
             <UserPlus className="h-4 w-4 mr-2" />
-            Join Team
+            Request to Join
+          </Button>
+        )}
+        {canRequest && !isPendingLoading && !hasPendingRequest && isFull && (
+          <Button className="w-full" disabled>
+            Team Full
           </Button>
         )}
         {isMember &&

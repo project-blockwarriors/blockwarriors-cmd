@@ -35,7 +35,11 @@ interface BotStore {
   createBot: (ign: string, token: string) => void;
   deleteBot: (botId: string) => void;
   sendCommand: (botId: string, command: BotCommand) => void;
-  updateServerConfig: (host: string, port: number) => void;
+  updateServerConfig: (
+    host: string,
+    port: number,
+    authMode: "offline" | "microsoft"
+  ) => void;
   initSocket: () => void;
 }
 
@@ -46,7 +50,11 @@ export const useBotStore = create<BotStore>((set, get) => ({
   isConnected: false,
   error: null,
   errorBotId: null,
-  serverConfig: { host: "mcpanel.blockwarriors.ai", port: 25565 },
+  serverConfig: {
+    host: "mcpanel.blockwarriors.ai",
+    port: 25565,
+    authMode: "offline",
+  },
   socketInitialized: false,
 
   setBots: (bots) => {
@@ -111,8 +119,8 @@ export const useBotStore = create<BotStore>((set, get) => ({
     socketSendCommand(botId, command);
   },
 
-  updateServerConfig: (host, port) => {
-    socketUpdateServerConfig(host, port);
+  updateServerConfig: (host, port, authMode) => {
+    socketUpdateServerConfig(host, port, authMode);
   },
 
   initSocket: () => {

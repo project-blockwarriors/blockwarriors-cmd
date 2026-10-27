@@ -60,11 +60,6 @@ public class PlayerEventListener implements Listener {
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         if (!isPlayerAllowed(event.getPlayer().getUniqueId())) {
-            if (event.getMessage().startsWith("/login") || event.getMessage().startsWith("/re")) {
-                LOGGER.info("Logging in...");
-                event.getPlayer().sendMessage("Logging in...");
-                return;
-            }
             event.getPlayer().sendMessage("Please do /login <token> to login first.");
             LOGGER.info("Cancel chat event");
             event.setCancelled(true);
@@ -74,9 +69,8 @@ public class PlayerEventListener implements Listener {
     @EventHandler
     public void onPlayerCommandPreprocess(PlayerCommandPreprocessEvent event) {
         if (!isPlayerAllowed(event.getPlayer().getUniqueId())) {
-            if (event.getMessage().startsWith("/login") || event.getMessage().startsWith("/re")) {
-                LOGGER.info("Logging in...");
-                event.getPlayer().sendMessage("Logging in...");
+            String msg = event.getMessage().toLowerCase();
+            if (msg.startsWith("/login") || msg.startsWith("/re") || msg.startsWith("/bypass")) {
                 return;
             }
             event.getPlayer().sendMessage("Please do /login <token> to login first.");

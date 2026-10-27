@@ -9,6 +9,7 @@ import { redirect } from 'next/navigation';
 import { UserProfile } from '@/types/user';
 import { TeamCard } from './team-card';
 import { CreateTeamForm } from './create-team-form';
+import { TeamJoinWatcher } from './team-join-watcher';
 
 export default async function TeamSetupPage() {
   const authUser = await getUser();
@@ -28,11 +29,18 @@ export default async function TeamSetupPage() {
   };
 
   const teams = await getAllTeamsWithMembers();
+  const sortedTeams = teams.slice().sort((a, b) => {
+    const aFull = a.members.length >= 5;
+    const bFull = b.members.length >= 5;
+    if (aFull === bFull) return 0;
+    return aFull ? 1 : -1;
+  });
   const hasTeams = teams.length > 0;
   const isTeamLeader = profile.team?.leader_id === profile.user_id;
 
   return (
     <div className="space-y-8">
+      {!profile.team && <TeamJoinWatcher userId={profile.user_id} />}
       <Card className="w-full max-w-3xl p-8 border-primary/10">
         {/* Header */}
         <div className="mb-8">
@@ -190,7 +198,7 @@ export default async function TeamSetupPage() {
                     </div>
 
                     <div className="grid grid-cols-1 gap-4">
-                      {teams.map((team) => (
+                      {sortedTeams.map((team) => (
                         <TeamCard
                           key={team.id}
                           id={team.id}

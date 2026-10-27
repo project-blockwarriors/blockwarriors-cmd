@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { useQuery, useMutation } from 'convex/react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -11,8 +11,21 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import {
+  type CarouselApi,
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+} from '@/components/ui/carousel';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Trophy,
   ArrowLeft,
+  ArrowRight,
   Users,
   Calendar,
   Sparkles,
@@ -28,10 +41,10 @@ import {
   CheckCircle,
   XCircle,
   Grid3X3,
-  List,
   BarChart3,
   CalendarDays,
   Timer,
+  Info,
 } from 'lucide-react';
 import {
   TOURNAMENT_STATUSES,
@@ -52,6 +65,30 @@ export default function TournamentDetailPage() {
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('matrix');
   const [selectedTeamId, setSelectedTeamId] = useState<string | null>(null);
+  const [isInfoOpen, setIsInfoOpen] = useState(false);
+  const [isStartInfoOpen, setIsStartInfoOpen] = useState(false);
+  const [standingsApi, setStandingsApi] = useState<CarouselApi | null>(null);
+  const [canScrollStandingsPrev, setCanScrollStandingsPrev] = useState(false);
+  const [canScrollStandingsNext, setCanScrollStandingsNext] = useState(false);
+  const [roundsApi, setRoundsApi] = useState<CarouselApi | null>(null);
+  const [canScrollRoundsPrev, setCanScrollRoundsPrev] = useState(false);
+  const [canScrollRoundsNext, setCanScrollRoundsNext] = useState(false);
+  const standingsHeightRef = useRef<HTMLDivElement | null>(null);
+  const [rightPanelHeight, setRightPanelHeight] = useState<number | undefined>(
+    undefined
+  );
+  const shouldLockHeightRef = useRef(false);
+  const matrixRowRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const teamCardRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const matrixScrollRef = useRef<HTMLDivElement | null>(null);
+  const teamsScrollRef = useRef<HTMLDivElement | null>(null);
+  const [isStandingsInfoOpen, setIsStandingsInfoOpen] = useState(false);
+  const [registeredTeamsApi, setRegisteredTeamsApi] = useState<CarouselApi | null>(null);
+  const [canScrollRegisteredTeamsPrev, setCanScrollRegisteredTeamsPrev] = useState(false);
+  const [canScrollRegisteredTeamsNext, setCanScrollRegisteredTeamsNext] = useState(false);
+  const scheduleScrollRef = useRef<HTMLDivElement | null>(null);
+  const scheduleItemRefs = useRef<Map<string, HTMLDivElement | null>>(new Map());
+  const [canScrollSchedule, setCanScrollSchedule] = useState(false);
 
   // Get user's profile to find their team
   const userProfile = useQuery(
@@ -65,6 +102,10 @@ export default function TournamentDetailPage() {
   const tournament = useQuery(
     api.tournaments.getTournament,
     tournamentId ? { tournamentId: tournamentId as Id<'tournaments'> } : 'skip'
+  );
+  const creatorProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    tournament?.created_by ? { userId: tournament.created_by } : 'skip'
   );
 
   // Fetch participants
@@ -176,6 +217,17 @@ export default function TournamentDetailPage() {
     return byTeam;
   }, [bracket, participants]);
 
+  const teamsSortedByStandings = useMemo(() => {
+    if (!participants) return [];
+    if (!standings || standings.length === 0) return participants;
+    const standingOrder = new Map(standings.map((team, index) => [team.team_id, index]));
+    return [...participants].sort((a, b) => {
+      const aRank = standingOrder.get(a.team_id) ?? Number.POSITIVE_INFINITY;
+      const bRank = standingOrder.get(b.team_id) ?? Number.POSITIVE_INFINITY;
+      return aRank - bRank;
+    });
+  }, [participants, standings]);
+
   // Group matches by round
   const matchesByRound = useMemo(() => {
     if (!bracket) return {};
@@ -210,6 +262,396 @@ export default function TournamentDetailPage() {
     if (!bracket) return 0;
     return Math.max(...bracket.map((m) => m.round), 0);
   }, [bracket]);
+
+  const roundsLabel = totalRounds === 1 ? 'round' : 'rounds';
+  const getMatchLabel = (count: number) => (count === 1 ? 'match' : 'matches');
+  const boLabel =
+    tournament?.games_per_match === 1
+      ? 'Bo1'
+      : tournament
+        ? `Bo${tournament.games_per_match * 2 - 1}`
+        : 'Bo?';
+
+  const standingsPageSize = useMemo(() => {
+    if (!standings || standings.length === 0) return 0;
+    return standings.length <= 8 ? standings.length : 5;
+  }, [standings]);
+
+  const standingsPages = useMemo(() => {
+    if (!standings || standings.length === 0) return [];
+    const pageSize = standingsPageSize || standings.length;
+    const pages = [];
+    for (let i = 0; i < standings.length; i += pageSize) {
+      pages.push(standings.slice(i, i + pageSize));
+    }
+    return pages;
+  }, [standings, standingsPageSize]);
+
+  useEffect(() => {
+    if (!standingsApi) return;
+
+    const updateScrollState = () => {
+      setCanScrollStandingsPrev(standingsApi.canScrollPrev());
+      setCanScrollStandingsNext(standingsApi.canScrollNext());
+    };
+
+    updateScrollState();
+    standingsApi.on('select', updateScrollState);
+    standingsApi.on('reInit', updateScrollState);
+
+    return () => {
+      standingsApi.off('select', updateScrollState);
+      standingsApi.off('reInit', updateScrollState);
+    };
+  }, [standingsApi]);
+
+  useEffect(() => {
+    if (!roundsApi) return;
+
+    const updateScrollState = () => {
+      setCanScrollRoundsPrev(roundsApi.canScrollPrev());
+      setCanScrollRoundsNext(roundsApi.canScrollNext());
+    };
+
+    updateScrollState();
+    roundsApi.on('select', updateScrollState);
+    roundsApi.on('reInit', updateScrollState);
+
+    return () => {
+      roundsApi.off('select', updateScrollState);
+      roundsApi.off('reInit', updateScrollState);
+    };
+  }, [roundsApi]);
+
+  useEffect(() => {
+    if (!registeredTeamsApi) return;
+
+    const updateScrollState = () => {
+      setCanScrollRegisteredTeamsPrev(registeredTeamsApi.canScrollPrev());
+      setCanScrollRegisteredTeamsNext(registeredTeamsApi.canScrollNext());
+    };
+
+    updateScrollState();
+    registeredTeamsApi.on('select', updateScrollState);
+    registeredTeamsApi.on('reInit', updateScrollState);
+
+    return () => {
+      registeredTeamsApi.off('select', updateScrollState);
+      registeredTeamsApi.off('reInit', updateScrollState);
+    };
+  }, [registeredTeamsApi]);
+
+
+  const shouldLockRightPanelHeight = (standings?.length ?? 0) >= 5;
+
+  const measureStandingsHeight = useCallback(() => {
+    if (!standingsHeightRef.current) return;
+    if (!shouldLockRightPanelHeight) {
+      setRightPanelHeight(undefined);
+      return;
+    }
+    setRightPanelHeight(standingsHeightRef.current.offsetHeight);
+  }, [shouldLockRightPanelHeight]);
+
+  useEffect(() => {
+    if (!standingsHeightRef.current) return;
+    const element = standingsHeightRef.current;
+    const observer = new ResizeObserver(() => {
+      if (!shouldLockHeightRef.current) {
+        setRightPanelHeight(undefined);
+        return;
+      }
+      setRightPanelHeight(element.offsetHeight);
+    });
+    observer.observe(element);
+    if (shouldLockHeightRef.current) {
+      setRightPanelHeight(element.offsetHeight);
+    }
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    shouldLockHeightRef.current = shouldLockRightPanelHeight;
+    if (!shouldLockRightPanelHeight) {
+      setRightPanelHeight(undefined);
+    }
+  }, [shouldLockRightPanelHeight]);
+
+  useLayoutEffect(() => {
+    measureStandingsHeight();
+  }, [
+    measureStandingsHeight,
+    standingsPages.length,
+    standingsPageSize,
+    selectedTeamId,
+    viewMode,
+    shouldLockRightPanelHeight,
+  ]);
+
+  const scrollTeamIntoView = (teamId: string) => {
+    const container = teamsScrollRef.current;
+    const target = teamCardRefs.current.get(teamId);
+    if (!container || !target) return;
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    const top = targetRect.top - containerRect.top + container.scrollTop - 16;
+    container.scrollTo({ top, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    if (viewMode !== 'teams' || !selectedTeamId) return;
+    requestAnimationFrame(() => scrollTeamIntoView(selectedTeamId));
+    const timeout = setTimeout(() => {
+      scrollTeamIntoView(selectedTeamId);
+    }, 220);
+    return () => clearTimeout(timeout);
+  }, [viewMode, selectedTeamId]);
+
+  useEffect(() => {
+    if (!myTeamMatches.length) return;
+    const firstUpcoming = myTeamMatches.find(
+      (match) => match.status === 'pending' || match.status === 'in_progress'
+    );
+    if (!firstUpcoming) return;
+    const container = scheduleScrollRef.current;
+    const target = scheduleItemRefs.current.get(firstUpcoming._id);
+    if (!container || !target) return;
+    requestAnimationFrame(() => {
+      const containerRect = container.getBoundingClientRect();
+      const targetRect = target.getBoundingClientRect();
+      const left = targetRect.left - containerRect.left + container.scrollLeft - 16;
+      container.scrollTo({ left, behavior: 'smooth' });
+    });
+  }, [myTeamMatches]);
+
+  useEffect(() => {
+    const container = scheduleScrollRef.current;
+    if (!container) return;
+
+    const updateOverflow = () => {
+      setCanScrollSchedule(container.scrollWidth > container.clientWidth + 4);
+    };
+
+    updateOverflow();
+    const observer = new ResizeObserver(updateOverflow);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [myTeamMatches]);
+
+
+  const renderStandings = (
+    teams: NonNullable<typeof standings>,
+    offset = 0
+  ) =>
+    teams.map((team, index) => {
+      const rankIndex = offset + index;
+      return (
+        <motion.div
+          key={team.team_id}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: rankIndex * 0.05 }}
+          className={`flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer ${
+            selectedTeamId === team.team_id
+              ? 'bg-primary/20 border border-primary/30'
+              : team.team_id === userTeamId
+                ? 'bg-primary/10 border border-primary/20'
+                : rankIndex < 3
+                  ? 'bg-primary/5 hover:bg-primary/10'
+                  : 'bg-secondary/30 hover:bg-secondary/50'
+          }`}
+          onClick={() => {
+            setSelectedTeamId(
+              selectedTeamId === team.team_id ? null : team.team_id
+            );
+            if (viewMode === 'matrix') {
+              const target = matrixRowRefs.current.get(team.team_id);
+              const container = matrixScrollRef.current;
+              if (target && container) {
+                requestAnimationFrame(() => {
+                  const top = target.offsetTop - container.offsetTop - 12;
+                  container.scrollTo({ top, behavior: 'smooth' });
+                });
+              }
+            }
+          }}
+          onDoubleClick={() => {
+            setViewMode('teams');
+            setSelectedTeamId(team.team_id);
+          }}
+        >
+          <div className="w-10 text-center">{getRankBadge(rankIndex + 1)}</div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <p className="font-semibold text-white truncate">{team.team_name}</p>
+              {team.team_id === userTeamId && (
+                <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                  You
+                </Badge>
+              )}
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="text-green-400">{team.matches_won}W</span>
+              <span className="text-red-400">{team.matches_lost}L</span>
+              <span className="text-slate-300">{team.matches_tied}T</span>
+              <span className="text-muted-foreground">{team.matches_pending}P</span>
+            </div>
+          </div>
+          <div className="text-right">
+            <p className="text-xl font-bold text-amber-400">{team.points}</p>
+            <p className="text-xs text-muted-foreground">pts</p>
+          </div>
+        </motion.div>
+      );
+    });
+
+  const roundsEntries = useMemo(
+    () =>
+      Object.entries(matchesByRound).sort(
+        ([a], [b]) => parseInt(a) - parseInt(b)
+      ),
+    [matchesByRound]
+  );
+
+  const roundsPageSize = useMemo(() => {
+    if (roundsEntries.length === 0) return 0;
+    return roundsEntries.length <= 8 ? roundsEntries.length : 5;
+  }, [roundsEntries.length]);
+
+  const roundsPages = useMemo(() => {
+    if (roundsEntries.length === 0) return [];
+    const pageSize = roundsPageSize || roundsEntries.length;
+    const pages = [];
+    for (let i = 0; i < roundsEntries.length; i += pageSize) {
+      pages.push(roundsEntries.slice(i, i + pageSize));
+    }
+    return pages;
+  }, [roundsEntries, roundsPageSize]);
+
+  const registeredTeamsPageSize = useMemo(() => {
+    if (!participants || participants.length === 0) return 0;
+    return participants.length <= 8 ? participants.length : 5;
+  }, [participants]);
+
+  const registeredTeamsPages = useMemo(() => {
+    if (!participants || participants.length === 0) return [];
+    const pageSize = registeredTeamsPageSize || participants.length;
+    const pages = [];
+    for (let i = 0; i < participants.length; i += pageSize) {
+      pages.push(participants.slice(i, i + pageSize));
+    }
+    return pages;
+  }, [participants, registeredTeamsPageSize]);
+
+  const renderRoundBlock = (round: string, matches: typeof bracket) => {
+    const completedCount =
+      matches?.filter((m) => m.status === 'completed').length ?? 0;
+    const inProgressCount =
+      matches?.filter((m) => m.status === 'in_progress').length ?? 0;
+
+    return (
+      <div key={round}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+            <div
+              className={`w-10 h-10 rounded-lg flex items-center justify-center font-bold ${
+                inProgressCount > 0
+                  ? 'bg-yellow-500/20 text-yellow-400'
+                  : completedCount === matches?.length
+                    ? 'bg-green-500/20 text-green-400'
+                    : 'bg-primary/10 text-primary'
+              }`}
+            >
+              {round}
+            </div>
+            Round {round}
+          </h3>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span className="text-green-400">{completedCount}</span>
+            <span>/</span>
+            <span>{matches?.length}</span>
+            <span>completed</span>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {matches?.map((match) => {
+            const statusInfo = TOURNAMENT_MATCH_STATUSES[match.status];
+            const isMyMatch =
+              match.team1_id === userTeamId || match.team2_id === userTeamId;
+
+            return (
+              <Link
+                key={match._id}
+                href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
+              >
+                <div
+                  className={`p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.02] ${
+                    match.status === 'completed'
+                      ? 'bg-secondary/30 border-primary/10 hover:border-primary/30'
+                      : match.status === 'in_progress'
+                        ? 'bg-yellow-500/10 border-yellow-500/30 hover:border-yellow-500/50'
+                        : match.status === 'scheduled'
+                          ? 'bg-blue-500/5 border-blue-500/20 hover:border-blue-500/40'
+                          : 'bg-secondary/20 border-secondary/30 hover:border-primary/20'
+                  } ${isMyMatch ? 'ring-1 ring-primary/40' : ''}`}
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      {getStatusIcon(match.status)}
+                      <span className={`text-sm font-medium ${statusInfo.color}`}>
+                        {statusInfo.name}
+                      </span>
+                    </div>
+                    {match.scheduled_time && (
+                      <span className="text-xs text-muted-foreground">
+                        {formatScheduledTime(match.scheduled_time)}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p
+                        className={`font-semibold ${
+                          match.winner_team_id === match.team1_id
+                            ? 'text-green-400'
+                            : 'text-white'
+                        } ${match.team1_id === userTeamId ? 'text-primary' : ''}`}
+                      >
+                        {match.team1_name ?? 'TBD'}
+                        {match.team1_id === userTeamId && (
+                          <span className="text-[10px] ml-1 text-primary">(You)</span>
+                        )}
+                      </p>
+                    </div>
+                    <div className="px-6">
+                      <p className="text-2xl font-bold text-white">
+                        {match.team1_games_won} - {match.team2_games_won}
+                      </p>
+                    </div>
+                    <div className="flex-1 text-right">
+                      <p
+                        className={`font-semibold ${
+                          match.winner_team_id === match.team2_id
+                            ? 'text-green-400'
+                            : 'text-white'
+                        } ${match.team2_id === userTeamId ? 'text-primary' : ''}`}
+                      >
+                        {match.team2_name ?? 'TBD'}
+                        {match.team2_id === userTeamId && (
+                          <span className="text-[10px] ml-1 text-primary">(You)</span>
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   const handleJoin = async () => {
     if (!session?.user?.id) return;
@@ -355,9 +797,11 @@ export default function TournamentDetailPage() {
     if (matchup.status === 'completed') {
       if (matchup.team1GamesWon > matchup.team2GamesWon) {
         return 'bg-green-500/20 border-green-500/30';
-      } else {
+      }
+      if (matchup.team2GamesWon > matchup.team1GamesWon) {
         return 'bg-red-500/20 border-red-500/30';
       }
+      return 'bg-orange-500/20 border-orange-500/30';
     }
     if (matchup.status === 'in_progress')
       return 'bg-yellow-500/20 border-yellow-500/30 animate-pulse';
@@ -434,21 +878,66 @@ export default function TournamentDetailPage() {
               {tournament.is_official && (
                 <Sparkles className="h-6 w-6 text-amber-400" />
               )}
-              <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
+              <div className="flex flex-col">
+                <h1 className="text-3xl font-bold text-white">{tournament.name}</h1>
+              </div>
+              {!tournament.is_official &&
+                creatorProfile &&
+                (tournament.status === 'in_progress' ||
+                  tournament.status === 'completed') && (
+                  <TooltipProvider>
+                    <Tooltip open={isInfoOpen} onOpenChange={setIsInfoOpen}>
+                      <TooltipTrigger asChild>
+                        <span
+                          className="text-muted-foreground inline-flex items-center gap-1 cursor-pointer"
+                          onClick={() => setIsInfoOpen((prev) => !prev)}
+                        >
+                          <Info className="h-4 w-4" />
+                          Info
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="center">
+                        <div className="text-xs">
+                          <span className="block">
+                            Created by {creatorProfile.first_name}{' '}
+                            {creatorProfile.last_name}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {creatorProfile.institution}
+                            {creatorProfile.team?.team_name
+                              ? ` • ${creatorProfile.team.team_name}`
+                              : ''}
+                          </span>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 text-muted-foreground">
               <Badge className={`${statusInfo.color} bg-white/5`}>
                 {statusInfo.name}
               </Badge>
               <Badge variant="outline" className="text-muted-foreground">
                 {formatInfo.name}
               </Badge>
-              <span className="text-muted-foreground">
-                {tournament.participant_count} / {tournament.max_teams} teams
-              </span>
+              <Badge variant="outline" className="text-muted-foreground">
+                {boLabel}
+              </Badge>
+              {tournament.status !== 'registration' && (
+                <span>
+                  {tournament.status === 'in_progress' ||
+                  tournament.status === 'completed'
+                    ? `${tournament.participant_count} teams`
+                    : `${tournament.participant_count} / ${tournament.max_teams} teams`}
+                </span>
+              )}
+              {tournament.status !== 'registration' && hasMatches && (
+                <span>•</span>
+              )}
               {hasMatches && (
-                <span className="text-muted-foreground">
-                  • {totalRounds} rounds
+                <span>
+                  {totalRounds} {roundsLabel}
                 </span>
               )}
             </div>
@@ -540,12 +1029,46 @@ export default function TournamentDetailPage() {
                 <div>
                   <h3 className="font-semibold text-white">Your Schedule</h3>
                   <p className="text-sm text-muted-foreground">
-                    {userProfile?.team?.team_name} • {myTeamMatches.length} matches
+                    {userProfile?.team?.team_name} • {myTeamMatches.length}{' '}
+                    {getMatchLabel(myTeamMatches.length)}
                   </p>
                 </div>
               </div>
+              {canScrollSchedule && (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scheduleScrollRef.current?.scrollBy({
+                        left: -((scheduleScrollRef.current?.clientWidth ?? 0) * 5) / 8,
+                        behavior: 'smooth',
+                      })
+                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Scroll schedule left"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      scheduleScrollRef.current?.scrollBy({
+                        left: ((scheduleScrollRef.current?.clientWidth ?? 0) * 5) / 8,
+                        behavior: 'smooth',
+                      })
+                    }
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground"
+                    aria-label="Scroll schedule right"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
+            <div
+              ref={scheduleScrollRef}
+              className="flex gap-3 overflow-x-auto pr-2 pb-1"
+            >
               {myTeamMatches.map((match) => {
                 const isTeam1 = match.team1_id === userTeamId;
                 const opponentName = isTeam1 ? match.team2_name : match.team1_name;
@@ -560,6 +1083,9 @@ export default function TournamentDetailPage() {
                     href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
                   >
                     <div
+                      ref={(el) => {
+                        scheduleItemRefs.current.set(match._id, el);
+                      }}
                       className={`p-3 rounded-lg border transition-all cursor-pointer hover:scale-[1.02] ${
                         isWinner
                           ? 'bg-green-500/10 border-green-500/30'
@@ -598,77 +1124,6 @@ export default function TournamentDetailPage() {
         </Card>
       )}
 
-      {/* Tournament Info Bar */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="border-primary/10 bg-gradient-to-br from-primary/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Users className="h-5 w-5 text-primary" />
-              <div>
-                <p className="text-xs text-muted-foreground">Teams</p>
-                <p className="font-bold text-white">{tournament.participant_count}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Swords className="h-5 w-5 text-amber-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Matches</p>
-                <p className="font-bold text-white">{bracket?.length ?? 0}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-green-500/20 bg-gradient-to-br from-green-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Completed</p>
-                <p className="font-bold text-white">
-                  {bracket?.filter((m) => m.status === 'completed').length ?? 0}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Target className="h-5 w-5 text-blue-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">Format</p>
-                <p className="font-bold text-white">
-                  {tournament.games_per_match === 1
-                    ? 'Single'
-                    : `Bo${tournament.games_per_match * 2 - 1}`}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-transparent">
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="h-5 w-5 text-purple-400" />
-              <div>
-                <p className="text-xs text-muted-foreground">
-                  {tournament.status === 'registration' ? 'Starts' : 'Started'}
-                </p>
-                <p className="font-bold text-white text-sm">
-                  {tournament.start_time
-                    ? new Date(tournament.start_time).toLocaleDateString()
-                    : 'TBD'}
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Main Content */}
       {(tournament.status === 'in_progress' || tournament.status === 'completed') &&
       hasMatches ? (
@@ -704,79 +1159,94 @@ export default function TournamentDetailPage() {
                 <Users className="h-4 w-4 mr-1" />
                 Teams
               </Button>
-              <Button
-                variant={viewMode === 'rounds' ? 'default' : 'ghost'}
-                size="sm"
-                onClick={() => setViewMode('rounds')}
-                className={viewMode !== 'rounds' ? 'text-muted-foreground' : ''}
-              >
-                <List className="h-4 w-4 mr-1" />
-                Rounds
-              </Button>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
             {/* Standings */}
-            <Card className="border-primary/10 lg:col-span-1">
-              <CardHeader className="pb-3">
-                <CardTitle className="flex items-center gap-2 text-lg">
-                  <BarChart3 className="h-5 w-5 text-primary" />
-                  Standings
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {standings?.map((team, index) => (
-                  <motion.div
-                    key={team.team_id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: index * 0.05 }}
-                    className={`flex items-center gap-3 p-3 rounded-lg transition-all cursor-pointer ${
-                      selectedTeamId === team.team_id
-                        ? 'bg-primary/20 border border-primary/30'
-                        : team.team_id === userTeamId
-                          ? 'bg-primary/10 border border-primary/20'
-                          : index < 3
-                            ? 'bg-primary/5 hover:bg-primary/10'
-                            : 'bg-secondary/30 hover:bg-secondary/50'
-                    }`}
-                    onClick={() =>
-                      setSelectedTeamId(
-                        selectedTeamId === team.team_id ? null : team.team_id
-                      )
-                    }
-                  >
-                    <div className="w-10 text-center">{getRankBadge(index + 1)}</div>
-                    <div className="flex-1 min-w-0">
+            <div ref={standingsHeightRef} className="lg:col-span-1">
+              <Card className="border-primary/10 h-fit">
+                <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <BarChart3 className="h-5 w-5 text-primary" />
+                    Standings
+                    <TooltipProvider>
+                      <Tooltip open={isStandingsInfoOpen} onOpenChange={setIsStandingsInfoOpen}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-white cursor-pointer"
+                            aria-label="Standings interaction info"
+                            onClick={() => setIsStandingsInfoOpen((prev) => !prev)}
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center">
+                          <p className="text-xs">
+                            Single click highlights the team in the current view. Double click opens
+                            match details.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </CardTitle>
+                    {standingsPages.length > 1 && (
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold text-white truncate">
-                          {team.team_name}
-                        </p>
-                        {team.team_id === userTeamId && (
-                          <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
-                            You
-                          </Badge>
-                        )}
+                        <button
+                          type="button"
+                          onClick={() => standingsApi?.scrollPrev()}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          aria-label="Previous standings slide"
+                          disabled={!canScrollStandingsPrev}
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => standingsApi?.scrollNext()}
+                          className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                          aria-label="Next standings slide"
+                          disabled={!canScrollStandingsNext}
+                        >
+                          <ArrowRight className="h-4 w-4" />
+                        </button>
                       </div>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span className="text-green-400">{team.matches_won}W</span>
-                        <span className="text-red-400">{team.matches_lost}L</span>
-                        <span className="text-muted-foreground">{team.matches_pending}P</span>
-                      </div>
+                    )}
+                  </div>
+                </CardHeader>
+              <CardContent className="space-y-2 pt-2 pb-3">
+                  {standingsPages.length <= 1 ? (
+                    <div className="space-y-2">
+                      {standings ? renderStandings(standings) : null}
                     </div>
-                    <div className="text-right">
-                      <p className="text-xl font-bold text-amber-400">{team.points}</p>
-                      <p className="text-xs text-muted-foreground">pts</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </CardContent>
-            </Card>
+                  ) : (
+                    <Carousel opts={{ align: 'start' }} setApi={setStandingsApi}>
+                      <CarouselContent>
+                        {standingsPages.map((page, pageIndex) => (
+                          <CarouselItem key={`standings-${pageIndex}`}>
+                            <div className="space-y-2">
+                              {renderStandings(
+                                page,
+                                pageIndex * (standingsPageSize || 0)
+                              )}
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                    </Carousel>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
 
             {/* Main View Area */}
-            <Card className="border-primary/10 lg:col-span-2">
-              <CardContent className="pt-6">
+            <Card
+              className="border-primary/10 lg:col-span-2 h-fit overflow-hidden"
+              style={rightPanelHeight ? { height: rightPanelHeight } : undefined}
+            >
+              <CardContent className="pt-6 h-full flex flex-col">
                 <AnimatePresence mode="wait">
                   {/* Matrix View */}
                   {viewMode === 'matrix' && matchMatrix && participants && (
@@ -785,7 +1255,8 @@ export default function TournamentDetailPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="overflow-x-auto"
+                      className="h-full overflow-auto"
+                      ref={matrixScrollRef}
                     >
                       <div className="min-w-max">
                         {/* Header Row */}
@@ -812,7 +1283,13 @@ export default function TournamentDetailPage() {
                         </div>
                         {/* Matrix Rows */}
                         {participants.map((rowTeam) => (
-                          <div key={rowTeam.team_id} className="flex">
+                          <div
+                            key={rowTeam.team_id}
+                            className="flex"
+                            ref={(el) => {
+                              matrixRowRefs.current.set(rowTeam.team_id, el);
+                            }}
+                          >
                             <div
                               className={`w-32 h-20 flex items-center px-3 text-sm font-medium transition-all ${
                                 selectedTeamId === rowTeam.team_id
@@ -906,6 +1383,10 @@ export default function TournamentDetailPage() {
                           <span>Loss</span>
                         </div>
                         <div className="flex items-center gap-2">
+                          <div className="w-4 h-4 rounded bg-orange-500/20 border border-orange-500/30" />
+                          <span>Tie</span>
+                        </div>
+                        <div className="flex items-center gap-2">
                           <div className="w-4 h-4 rounded bg-yellow-500/20 border border-yellow-500/30" />
                           <span>Live</span>
                         </div>
@@ -918,336 +1399,14 @@ export default function TournamentDetailPage() {
                           <span>Pending</span>
                         </div>
                         <span className="text-muted-foreground/50">|</span>
-                        <span className="text-blue-400">R1</span>
-                        <span className="text-purple-400">R2</span>
-                        <span className="text-pink-400">R3</span>
-                        <span>= Round numbers</span>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Schedule View - Timeline */}
-                  {viewMode === 'schedule' && (
-                    <motion.div
-                      key="schedule"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-6"
-                    >
-                      {/* Timeline header */}
-                      <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
-                        <div className="flex items-center gap-2">
-                          <Timer className="h-5 w-5 text-primary" />
-                          <span className="font-semibold text-white">Full Tournament Schedule</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                          <span>{sortedMatches.length} matches</span>
-                          <span>•</span>
-                          <span>{totalRounds} rounds</span>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="text-blue-400">R1</span>
+                          <span className="text-purple-400">R2</span>
+                          <span className="text-pink-400">R3</span>
+                          <span className="text-muted-foreground/60">…</span>
+                          <span>= Round numbers</span>
                         </div>
                       </div>
-
-                      {/* Timeline */}
-                      <div className="relative">
-                        {/* Vertical line */}
-                        <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-transparent" />
-
-                        {Object.entries(matchesByRound)
-                          .sort(([a], [b]) => parseInt(a) - parseInt(b))
-                          .map(([round, matches]) => (
-                            <div key={round} className="relative mb-8">
-                              {/* Round marker */}
-                              <div className="flex items-center gap-4 mb-4">
-                                <div
-                                  className={`relative z-10 w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg border-2 ${
-                                    matches?.some((m) => m.status === 'in_progress')
-                                      ? 'bg-yellow-500/20 border-yellow-500/50 text-yellow-400'
-                                      : matches?.every((m) => m.status === 'completed')
-                                        ? 'bg-green-500/20 border-green-500/50 text-green-400'
-                                        : 'bg-primary/10 border-primary/30 text-primary'
-                                  }`}
-                                >
-                                  {round}
-                                </div>
-                                <div>
-                                  <h3 className="font-semibold text-white">Round {round}</h3>
-                                  <p className="text-sm text-muted-foreground">
-                                    {matches?.filter((m) => m.status === 'completed').length} /{' '}
-                                    {matches?.length} completed
-                                  </p>
-                                </div>
-                              </div>
-
-                              {/* Matches in this round */}
-                              <div className="ml-16 space-y-3">
-                                {matches
-                                  ?.sort((a, b) => a.match_number - b.match_number)
-                                  .map((match) => {
-                                    const isMyMatch =
-                                      match.team1_id === userTeamId ||
-                                      match.team2_id === userTeamId;
-                                    const statusInfo = TOURNAMENT_MATCH_STATUSES[match.status];
-
-                                    return (
-                                      <Link
-                                        key={match._id}
-                                        href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
-                                      >
-                                        <div
-                                          className={`p-4 rounded-xl border transition-all cursor-pointer hover:scale-[1.01] ${
-                                            match.status === 'in_progress'
-                                              ? 'bg-yellow-500/10 border-yellow-500/30'
-                                              : match.status === 'completed'
-                                                ? 'bg-secondary/20 border-secondary/30'
-                                                : match.status === 'scheduled'
-                                                  ? 'bg-blue-500/5 border-blue-500/20'
-                                                  : 'bg-secondary/10 border-secondary/20'
-                                          } ${isMyMatch ? 'ring-1 ring-primary/40' : ''}`}
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            {/* Teams */}
-                                            <div className="flex items-center gap-4 flex-1">
-                                              <div className="flex flex-col items-end flex-1">
-                                                <span
-                                                  className={`font-semibold ${
-                                                    match.winner_team_id === match.team1_id
-                                                      ? 'text-green-400'
-                                                      : 'text-white'
-                                                  } ${match.team1_id === userTeamId ? 'text-primary' : ''}`}
-                                                >
-                                                  {match.team1_name ?? 'TBD'}
-                                                </span>
-                                                {match.team1_id === userTeamId && (
-                                                  <Badge className="text-[9px] px-1 py-0 bg-primary/20 text-primary border-0 mt-0.5">
-                                                    You
-                                                  </Badge>
-                                                )}
-                                              </div>
-
-                                              {/* Score */}
-                                              <div className="flex items-center gap-3 px-4">
-                                                <span className="text-2xl font-bold text-white">
-                                                  {match.team1_games_won}
-                                                </span>
-                                                <span className="text-muted-foreground">-</span>
-                                                <span className="text-2xl font-bold text-white">
-                                                  {match.team2_games_won}
-                                                </span>
-                                              </div>
-
-                                              <div className="flex flex-col items-start flex-1">
-                                                <span
-                                                  className={`font-semibold ${
-                                                    match.winner_team_id === match.team2_id
-                                                      ? 'text-green-400'
-                                                      : 'text-white'
-                                                  } ${match.team2_id === userTeamId ? 'text-primary' : ''}`}
-                                                >
-                                                  {match.team2_name ?? 'TBD'}
-                                                </span>
-                                                {match.team2_id === userTeamId && (
-                                                  <Badge className="text-[9px] px-1 py-0 bg-primary/20 text-primary border-0 mt-0.5">
-                                                    You
-                                                  </Badge>
-                                                )}
-                                              </div>
-                                            </div>
-
-                                            {/* Status & Time */}
-                                            <div className="flex items-center gap-4 ml-4">
-                                              <div className="text-right">
-                                                <div className="flex items-center gap-1.5 justify-end">
-                                                  {getStatusIcon(match.status, 'md')}
-                                                  <span className={`text-sm font-medium ${statusInfo.color}`}>
-                                                    {statusInfo.name}
-                                                  </span>
-                                                </div>
-                                                {match.scheduled_time && (
-                                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                                    {formatScheduledTime(match.scheduled_time)}
-                                                  </p>
-                                                )}
-                                              </div>
-                                              <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                            </div>
-                                          </div>
-                                        </div>
-                                      </Link>
-                                    );
-                                  })}
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* Teams View */}
-                  {viewMode === 'teams' && participants && (
-                    <motion.div
-                      key="teams"
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -20 }}
-                      className="space-y-4"
-                    >
-                      {participants.map((team, idx) => {
-                        const teamMatches = matchesByTeam[team.team_id] ?? [];
-                        const standing = standings?.find((s) => s.team_id === team.team_id);
-                        const isMyTeam = team.team_id === userTeamId;
-
-                        return (
-                          <div
-                            key={team.team_id}
-                            className={`border rounded-xl overflow-hidden ${
-                              isMyTeam ? 'border-primary/30' : 'border-primary/10'
-                            }`}
-                          >
-                            <div
-                              className={`flex items-center justify-between p-4 cursor-pointer transition-all ${
-                                selectedTeamId === team.team_id
-                                  ? 'bg-primary/10'
-                                  : isMyTeam
-                                    ? 'bg-primary/5 hover:bg-primary/10'
-                                    : 'bg-secondary/20 hover:bg-secondary/30'
-                              }`}
-                              onClick={() =>
-                                setSelectedTeamId(
-                                  selectedTeamId === team.team_id ? null : team.team_id
-                                )
-                              }
-                            >
-                              <div className="flex items-center gap-4">
-                                <div className="w-10 text-center">{getRankBadge(idx + 1)}</div>
-                                <div>
-                                  <div className="flex items-center gap-2">
-                                    <p className="font-bold text-white text-lg">{team.team_name}</p>
-                                    {isMyTeam && (
-                                      <Badge className="bg-primary/20 text-primary border-0">
-                                        Your Team
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground">ELO: {team.team_elo}</p>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-6">
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-green-400">
-                                    {standing?.matches_won ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Wins</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-red-400">
-                                    {standing?.matches_lost ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Losses</p>
-                                </div>
-                                <div className="text-center">
-                                  <p className="text-2xl font-bold text-amber-400">
-                                    {standing?.points ?? 0}
-                                  </p>
-                                  <p className="text-xs text-muted-foreground">Points</p>
-                                </div>
-                                <ChevronRight
-                                  className={`h-5 w-5 text-muted-foreground transition-transform ${
-                                    selectedTeamId === team.team_id ? 'rotate-90' : ''
-                                  }`}
-                                />
-                              </div>
-                            </div>
-
-                            <AnimatePresence>
-                              {selectedTeamId === team.team_id && (
-                                <motion.div
-                                  initial={{ height: 0, opacity: 0 }}
-                                  animate={{ height: 'auto', opacity: 1 }}
-                                  exit={{ height: 0, opacity: 0 }}
-                                  className="overflow-hidden"
-                                >
-                                  <div className="p-4 pt-2 border-t border-primary/10">
-                                    <p className="text-sm text-muted-foreground mb-3">
-                                      {teamMatches.length} matches • Sorted by round
-                                    </p>
-                                    <div className="space-y-2">
-                                      {teamMatches.map((match) => {
-                                        const isTeam1 = match.team1_id === team.team_id;
-                                        const opponentName = isTeam1
-                                          ? match.team2_name
-                                          : match.team1_name;
-                                        const teamScore = isTeam1
-                                          ? match.team1_games_won
-                                          : match.team2_games_won;
-                                        const oppScore = isTeam1
-                                          ? match.team2_games_won
-                                          : match.team1_games_won;
-                                        const isWinner = match.winner_team_id === team.team_id;
-                                        const isLoser =
-                                          match.winner_team_id &&
-                                          match.winner_team_id !== team.team_id;
-
-                                        return (
-                                          <Link
-                                            key={match._id}
-                                            href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
-                                          >
-                                            <div
-                                              className={`flex items-center justify-between p-3 rounded-lg transition-all cursor-pointer ${
-                                                isWinner
-                                                  ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
-                                                  : isLoser
-                                                    ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/20'
-                                                    : match.status === 'in_progress'
-                                                      ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20'
-                                                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent'
-                                              }`}
-                                            >
-                                              <div className="flex items-center gap-3">
-                                                <Badge
-                                                  variant="outline"
-                                                  className={`${getRoundColor(match.round)}`}
-                                                >
-                                                  R{match.round}
-                                                </Badge>
-                                                {getStatusIcon(match.status)}
-                                                <div>
-                                                  <p className="font-medium text-white">
-                                                    vs {opponentName ?? 'TBD'}
-                                                  </p>
-                                                  {match.scheduled_time && (
-                                                    <p className="text-xs text-muted-foreground">
-                                                      {formatScheduledTime(match.scheduled_time)}
-                                                    </p>
-                                                  )}
-                                                </div>
-                                              </div>
-                                              <div className="flex items-center gap-3">
-                                                <div className="text-right">
-                                                  <p className="text-lg font-bold text-white">
-                                                    {teamScore} - {oppScore}
-                                                  </p>
-                                                  <p
-                                                    className={`text-xs ${TOURNAMENT_MATCH_STATUSES[match.status].color}`}
-                                                  >
-                                                    {TOURNAMENT_MATCH_STATUSES[match.status].name}
-                                                  </p>
-                                                </div>
-                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                                              </div>
-                                            </div>
-                                          </Link>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                        );
-                      })}
                     </motion.div>
                   )}
 
@@ -1258,8 +1417,85 @@ export default function TournamentDetailPage() {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -20 }}
-                      className="space-y-6"
+                      className="space-y-6 h-full overflow-y-auto pr-2"
                     >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <span>{roundsEntries.length} rounds</span>
+                        </div>
+                        {roundsPages.length > 1 && (
+                          <div className="flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => roundsApi?.scrollPrev()}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                              aria-label="Previous rounds slide"
+                              disabled={!canScrollRoundsPrev}
+                            >
+                              <ArrowLeft className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => roundsApi?.scrollNext()}
+                              className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                              aria-label="Next rounds slide"
+                              disabled={!canScrollRoundsNext}
+                            >
+                              <ArrowRight className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {roundsPages.length <= 1 ? (
+                        <div className="space-y-6">
+                          {roundsEntries.map(([round, matches]) =>
+                            renderRoundBlock(round, matches)
+                          )}
+                        </div>
+                      ) : (
+                        <Carousel opts={{ align: 'start' }} setApi={setRoundsApi}>
+                          <CarouselContent>
+                            {roundsPages.map((page, pageIndex) => (
+                              <CarouselItem key={`rounds-${pageIndex}`}>
+                                <div className="space-y-6">
+                                  {page.map(([round, matches]) =>
+                                    renderRoundBlock(round, matches)
+                                  )}
+                                </div>
+                              </CarouselItem>
+                            ))}
+                          </CarouselContent>
+                        </Carousel>
+                      )}
+                    </motion.div>
+                  )}
+
+                  {/* Schedule View */}
+                  {viewMode === 'schedule' && (
+                    <motion.div
+                      key="schedule"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-6 h-full overflow-y-auto pr-2"
+                    >
+                      <div className="flex items-center gap-4 pb-4 border-b border-primary/10">
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-5 w-5 text-primary" />
+                          <span className="font-semibold text-white">Full Tournament Schedule</span>
+                        </div>
+                        <div className="flex items-center text-sm text-muted-foreground">
+                          <span>
+                            {totalRounds} {roundsLabel}
+                          </span>
+                          <span className="mx-2">•</span>
+                          <span>
+                            {sortedMatches.length} {getMatchLabel(sortedMatches.length)}
+                          </span>
+                        </div>
+                      </div>
+
                       {Object.entries(matchesByRound)
                         .sort(([a], [b]) => parseInt(a) - parseInt(b))
                         .map(([round, matches]) => {
@@ -1373,6 +1609,188 @@ export default function TournamentDetailPage() {
                         })}
                     </motion.div>
                   )}
+
+                  {/* Teams View */}
+                  {viewMode === 'teams' && participants && (
+                    <motion.div
+                      key="teams"
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -20 }}
+                      className="space-y-4 h-full overflow-y-auto pr-2"
+                      ref={teamsScrollRef}
+                    >
+                      {teamsSortedByStandings.map((team, idx) => {
+                        const teamMatches = matchesByTeam[team.team_id] ?? [];
+                        const standing = standings?.find((s) => s.team_id === team.team_id);
+                        const isMyTeam = team.team_id === userTeamId;
+
+                        return (
+                          <div
+                            key={team.team_id}
+                            ref={(el) => {
+                              teamCardRefs.current.set(team.team_id, el);
+                            }}
+                            className={`border rounded-xl overflow-hidden ${
+                              isMyTeam ? 'border-primary/30' : 'border-primary/10'
+                            }`}
+                          >
+                            <div
+                              className={`flex items-center justify-between p-4 cursor-pointer transition-all ${
+                                selectedTeamId === team.team_id
+                                  ? 'bg-primary/10'
+                                  : isMyTeam
+                                    ? 'bg-primary/5 hover:bg-primary/10'
+                                    : 'bg-secondary/20 hover:bg-secondary/30'
+                              }`}
+                              onClick={() => {
+                                setSelectedTeamId(
+                                  selectedTeamId === team.team_id ? null : team.team_id
+                                );
+                                requestAnimationFrame(() =>
+                                  scrollTeamIntoView(team.team_id)
+                                );
+                              }}
+                            >
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 text-center">{getRankBadge(idx + 1)}</div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <p className="font-bold text-white text-lg">{team.team_name}</p>
+                                    {isMyTeam && (
+                                      <Badge className="bg-primary/20 text-primary border-0">
+                                        Your Team
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">ELO: {team.team_elo}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-6">
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-green-400">
+                                    {standing?.matches_won ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Wins</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-red-400">
+                                    {standing?.matches_lost ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Losses</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-slate-300">
+                                    {standing?.matches_tied ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Ties</p>
+                                </div>
+                                <div className="text-center">
+                                  <p className="text-2xl font-bold text-amber-400">
+                                    {standing?.points ?? 0}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">Points</p>
+                                </div>
+                                <ChevronRight
+                                  className={`h-5 w-5 text-muted-foreground transition-transform ${
+                                    selectedTeamId === team.team_id ? 'rotate-90' : ''
+                                  }`}
+                                />
+                              </div>
+                            </div>
+
+                            <AnimatePresence>
+                              {selectedTeamId === team.team_id && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  className="overflow-hidden"
+                                >
+                                  <div className="p-4 pt-2 border-t border-primary/10">
+                                    <p className="text-sm text-muted-foreground mb-3">
+                                      {teamMatches.length} {getMatchLabel(teamMatches.length)}
+                                    </p>
+                                    <div className="space-y-2">
+                                      {teamMatches.map((match) => {
+                                        const isTeam1 = match.team1_id === team.team_id;
+                                        const opponentName = isTeam1
+                                          ? match.team2_name
+                                          : match.team1_name;
+                                        const teamScore = isTeam1
+                                          ? match.team1_games_won
+                                          : match.team2_games_won;
+                                        const oppScore = isTeam1
+                                          ? match.team2_games_won
+                                          : match.team1_games_won;
+                                        const isWinner = match.winner_team_id === team.team_id;
+                                        const isLoser =
+                                          match.winner_team_id &&
+                                          match.winner_team_id !== team.team_id;
+
+                                        return (
+                                          <Link
+                                            key={match._id}
+                                            href={`/dashboard/tournaments/${tournamentId}/matches/${match._id}`}
+                                          >
+                                            <div
+                                              className={`flex items-center justify-between p-3 rounded-lg transition-all cursor-pointer ${
+                                                isWinner
+                                                  ? 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20'
+                                                  : isLoser
+                                                    ? 'bg-red-500/10 hover:bg-red-500/20 border border-red-500/20'
+                                                    : match.status === 'in_progress'
+                                                      ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-500/20'
+                                                      : 'bg-secondary/30 hover:bg-secondary/50 border border-transparent'
+                                              }`}
+                                            >
+                                              <div className="flex items-center gap-3">
+                                                <Badge
+                                                  variant="outline"
+                                                  className={`${getRoundColor(match.round)}`}
+                                                >
+                                                  R{match.round}
+                                                </Badge>
+                                                {getStatusIcon(match.status)}
+                                                <div>
+                                                  <p className="font-medium text-white">
+                                                    vs {opponentName ?? 'TBD'}
+                                                  </p>
+                                                  {match.scheduled_time && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                      {formatScheduledTime(match.scheduled_time)}
+                                                    </p>
+                                                  )}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center gap-3">
+                                                <div className="text-right">
+                                                  <p className="text-lg font-bold text-white">
+                                                    {teamScore} - {oppScore}
+                                                  </p>
+                                                  <p
+                                                    className={`text-xs ${TOURNAMENT_MATCH_STATUSES[match.status].color}`}
+                                                  >
+                                                    {TOURNAMENT_MATCH_STATUSES[match.status].name}
+                                                  </p>
+                                                </div>
+                                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                                              </div>
+                                            </div>
+                                          </Link>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+
                 </AnimatePresence>
               </CardContent>
             </Card>
@@ -1380,43 +1798,94 @@ export default function TournamentDetailPage() {
         </>
       ) : (
         /* Registration Phase or No Matches */
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
           {/* Description */}
-          <Card className="border-primary/10 lg:col-span-2">
+          <Card className="border-primary/10 lg:col-span-2 h-fit self-start">
             <CardHeader>
               <CardTitle>About This Tournament</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-6">{tournament.description}</p>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Format</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Swords className="h-4 w-4 text-amber-400" />
+                    <span>Format</span>
+                  </div>
                   <p className="font-semibold text-white">{formatInfo.name}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Games/Match</p>
-                  <p className="font-semibold text-white">
-                    {tournament.games_per_match === 1
-                      ? 'Single Game'
-                      : `Best of ${tournament.games_per_match * 2 - 1}`}
-                  </p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Target className="h-4 w-4 text-blue-400" />
+                    <span>Games/Match</span>
+                  </div>
+                  <p className="font-semibold text-white">{boLabel}</p>
                 </div>
                 <div className="p-4 rounded-lg bg-secondary/30">
-                  <p className="text-sm text-muted-foreground">Team Limits</p>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <Calendar className="h-4 w-4 text-purple-400" />
+                    <span>Deadline</span>
+                  </div>
                   <p className="font-semibold text-white">
-                    {tournament.min_teams} - {tournament.max_teams}
+                    {tournament.registration_deadline
+                      ? new Date(tournament.registration_deadline).toLocaleDateString()
+                      : 'TBD'}
                   </p>
                 </div>
-                {tournament.registration_deadline && (
-                  <div className="p-4 rounded-lg bg-secondary/30">
-                    <p className="text-sm text-muted-foreground">Deadline</p>
-                    <p className="font-semibold text-white">
-                      {new Date(tournament.registration_deadline).toLocaleDateString()}
-                    </p>
+                <div className="p-4 rounded-lg bg-secondary/30 relative">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Timer className="h-4 w-4 text-green-400" />
+                      <span>Start</span>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip open={isStartInfoOpen} onOpenChange={setIsStartInfoOpen}>
+                        <TooltipTrigger asChild>
+                          <button
+                            type="button"
+                            className="text-muted-foreground hover:text-white"
+                            aria-label="Start timing info"
+                            onClick={() => setIsStartInfoOpen((prev) => !prev)}
+                          >
+                            <Info className="h-4 w-4" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="center">
+                          <p className="text-xs">
+                            Organizer can start the tournament before this date.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                  <p className="font-semibold text-white">
+                    {tournament.start_time
+                      ? new Date(tournament.start_time).toLocaleDateString()
+                      : 'TBD'}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground mb-6">{tournament.description}</p>
+
+              {!tournament.is_official &&
+                creatorProfile &&
+                (tournament.status === 'registration' ||
+                  tournament.status === 'cancelled') && (
+                  <div className="mb-6 text-sm text-muted-foreground">
+                    <span className="block">Created by</span>
+                    <span className="text-white">
+                      {creatorProfile.first_name} {creatorProfile.last_name}
+                    </span>
+                    <span>
+                      {creatorProfile.institution
+                        ? ` • ${creatorProfile.institution}`
+                        : ''}
+                      {creatorProfile.team?.team_name
+                        ? ` • ${creatorProfile.team.team_name}`
+                        : ''}
+                    </span>
                   </div>
                 )}
-              </div>
 
               {canManage &&
                 tournament.status === 'registration' &&
@@ -1430,6 +1899,7 @@ export default function TournamentDetailPage() {
                     </p>
                   </div>
                 )}
+
             </CardContent>
           </Card>
 
@@ -1438,44 +1908,111 @@ export default function TournamentDetailPage() {
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Registered Teams</span>
-                <Badge variant="outline">
-                  {tournament.participant_count} / {tournament.max_teams}
-                </Badge>
+                {registeredTeamsPages.length > 1 && (
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => registeredTeamsApi?.scrollPrev()}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      aria-label="Previous teams slide"
+                      disabled={!canScrollRegisteredTeamsPrev}
+                    >
+                      <ArrowLeft className="h-4 w-4" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => registeredTeamsApi?.scrollNext()}
+                      className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-input bg-background text-foreground hover:bg-accent hover:text-accent-foreground disabled:pointer-events-none disabled:opacity-50"
+                      aria-label="Next teams slide"
+                      disabled={!canScrollRegisteredTeamsNext}
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                    </button>
+                  </div>
+                )}
               </CardTitle>
             </CardHeader>
             <CardContent>
               {participants && participants.length > 0 ? (
-                <div className="space-y-2">
-                  {participants.map((participant, index) => (
-                    <div
-                      key={participant._id}
-                      className={`flex items-center gap-3 p-3 rounded-lg ${
-                        participant.team_id === userTeamId
-                          ? 'bg-primary/10 border border-primary/20'
-                          : 'bg-secondary/30'
-                      }`}
-                    >
-                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
-                        {index + 1}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-white truncate">
-                            {participant.team_name}
-                          </p>
-                          {participant.team_id === userTeamId && (
-                            <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
-                              You
-                            </Badge>
-                          )}
+                <>
+                  {registeredTeamsPages.length <= 1 ? (
+                    <div className="space-y-2">
+                      {participants.map((participant, index) => (
+                        <div
+                          key={participant._id}
+                          className={`flex items-center gap-3 p-3 rounded-lg ${
+                            participant.team_id === userTeamId
+                              ? 'bg-primary/10 border border-primary/20'
+                              : 'bg-secondary/30'
+                          }`}
+                        >
+                          <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                            {index + 1}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-white truncate">
+                                {participant.team_name}
+                              </p>
+                              {participant.team_id === userTeamId && (
+                                <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                                  You
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-xs text-muted-foreground">
+                              ELO: {participant.team_elo}
+                            </p>
+                          </div>
                         </div>
-                        <p className="text-xs text-muted-foreground">
-                          ELO: {participant.team_elo}
-                        </p>
-                      </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  ) : (
+                    <Carousel opts={{ align: 'start' }} setApi={setRegisteredTeamsApi}>
+                      <CarouselContent>
+                        {registeredTeamsPages.map((page, pageIndex) => (
+                          <CarouselItem key={`registered-${pageIndex}`}>
+                            <div className="space-y-2">
+                              {page.map((participant, index) => {
+                                const rankIndex =
+                                  pageIndex * (registeredTeamsPageSize || 0) + index;
+                                return (
+                                  <div
+                                    key={participant._id}
+                                    className={`flex items-center gap-3 p-3 rounded-lg ${
+                                      participant.team_id === userTeamId
+                                        ? 'bg-primary/10 border border-primary/20'
+                                        : 'bg-secondary/30'
+                                    }`}
+                                  >
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold text-sm">
+                                      {rankIndex + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2">
+                                        <p className="font-medium text-white truncate">
+                                          {participant.team_name}
+                                        </p>
+                                        {participant.team_id === userTeamId && (
+                                          <Badge className="text-[10px] px-1.5 py-0 bg-primary/20 text-primary border-0">
+                                            You
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-muted-foreground">
+                                        ELO: {participant.team_elo}
+                                      </p>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                    </Carousel>
+                  )}
+                </>
               ) : (
                 <div className="text-center py-8">
                   <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />

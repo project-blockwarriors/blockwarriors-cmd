@@ -21,11 +21,15 @@ import {
   UserMinus,
   Trash2,
   User,
+  UserPlus,
+  Check,
+  X,
   Shield,
   Target,
   Swords,
   TrendingUp,
   AlertTriangle,
+  Minus,
 } from 'lucide-react';
 import { authClient } from '@/lib/auth-client';
 import toast from 'react-hot-toast';
@@ -43,11 +47,16 @@ export default function TeamPage() {
     api.teams.getTeamTournamentHistory,
     profile?.team?.id ? { teamId: profile.team.id } : 'skip'
   );
+  const joinRequests = useQuery(
+    api.teams.getTeamJoinRequests,
+    profile?.team?.id && userId ? { teamId: profile.team.id, userId } : 'skip'
+  );
 
   const updateTeamImage = useMutation(api.teams.updateTeamImage);
   const deleteTeamImage = useMutation(api.teams.deleteTeamImage);
   const leaveTeam = useMutation(api.teams.leaveTeam);
   const disbandTeam = useMutation(api.teams.disbandTeam);
+  const respondToJoinRequest = useMutation(api.teams.respondToJoinRequest);
 
   const [isLeaving, setIsLeaving] = useState(false);
   const [isDisbanding, setIsDisbanding] = useState(false);
@@ -100,6 +109,27 @@ export default function TeamPage() {
     }
   };
 
+  const handleJoinRequest = async (requestId: Id<'team_join_requests'>, action: 'accept' | 'decline') => {
+    if (!userId) return;
+    try {
+      const result = await respondToJoinRequest({
+        requestId,
+        userId,
+        action,
+      });
+      if (!result.success) {
+        toast.error(result.error || 'Failed to update join request.');
+        return;
+      }
+      toast.success(
+        action === 'accept' ? 'Join request accepted.' : 'Join request declined.'
+      );
+    } catch (error) {
+      console.error('Failed to update join request:', error);
+      toast.error(getErrorMessage(error, 'Failed to update join request.'));
+    }
+  };
+
   if (!userId) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -144,10 +174,30 @@ export default function TeamPage() {
 
   const team = profile.team;
   const isLeader = team.leader_id === userId;
+  const teamTies = team.team_ties ?? 0;
   const winRate =
-    team.team_wins + team.team_losses > 0
-      ? Math.round((team.team_wins / (team.team_wins + team.team_losses)) * 100)
+    team.team_wins + team.team_losses + teamTies > 0
+      ? Math.round(
+          ((team.team_wins + teamTies * 0.5) /
+            (team.team_wins + team.team_losses + teamTies)) *
+            100
+        )
       : 0;
+
+  const formatJoinRequestDate = (timestamp: number) => {
+    const now = Date.now();
+    const diffMs = Math.max(0, now - timestamp);
+    const minute = 60 * 1000;
+    const hour = 60 * minute;
+    const day = 24 * hour;
+
+    if (diffMs < minute) return 'Just now';
+    if (diffMs < hour) return `${Math.floor(diffMs / minute)}m ago`;
+    if (diffMs < day) return `${Math.floor(diffMs / hour)}h ago`;
+    if (diffMs < 2 * day) return 'Yesterday';
+    if (diffMs < 7 * day) return `${Math.floor(diffMs / day)}d ago`;
+    return new Date(timestamp).toLocaleDateString('en-US');
+  };
 
   return (
     <motion.div
@@ -284,7 +334,7 @@ export default function TeamPage() {
       </Card>
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-transparent">
           <CardContent className="pt-6 text-center">
             <Trophy className="h-8 w-8 text-primary mx-auto mb-2" />
@@ -306,6 +356,13 @@ export default function TeamPage() {
             <p className="text-sm text-muted-foreground">Losses</p>
           </CardContent>
         </Card>
+        <Card className="border-slate-500/20 bg-gradient-to-br from-slate-500/10 to-transparent">
+          <CardContent className="pt-6 text-center">
+            <Minus className="h-8 w-8 text-slate-400 mx-auto mb-2" />
+            <p className="text-4xl font-bold text-white">{teamTies}</p>
+            <p className="text-sm text-muted-foreground">Ties</p>
+          </CardContent>
+        </Card>
         <Card className="border-amber-500/20 bg-gradient-to-br from-amber-500/10 to-transparent">
           <CardContent className="pt-6 text-center">
             <Swords className="h-8 w-8 text-amber-400 mx-auto mb-2" />
@@ -316,6 +373,82 @@ export default function TeamPage() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Join Requests */}
+        <Card className="border-primary/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-lg">
+              <UserPlus className="h-5 w-5 text-primary" />
+              Join Requests
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {joinRequests === undefined ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            ) : joinRequests.length > 0 ? (
+              <div className="space-y-3">
+                {joinRequests.map((request) => (
+                  <div
+                    key={request._id}
+                    className="flex items-center gap-4 p-4 rounded-xl bg-secondary/30"
+                  >
+                    <div className="relative h-12 w-12 rounded-full overflow-hidden bg-secondary flex-shrink-0">
+                      {request.profile_image_url ? (
+                        <Image
+                          src={request.profile_image_url}
+                          alt={`${request.first_name} ${request.last_name}`}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <User className="h-6 w-6 text-muted-foreground" />
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-white">
+                        {request.first_name} {request.last_name}
+                      </p>
+                      {request.institution && (
+                        <p className="text-sm text-muted-foreground">
+                          {request.institution}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted-foreground/70">
+                        {formatJoinRequestDate(request.requested_at)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleJoinRequest(request._id, 'accept')}
+                      >
+                        <Check className="h-4 w-4 mr-1" />
+                        Accept
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleJoinRequest(request._id, 'decline')}
+                      >
+                        <X className="h-4 w-4 mr-1" />
+                        Decline
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8">
+                <UserPlus className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                <p className="text-muted-foreground">No join requests yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Team Members */}
         <Card className="border-primary/10">
           <CardHeader>
@@ -422,17 +555,20 @@ export default function TeamPage() {
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-2">
-                          <span className="text-green-400 font-bold">
-                            {tournament.matches_won}W
-                          </span>
-                          <span className="text-muted-foreground">/</span>
-                          <span className="text-red-400 font-bold">
-                            {tournament.matches_played - tournament.matches_won}
-                            L
-                          </span>
-                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            <span className="text-green-400 font-bold">
+                              {tournament.matches_won}W
+                            </span>
+                            <span className="text-muted-foreground">/</span>
+                            <span className="text-red-400 font-bold">
+                              {tournament.matches_lost}L
+                            </span>
+                            <span className="text-muted-foreground">/</span>
+                            <span className="text-slate-300 font-bold">
+                              {tournament.matches_tied}T
+                            </span>
+                          </div>
                         <ChevronRight className="h-4 w-4 text-muted-foreground mt-1 ml-auto" />
                       </div>
                     </div>

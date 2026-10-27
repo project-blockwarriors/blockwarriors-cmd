@@ -1,11 +1,20 @@
 'use client';
 
-import { useQuery } from 'convex/react';
-import { useParams } from 'next/navigation';
+import { useQuery, useMutation } from 'convex/react';
+import { useParams, useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/convex';
 import { Id } from '@packages/backend/convex/_generated/dataModel';
-import { ServerIcon, UsersIcon, ClockIcon } from '@heroicons/react/24/outline';
+import {
+  ServerIcon,
+  UsersIcon,
+  ClockIcon,
+  ArrowLeftIcon,
+} from '@heroicons/react/24/outline';
+import { authClient } from '@/lib/auth-client';
+import { Button } from '@/components/ui/button';
+import { useState } from 'react';
+import Link from 'next/link';
 
 interface TokenData {
   token: string;
@@ -47,12 +56,28 @@ interface MatchState {
 
 export default function MatchDetailPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const matchId = params.id as string;
+  const tournamentId = searchParams.get('tournamentId');
+  const tournamentMatchId = searchParams.get('tournamentMatchId');
+  const { data: session } = authClient.useSession();
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [blueTokenInput, setBlueTokenInput] = useState('');
+  const [redTokenInput, setRedTokenInput] = useState('');
+  const [proxyError, setProxyError] = useState<string | null>(null);
+  const [proxyLoading, setProxyLoading] = useState(false);
 
   const matchData = useQuery(
     api.matches.getMatchWithTokens,
     matchId ? { matchId: matchId as Id<'matches'> } : 'skip'
   );
+  const userProfile = useQuery(
+    api.userProfiles.getUserProfile,
+    session?.user?.id ? { userId: session.user.id } : 'skip'
+  );
+  const claimTokenForMatch = useMutation(api.tokens.claimTokenForMatch);
+  const updateMatches = useMutation(api.matches.updateMatches);
+  const recordGameResult = useMutation(api.tournamentMatches.recordGameResult);
 
   if (matchData === undefined) {
     return (
@@ -79,6 +104,172 @@ export default function MatchDetailPage() {
 
   const matchState = matchData.match_state as MatchState | null | undefined;
   const players = Array.isArray(matchState?.players) ? matchState.players : [];
+  const canCopyTokens = Boolean(session?.user?.id);
+  const userGameTeamId = userProfile?.team?.game_team_id;
+  const hasTokens = Boolean(matchData.tokens && matchData.totalTokens > 0);
+  const hasUnusedBlueToken = Boolean(
+    matchData.tokens?.blueTeam?.some((tokenData: TokenData) => !tokenData.is_used)
+  );
+  const hasUnusedRedToken = Boolean(
+    matchData.tokens?.redTeam?.some((tokenData: TokenData) => !tokenData.is_used)
+  );
+  const canCopyBlue =
+    Boolean(userGameTeamId) &&
+    matchData.blue_team_id &&
+    userGameTeamId === matchData.blue_team_id;
+  const canCopyRed =
+    Boolean(userGameTeamId) &&
+    matchData.red_team_id &&
+    userGameTeamId === matchData.red_team_id;
+  const userProxyBlueClaimed = Boolean(
+    session?.user?.id &&
+      matchData.tokens?.blueTeam?.some(
+        (tokenData: TokenData) =>
+          tokenData.user_id === `proxy:${session.user.id}:blue`
+      )
+  );
+  const userProxyRedClaimed = Boolean(
+    session?.user?.id &&
+      matchData.tokens?.redTeam?.some(
+        (tokenData: TokenData) =>
+          tokenData.user_id === `proxy:${session.user.id}:red`
+      )
+  );
+  const canProxy = canCopyBlue || canCopyRed;
+  const showBlueProxyInput =
+    canCopyBlue && hasUnusedBlueToken && !userProxyBlueClaimed;
+  const showRedProxyInput =
+    canCopyRed && hasUnusedRedToken && !userProxyRedClaimed;
+  const showProxyDialog =
+    matchData.match_status === 'Waiting' &&
+    hasTokens &&
+    canProxy &&
+    matchData.usedTokens < matchData.totalTokens &&
+    (showBlueProxyInput || showRedProxyInput);
+  const blueWinnerPlayerId = matchData.tokens?.blueTeam.find(
+    (tokenData: TokenData) => tokenData.user_id
+  )?.user_id;
+  const redWinnerPlayerId = matchData.tokens?.redTeam.find(
+    (tokenData: TokenData) => tokenData.user_id
+  )?.user_id;
+
+  const handleProxyClaim = async (side: 'blue' | 'red') => {
+    if (!session?.user?.id || !matchData) return;
+    setProxyError(null);
+    setProxyLoading(true);
+    const token = side === 'blue' ? blueTokenInput.trim() : redTokenInput.trim();
+    if (!token) {
+      setProxyError('Please paste a token.');
+      setProxyLoading(false);
+      return;
+    }
+
+    const playerId = `proxy:${session.user.id}:${side}`;
+    const result = await claimTokenForMatch({
+      token,
+      matchId: matchId as Id<'matches'>,
+      playerId,
+      ign: `Proxy ${side}`,
+    });
+
+    if (!result.success) {
+      setProxyError(result.error ?? 'Failed to claim token.');
+      setProxyLoading(false);
+      return;
+    }
+
+    if (side === 'blue') {
+      setBlueTokenInput('');
+    } else {
+      setRedTokenInput('');
+    }
+
+    setProxyLoading(false);
+  };
+
+  const handleProxyFinish = async (winnerPlayerId?: string) => {
+    if (!winnerPlayerId) {
+      setProxyError('Winner token not found.');
+      return;
+    }
+    setProxyError(null);
+    setProxyLoading(true);
+    const result = await updateMatches({
+      updates: [
+        {
+          matchId: matchId as Id<'matches'>,
+          matchStatus: 'Finished',
+          winnerPlayerId,
+        },
+      ],
+    });
+    if (!result?.results?.[0]?.success) {
+      setProxyError(result?.results?.[0]?.error ?? 'Failed to finish match.');
+      setProxyLoading(false);
+      return;
+    }
+
+    if (tournamentMatchId && matchData.tokens) {
+      const winnerOnBlue = matchData.tokens.blueTeam.some(
+        (tokenData: TokenData) => tokenData.user_id === winnerPlayerId
+      );
+      const winnerTeamNumber = winnerOnBlue ? 1 : 2;
+      const recordResult = await recordGameResult({
+        tournamentMatchId: tournamentMatchId as Id<'tournament_matches'>,
+        gameMatchId: matchId as Id<'matches'>,
+        winnerTeamNumber,
+      });
+      if (!recordResult?.success) {
+        setProxyError(recordResult?.error ?? 'Failed to update tournament match.');
+        setProxyLoading(false);
+        return;
+      }
+    }
+    setProxyLoading(false);
+  };
+
+  const handleProxyDraw = async () => {
+    if (!matchData) return;
+    setProxyError(null);
+    setProxyLoading(true);
+    const result = await updateMatches({
+      updates: [
+        {
+          matchId: matchId as Id<'matches'>,
+          matchStatus: 'Finished',
+        },
+      ],
+    });
+    if (!result?.results?.[0]?.success) {
+      setProxyError(result?.results?.[0]?.error ?? 'Failed to finish match.');
+      setProxyLoading(false);
+      return;
+    }
+
+    if (tournamentMatchId) {
+      const recordResult = await recordGameResult({
+        tournamentMatchId: tournamentMatchId as Id<'tournament_matches'>,
+        gameMatchId: matchId as Id<'matches'>,
+        isDraw: true,
+      });
+      if (!recordResult?.success) {
+        setProxyError(recordResult?.error ?? 'Failed to update tournament match.');
+        setProxyLoading(false);
+        return;
+      }
+    }
+    setProxyLoading(false);
+  };
+
+  const handleCopyToken = async (token: string) => {
+    try {
+      await navigator.clipboard.writeText(token);
+      setCopiedToken(token);
+      setTimeout(() => setCopiedToken(null), 1500);
+    } catch {
+      setCopiedToken(null);
+    }
+  };
 
   return (
     <motion.div
@@ -88,6 +279,29 @@ export default function MatchDetailPage() {
       className="max-w-6xl mx-auto p-6"
     >
       <div className="flex items-center gap-3 mb-8">
+        {matchData.tournament_id && matchData.tournament_match_id ? (
+          <Link
+            href={`/dashboard/tournaments/${matchData.tournament_id}/matches/${matchData.tournament_match_id}`}
+          >
+            <Button variant="ghost" size="icon">
+              <ArrowLeftIcon className="w-5 h-5" />
+            </Button>
+          </Link>
+        ) : tournamentId && tournamentMatchId ? (
+          <Link
+            href={`/dashboard/tournaments/${tournamentId}/matches/${tournamentMatchId}`}
+          >
+            <Button variant="ghost" size="icon">
+              <ArrowLeftIcon className="w-5 h-5" />
+            </Button>
+          </Link>
+        ) : (
+          <Link href="/dashboard/matches">
+            <Button variant="ghost" size="icon">
+              <ArrowLeftIcon className="w-5 h-5" />
+            </Button>
+          </Link>
+        )}
         <ServerIcon className="w-8 h-8 text-blue-400" />
         <div>
           <h1 className="text-3xl font-bold text-white">Match Details</h1>
@@ -162,7 +376,8 @@ export default function MatchDetailPage() {
       </div>
 
       {/* 1v1 PvP Match View */}
-      {matchData.match_type === 'pvp' &&
+      {matchData.match_status === 'Waiting' &&
+        matchData.match_type === 'pvp' &&
         matchData.tokens &&
         matchData.tokens.blueTeam &&
         matchData.tokens.redTeam && (
@@ -180,6 +395,11 @@ export default function MatchDetailPage() {
                   <h3 className="text-lg font-semibold text-blue-400">
                     Blue Team
                   </h3>
+                  {matchData.blue_team_name && (
+                    <span className="text-sm text-blue-200/80">
+                      {matchData.blue_team_name}
+                    </span>
+                  )}
                 </div>
                 {matchData.tokens.blueTeam.length > 0 ? (
                   <div className="space-y-2">
@@ -195,12 +415,17 @@ export default function MatchDetailPage() {
                             </div>
                           ) : (
                             <div>
-                              <p className="text-gray-500">
-                                Waiting for player...
-                              </p>
-                              <p className="text-xs text-gray-600 font-mono">
-                                {tokenData.token.substring(0, 8)}...
-                              </p>
+                              <p className="text-gray-500">Waiting for player...</p>
+                              {canCopyTokens && canCopyBlue && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-2"
+                                  onClick={() => handleCopyToken(tokenData.token)}
+                                >
+                                  {copiedToken === tokenData.token ? 'Copied' : 'Copy token'}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -219,6 +444,11 @@ export default function MatchDetailPage() {
                   <h3 className="text-lg font-semibold text-red-400">
                     Red Team
                   </h3>
+                  {matchData.red_team_name && (
+                    <span className="text-sm text-red-200/80">
+                      {matchData.red_team_name}
+                    </span>
+                  )}
                 </div>
                 {matchData.tokens.redTeam.length > 0 ? (
                   <div className="space-y-2">
@@ -234,12 +464,17 @@ export default function MatchDetailPage() {
                             </div>
                           ) : (
                             <div>
-                              <p className="text-gray-500">
-                                Waiting for player...
-                              </p>
-                              <p className="text-xs text-gray-600 font-mono">
-                                {tokenData.token.substring(0, 8)}...
-                              </p>
+                              <p className="text-gray-500">Waiting for player...</p>
+                              {canCopyTokens && canCopyRed && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  className="mt-2"
+                                  onClick={() => handleCopyToken(tokenData.token)}
+                                >
+                                  {copiedToken === tokenData.token ? 'Copied' : 'Copy token'}
+                                </Button>
+                              )}
                             </div>
                           )}
                         </div>
@@ -403,6 +638,93 @@ export default function MatchDetailPage() {
             </pre>
           </details>
         </motion.div>
+      )}
+
+      {(showProxyDialog || (canProxy && matchData.match_status === 'Playing')) && (
+        <div className="bg-black/40 backdrop-blur-md rounded-lg p-6 border border-white/10">
+          <h2 className="text-xl font-bold text-white mb-4">Proxy Token Entry</h2>
+          {showProxyDialog && (
+            <>
+              <p className="text-sm text-gray-400 mb-4">
+                Paste tokens here to simulate player joins without using the Minecraft server.
+              </p>
+              {proxyError && (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3 mb-4">
+                  <p className="text-red-400 text-sm">{proxyError}</p>
+                </div>
+              )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                {showBlueProxyInput && (
+                  <div>
+                    <label className="text-xs text-gray-400">Blue token</label>
+                    <input
+                      type="password"
+                      value={blueTokenInput}
+                      onChange={(e) => setBlueTokenInput(e.target.value)}
+                      className="mt-1 w-full rounded-md bg-black/50 border border-white/10 px-3 py-2 text-sm text-white"
+                      placeholder="Paste blue token"
+                      disabled={proxyLoading}
+                    />
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      onClick={() => handleProxyClaim('blue')}
+                      disabled={proxyLoading}
+                    >
+                      Confirm Blue Token
+                    </Button>
+                  </div>
+                )}
+                {showRedProxyInput && (
+                  <div>
+                    <label className="text-xs text-gray-400">Red token</label>
+                    <input
+                      type="password"
+                      value={redTokenInput}
+                      onChange={(e) => setRedTokenInput(e.target.value)}
+                      className="mt-1 w-full rounded-md bg-black/50 border border-white/10 px-3 py-2 text-sm text-white"
+                      placeholder="Paste red token"
+                      disabled={proxyLoading}
+                    />
+                    <Button
+                      className="mt-2"
+                      size="sm"
+                      onClick={() => handleProxyClaim('red')}
+                      disabled={proxyLoading}
+                    >
+                      Confirm Red Token
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          {matchData.match_status === 'Playing' && (
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                onClick={() => handleProxyFinish(blueWinnerPlayerId)}
+                disabled={proxyLoading}
+              >
+                Declare Blue Winner
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => handleProxyFinish(redWinnerPlayerId)}
+                disabled={proxyLoading}
+              >
+                Declare Red Winner
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleProxyDraw}
+                disabled={proxyLoading}
+              >
+                Declare Draw
+              </Button>
+            </div>
+          )}
+        </div>
       )}
 
       {!matchState && (

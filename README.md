@@ -61,4 +61,5 @@ Day-to-day work flows through `staging`, not directly into `main`.
 - [Beacon Deploy Guide](./docs/beacon-deploy.md)
 - [Technology Stack](./docs/stack.md)
 - [Match System Architecture](./docs/match-system-architecture.md)
+- [Build UHC Game](./docs/games/builduhc.md)
 - [Contributing Guidelines](./docs/contributing.md)
