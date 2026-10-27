@@ -1,3 +1,4 @@
+import { requireUserId } from "./auth";
 import { query, mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
@@ -407,6 +408,7 @@ export const joinTournament = mutation({
     error: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
+    await requireUserId(ctx, args.userId);
     // Get tournament
     const tournament = await ctx.db.get(args.tournamentId);
     if (!tournament) {
@@ -427,6 +429,16 @@ export const joinTournament = mutation({
     const teamId = await getUserTeamId(ctx, args.userId);
     if (!teamId) {
       return { success: false, error: "You must be on a team to join a tournament" };
+    }
+
+    if (tournament.is_official) {
+      const team = await ctx.db.get(teamId);
+      if (!team || team.leader_id !== args.userId) {
+        return {
+          success: false,
+          error: "Only team leaders can register for official tournaments",
+        };
+      }
     }
 
     // Check if team is already registered
@@ -477,6 +489,7 @@ export const leaveTournament = mutation({
     error: v.optional(v.string()),
   }),
   handler: async (ctx, args) => {
+    await requireUserId(ctx, args.userId);
     // Get tournament
     const tournament = await ctx.db.get(args.tournamentId);
     if (!tournament) {
@@ -492,6 +505,16 @@ export const leaveTournament = mutation({
     const teamId = await getUserTeamId(ctx, args.userId);
     if (!teamId) {
       return { success: false, error: "You are not on a team" };
+    }
+
+    if (tournament.is_official) {
+      const team = await ctx.db.get(teamId);
+      if (!team || team.leader_id !== args.userId) {
+        return {
+          success: false,
+          error: "Only team leaders can withdraw from official tournaments",
+        };
+      }
     }
 
     // Find and delete participation
@@ -661,9 +684,12 @@ export const cancelTournament = mutation({
       return { success: false, error: "Only the tournament creator or admin can cancel the tournament" };
     }
 
-    // Check tournament is not already completed
+    // Check tournament is not already completed or in progress
     if (tournament.status === "completed") {
       return { success: false, error: "Cannot cancel a completed tournament" };
+    }
+    if (tournament.status === "in_progress") {
+      return { success: false, error: "Cannot cancel a tournament in progress" };
     }
 
     if (tournament.status === "cancelled") {

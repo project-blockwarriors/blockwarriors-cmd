@@ -1,7 +1,7 @@
 import { httpRouter } from "convex/server";
 import { authComponent, createAuth } from "./auth";
 import { httpAction } from "./_generated/server";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
 
 const http = httpRouter();
@@ -792,7 +792,7 @@ http.route({
 
     try {
       const result = await ctx.runMutation(
-        api.tournamentMatches.createTournamentGame,
+        internal.tournamentMatches.createTournamentGameForServer,
         {
           tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
           matchType: match_type || "auto",
@@ -834,16 +834,24 @@ http.route({
       return errorResponse("Invalid JSON in request body");
     }
 
-    const { tournament_match_id, game_match_id, winner_team_number } = body;
+    const { tournament_match_id, game_match_id, winner_team_number, is_draw } = body;
 
-    if (!tournament_match_id || !game_match_id || winner_team_number === undefined) {
+    if (
+      !tournament_match_id ||
+      !game_match_id ||
+      (winner_team_number === undefined && !is_draw)
+    ) {
       return errorResponse(
         "Missing required fields: tournament_match_id, game_match_id, winner_team_number"
       );
     }
 
-    // Validate winner_team_number is 1 or 2
-    if (winner_team_number !== 1 && winner_team_number !== 2) {
+    // Validate winner_team_number is 1 or 2 when provided
+    if (
+      winner_team_number !== undefined &&
+      winner_team_number !== 1 &&
+      winner_team_number !== 2
+    ) {
       return errorResponse("winner_team_number must be 1 or 2");
     }
 
@@ -853,7 +861,8 @@ http.route({
         {
           tournamentMatchId: tournament_match_id as Id<"tournament_matches">,
           gameMatchId: game_match_id as Id<"matches">,
-          winnerTeamNumber: winner_team_number as 1 | 2,
+          winnerTeamNumber: winner_team_number as 1 | 2 | undefined,
+          isDraw: Boolean(is_draw),
         }
       );
 

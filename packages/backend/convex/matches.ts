@@ -97,11 +97,28 @@ export const getMatchWithTokens = query({
       return null;
     }
 
+    const tournamentMatch = match.tournament_match_id
+      ? await ctx.db.get(match.tournament_match_id)
+      : null;
+
     // Get all tokens for this match
     const tokens = await ctx.db
       .query("game_tokens")
       .withIndex("by_match_id", (q) => q.eq("match_id", args.matchId))
       .collect();
+
+    const blueTeam = await ctx.db
+      .query("teams")
+      .withIndex("by_game_team_id", (q) =>
+        q.eq("game_team_id", match.blue_team_id.toString())
+      )
+      .first();
+    const redTeam = await ctx.db
+      .query("teams")
+      .withIndex("by_game_team_id", (q) =>
+        q.eq("game_team_id", match.red_team_id.toString())
+      )
+      .first();
 
     // Group tokens by team
     const blueTeamTokens = tokens
@@ -126,8 +143,12 @@ export const getMatchWithTokens = query({
       match_id: match._id.toString(),
       match_type: match.match_type,
       match_status: match.match_status,
+      tournament_match_id: match.tournament_match_id?.toString(),
+      tournament_id: tournamentMatch?.tournament_id.toString(),
       blue_team_id: match.blue_team_id.toString(),
       red_team_id: match.red_team_id.toString(),
+      blue_team_name: blueTeam?.team_name,
+      red_team_name: redTeam?.team_name,
       mode: match.mode,
       expires_at: match.expires_at,
       match_state: match.match_state,
