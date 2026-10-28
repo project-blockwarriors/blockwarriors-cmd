@@ -9,15 +9,18 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerKickEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.Inventory;
 
 import ai.blockwarriors.beacon.game.BaseGame;
 import ai.blockwarriors.beacon.game.DisconnectReason;
 import ai.blockwarriors.beacon.game.DisconnectResult;
 import ai.blockwarriors.beacon.game.impl.BuildUHCGame;
+import ai.blockwarriors.beacon.game.kit.KitSelectionGUI;
 import ai.blockwarriors.beacon.service.MatchManager;
 
 import java.util.logging.Logger;
@@ -126,6 +129,38 @@ public class MatchEventListener implements Listener {
         } else {
             player.sendMessage("\u00a7cFailed to reconnect to match. The match may have ended.");
             LOGGER.warning("Player " + player.getName() + " failed to reconnect to match " + matchId);
+        }
+    }
+
+    // ==================== Kit Selection ====================
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) {
+            return;
+        }
+
+        Player player = (Player) event.getWhoClicked();
+        UUID playerId = player.getUniqueId();
+
+        if (!matchManager.isPlayerInMatch(playerId)) {
+            return;
+        }
+
+        BaseGame game = matchManager.getGameForPlayer(playerId);
+        if (!(game instanceof BuildUHCGame)) {
+            return;
+        }
+
+        BuildUHCGame uhcGame = (BuildUHCGame) game;
+        KitSelectionGUI kitGUI = uhcGame.getKitSelectionGUI();
+        if (kitGUI == null) {
+            return;
+        }
+
+        Inventory clicked = event.getClickedInventory();
+        if (clicked != null && kitGUI.handleClick(player, clicked, event.getSlot())) {
+            event.setCancelled(true);
         }
     }
 
